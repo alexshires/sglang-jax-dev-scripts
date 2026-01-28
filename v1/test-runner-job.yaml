@@ -1,0 +1,88 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: sglang-jax-test-runner-
+  namespace: eval-serving
+spec:
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+    spec:
+      serviceAccountName: eval-serving-sa
+      nodeSelector:
+        cloud.google.com/gke-tpu-topology: 1x1
+        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+      restartPolicy: Never
+      containers:
+      - name: test-runner
+        image: europe-docker.pkg.dev/ashires-e7aaot/container/vllm-tpu:pr
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "24"
+            memory: "100Gi"
+            ephemeral-storage: "10Gi"
+            google.com/tpu: "1"
+          limits:
+            cpu: "24"
+            memory: "100Gi"
+            ephemeral-storage: "10Gi"
+            google.com/tpu: "1"
+        command:
+        - "/bin/bash"
+        - "-c"
+        - |
+          set -e
+          echo "Starting test runner job..."
+          
+          # Install git if needed (likely needed in minimal images)
+          apt-get update && apt-get install -y git
+          
+          # Clone the repository
+          echo "Cloning sglang-jax..."
+          git clone https://github.com/alexshires/sglang-jax.git
+          cd sglang-jax
+          
+          echo "Checking out branch fix/score-api-missing-logprobs..."
+          git checkout fix/score-api-missing-logprobs
+          
+          echo "Installing package..."
+          cd python
+          pip install -e .[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+          
+          echo "Running tests..."
+          cd .. # Go back to sglang-jax root (where 'test' folder is)
+          
+          # Run the specific score API test
+          echo "Running test_score_api.py..."
+          python3 test/srt/test_score_api.py
+          
+          echo "Test runner job completed successfully."
+        volumeMounts:
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /data
+        - name: dshm
+          mountPath: /dev/shm
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: gke-gcsfuse-cache
+        emptyDir:
+          medium: Memory
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: tmp
+        emptyDir:
+          medium: Memory
+      - name: gcs-fuse-csi-ephemeral
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ashires-e7aaot-model-download-europe-west4
+            mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1"
+  backoffLimit: 3
