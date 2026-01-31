@@ -336,7 +336,38 @@ Update `test/srt/run_suite.py`:
 
 ### Part 3: Contribution Workflow
 
-#### Before Submitting PR to Upstream
+#### Development Model: Fork-First
+
+All Score API development happens on the fork first. This allows:
+- Rapid iteration without upstream review cycles
+- Building comprehensive test coverage
+- Validating thresholds with real TPU runs
+- Bundling related changes for cleaner upstream PRs
+
+**Timeline:** ~2-3 months of fork development, then batch contribution to upstream.
+
+```
+Feature Branch → PR → Fork Main → (later) Batch PR → Upstream Main
+```
+
+#### PRs to Fork (Current Phase)
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/score-api-perf-benchmark
+
+# 2. Make changes and test locally
+python3 -m unittest test.srt.test_bench_score -v
+
+# 3. Create PR to fork's main branch
+gh pr create --title "Add Score API performance benchmark"
+
+# 4. Merge to fork main after review
+```
+
+#### PRs to Upstream (Future Phase)
+
+When fork development is mature:
 
 ```bash
 # 1. Run local tests (CPU - quick validation)
@@ -354,6 +385,7 @@ gcloud compute tpus tpu-vm ssh $TPU_NAME --zone=$TPU_ZONE --command="
 
 # 4. Submit PR to upstream
 # Upstream CI will run full test suite on their self-hosted runners
+gh pr create --repo sgl-project/sglang-jax --title "Add Score API performance benchmarks"
 ```
 
 #### What Upstream CI Will Run

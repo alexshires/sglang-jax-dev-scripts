@@ -93,13 +93,43 @@ The `/v1/score` Scoring API is implemented and functional in sglang-jax. This pl
 
 ---
 
-## PR Strategy for Upstream
+## PR Strategy
+
+### Development Model: Fork-First
+
+All development happens on the fork for the initial phase (estimated: 2-3 months). Once the Score API implementation is mature and well-tested, changes will be contributed upstream in batches.
+
+```
+Feature Branch → PR → Fork Main → (later) PR → Upstream Main
+```
+
+**Why fork-first:**
+- Iterate quickly without upstream review cycles
+- Build up comprehensive test coverage
+- Validate thresholds with real TPU runs
+- Bundle related changes for cleaner upstream PRs
 
 ### Principle: Small, Focused PRs
 
 Each PR should do ONE thing. This makes review easier and rollback simpler.
 
-### Proposed PR Sequence
+### Phase 1: PRs to Fork
+
+Development PRs merged to fork's main branch:
+
+| PR | Description | Status |
+|----|-------------|--------|
+| Score API perf benchmark | `test_bench_score.py` + suite update | Ready |
+| Shared test fixtures | `score_test_utils.py` | Not started |
+| Extended test coverage | Edge cases, validation | Not started |
+| OpenAI client tests | Compatibility validation | Not started |
+| Performance analysis tool | `bench_score.py` with profiles | Not started |
+
+### Phase 2: PRs to Upstream (Future)
+
+After fork development is stable, contribute to upstream in batches:
+
+### Proposed Upstream PR Sequence
 
 #### PR 1: Score API Performance Benchmark (Priority 1)
 **Files:**
@@ -296,7 +326,7 @@ Track completed implementations with links to PRs/commits.
 
 | Date | Item | PR/Commit | Files | Notes |
 |------|------|-----------|-------|-------|
-| 2026-01-31 | Score API Performance Benchmark | Pending PR | `test/srt/test_bench_score.py`, `test/srt/run_suite.py` | 4 benchmark tests with latency/throughput thresholds |
+| 2026-01-31 | Score API Performance Benchmark | PR to fork (pending) | `test/srt/test_bench_score.py`, `test/srt/run_suite.py` | 4 benchmark tests with latency/throughput thresholds |
 
 ### How to Update This Log
 
