@@ -4,6 +4,18 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 **Last Updated:** 2026-01-30
 
+---
+
+## 🚀 Start Here
+
+- **[Score API Launch Plan](SCORE_API_LAUNCH_PLAN.md)** - Master plan for implementation
+  - Implementation priority matrix and dependencies
+  - PR strategy for upstream contribution
+  - Launch criteria (definition of done)
+  - Risk assessment
+
+---
+
 ## RFCs (Request for Comments)
 
 ### Foundational
@@ -189,8 +201,11 @@ Runbook: Debugging
 
 ## Quick Links by Topic
 
+### Getting Started
+- [Score API Launch Plan](SCORE_API_LAUNCH_PLAN.md) ← **Start here for implementation**
+- [RFC-000: Score API Design](rfcs/000-score-api-design.md) ← Start here for design
+
 ### Design & API Contract
-- [RFC-000: Score API Design](rfcs/000-score-api-design.md) ← Start here
 - [RFC-006: Error Handling](rfcs/006-error-handling-api-contract.md)
 - [RFC-005: OpenAI Compatibility](rfcs/005-openai-client-compatibility.md)
 
@@ -253,6 +268,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-01-30:** Score API Launch Plan and Engineering Standards
+  - Created SCORE_API_LAUNCH_PLAN.md - master plan for implementation
+  - Implementation priority matrix with dependency graph
+  - PR strategy: 6 focused PRs for upstream contribution
+  - Launch criteria and risk assessment
+  - Updated CLAUDE.md with staff engineer guidelines
 
 - **2026-01-30:** RFC-002 Revised - Fork-Aware CI/CD Strategy
   - Complete rewrite of RFC-002 based on upstream analysis
