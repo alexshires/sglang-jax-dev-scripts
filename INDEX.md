@@ -35,11 +35,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Discovered and fixed 3 critical bugs
 
 - **[RFC-002: CI/CD Strategy for Score API Testing](rfcs/002-cicd-tpu-testing.md)**
-  - Status: Draft (Revised)
+  - Status: **Implementing**
   - Fork-aware CI/CD strategy for Score API development
   - Local TPU testing via gcloud on-demand (~$2/month)
   - **Key gap addressed:** Score API performance benchmark with thresholds
-  - Contribution workflow to upstream (uses their self-hosted runners)
+  - `test_bench_score.py` implemented, pending upstream PR
 
 - **[RFC-003: Comprehensive Score API Test Suite](rfcs/003-score-api-comprehensive-test-suite.md)**
   - Status: Draft
@@ -268,6 +268,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-01-31:** Score API Performance Benchmark Implemented
+  - Created `test/srt/test_bench_score.py` in sglang-jax repo
+  - 4 benchmark tests: single item latency, batch throughput, large batch, scaling
+  - Added to `performance-test-tpu-v6e-1` suite in `run_suite.py`
+  - Thresholds: p50 < 50ms, p99 < 150ms, throughput > 100 items/sec
+  - RFC-002 status updated to Implementing
 
 - **2026-01-30:** Score API Launch Plan and Engineering Standards
   - Created SCORE_API_LAUNCH_PLAN.md - master plan for implementation

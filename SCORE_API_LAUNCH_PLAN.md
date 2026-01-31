@@ -25,9 +25,9 @@ The `/v1/score` Scoring API is implemented and functional in sglang-jax. This pl
 
 | Item | RFC | Status | Blocks |
 |------|-----|--------|--------|
-| `test_bench_score.py` | RFC-002 | Not Started | Nothing |
-| Add to `performance-test-tpu-v6e-1` suite | RFC-002 | Not Started | Above |
-| Establish baseline thresholds | RFC-002 | Not Started | Above |
+| `test_bench_score.py` | RFC-002 | **Done** (pending PR) | Nothing |
+| Add to `performance-test-tpu-v6e-1` suite | RFC-002 | **Done** (pending PR) | Above |
+| Establish baseline thresholds | RFC-002 | **Done** (in code) | Above |
 
 **Why first:** This is the only significant gap vs PyTorch SGLang. Upstream has functional tests but no Score API performance benchmark.
 
@@ -287,6 +287,24 @@ Each PR should do ONE thing. This makes review easier and rollback simpler.
 | What are the exact latency/throughput thresholds? | Engineering | Needs baseline run |
 | Will upstream accept perf tests in CI? | Engineering | Ask maintainers |
 | Should we add Score API to accuracy tests? | Engineering | Decide after MVP |
+
+---
+
+## Implementation Log
+
+Track completed implementations with links to PRs/commits.
+
+| Date | Item | PR/Commit | Files | Notes |
+|------|------|-----------|-------|-------|
+| 2026-01-31 | Score API Performance Benchmark | Pending PR | `test/srt/test_bench_score.py`, `test/srt/run_suite.py` | 4 benchmark tests with latency/throughput thresholds |
+
+### How to Update This Log
+
+After completing an implementation:
+1. Add a row to the table above with date, item, PR link, files changed
+2. Check off the corresponding item in Launch Criteria section
+3. Update the RFC status if all items in that RFC are complete
+4. Update INDEX.md RFC status entry
 
 ---
 

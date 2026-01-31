@@ -1,6 +1,6 @@
 # RFC-002: CI/CD Strategy for Score API Testing
 
-**Status:** Draft (Revised)
+**Status:** Implementing
 **Author:** Engineering Team
 **Created:** 2026-01-29
 **Updated:** 2026-01-30
