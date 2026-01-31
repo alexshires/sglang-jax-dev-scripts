@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-01-29
+**Last Updated:** 2026-01-30
 
 ## RFCs (Request for Comments)
 
@@ -22,11 +22,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - 4 Tier 1 tests covering numerical correctness, batching, optimization, HTTP integration
   - Discovered and fixed 3 critical bugs
 
-- **[RFC-002: CI/CD for TPU Testing](rfcs/002-cicd-tpu-testing.md)**
-  - Status: Draft
-  - Automated TPU testing pipeline using GitHub Actions + gcloud
-  - Three-tier strategy: CPU tests (every PR), nightly TPU, on-demand TPU
-  - Cost: ~$1/month
+- **[RFC-002: CI/CD Strategy for Score API Testing](rfcs/002-cicd-tpu-testing.md)**
+  - Status: Draft (Revised)
+  - Fork-aware CI/CD strategy for Score API development
+  - Local TPU testing via gcloud on-demand (~$2/month)
+  - **Key gap addressed:** Score API performance benchmark with thresholds
+  - Contribution workflow to upstream (uses their self-hosted runners)
 
 - **[RFC-003: Comprehensive Score API Test Suite](rfcs/003-score-api-comprehensive-test-suite.md)**
   - Status: Draft
@@ -174,12 +175,14 @@ Test Plan 004 (Benchmarks & Stress)
 Runbook: Running Performance Benchmarks
 ```
 
-### CI/CD Chain
+### CI/CD Chain (Fork Development)
 
 ```
-RFC-002 (CI/CD Plan)
+RFC-002 (Fork CI/CD Strategy)
     ↓
-RFC-004 (Performance CI)
+RFC-004 (Performance Benchmarks)
+    ↓
+Runbook: Running Score API Tests
     ↓
 Runbook: Debugging
 ```
@@ -211,7 +214,8 @@ Runbook: Debugging
 
 ### Operations
 - [Debugging TPU Tests](runbooks/debugging-tpu-test-failures.md)
-- [RFC-002: CI/CD Setup](rfcs/002-cicd-tpu-testing.md)
+- [RFC-002: Fork CI/CD Strategy](rfcs/002-cicd-tpu-testing.md)
+- [Running Score API Tests](runbooks/running-score-api-tests.md)
 
 ## Contributing
 
@@ -249,6 +253,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-01-30:** RFC-002 Revised - Fork-Aware CI/CD Strategy
+  - Complete rewrite of RFC-002 based on upstream analysis
+  - Key insight: Upstream already runs TPU tests on every PR via self-hosted runners
+  - Focus shifted to: Score API performance benchmark (the real gap)
+  - Local development via gcloud on-demand TPUs
+  - Contribution workflow to upstream documented
 
 - **2026-01-29 (Late Night):** Foundational and API Contract RFCs
   - RFC-000: Score API Design and Architecture (foundational document)

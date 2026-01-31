@@ -1,374 +1,494 @@
-# RFC-002: CI/CD for TPU Testing
+# RFC-002: CI/CD Strategy for Score API Testing
 
-**Status:** Draft
+**Status:** Draft (Revised)
 **Author:** Engineering Team
 **Created:** 2026-01-29
-**Updated:** 2026-01-29
-**Related RFC:** RFC-001
+**Updated:** 2026-01-30
+**Related RFC:** RFC-001, RFC-004
 
 ## Summary
 
-Implement automated CI/CD pipeline for TPU testing using GitHub Actions and direct gcloud commands, avoiding unreliable third-party orchestration tools.
+Define a CI/CD strategy for testing the `/v1/score` API in a fork of sglang-jax, covering local development testing with on-demand TPUs, the missing Score API performance benchmark, and contribution workflow to upstream.
 
-## Motivation
+## Context: Fork vs Upstream
 
-### Current State
-- All TPU testing is manual
-- No automated regression detection
-- Tests run inconsistently
-- No performance tracking
-- High risk of breaking changes
+This RFC is written for development on a **fork** of sglang-jax. Key differences:
 
-### Problems
-- Manual testing is error-prone
-- Developers forget to run tests
-- TPU-specific bugs discovered late
-- No historical performance data
-- Difficult to reproduce issues
+| Aspect | Upstream sglang-jax | Your Fork |
+|--------|---------------------|-----------|
+| Self-hosted runners | `arc-runner-v6e-1/4` available | **Not available** |
+| PR CI | Full TPU tests on every PR | No automatic TPU access |
+| Cost | Covered by upstream maintainers | Your responsibility |
 
-### Goals
-1. Automate TPU testing in CI/CD
-2. Catch regressions before merge
-3. Track performance over time
-4. Keep costs minimal (~$2/month)
-5. Use reliable, simple tooling (gcloud)
+**Important:** When you submit PRs to upstream, their CI will run using their self-hosted runners. This RFC focuses on local development and testing before submitting upstream.
+
+## Current State Analysis
+
+### What Upstream Already Has (PR CI)
+
+The upstream sglang-jax runs these on **every PR** via self-hosted TPU runners:
+
+```yaml
+# From .github/workflows/pr-test.yml
+Jobs that run on every PR:
+├── unit-test-1-tpu      (arc-runner-v6e-1)
+├── unit-test-4-tpu      (arc-runner-v6e-4)
+├── e2e-test-1-tpu       (arc-runner-v6e-1)  ← Includes Score API tests
+├── e2e-test-4-tpu       (arc-runner-v6e-4)
+├── accuracy-test-1-tpu  (arc-runner-v6e-1)
+├── accuracy-test-4-tpu  (arc-runner-v6e-4)
+├── performance-test-1-tpu (arc-runner-v6e-1)
+└── performance-test-4-tpu (arc-runner-v6e-4)
+```
+
+### Score API Coverage in Upstream
+
+| Test | Suite | Runs On |
+|------|-------|---------|
+| `test/srt/test_score_api.py` | `e2e-test-tpu-v6e-1` | Every PR |
+| `test/srt/openai_server/basic/test_openai_server.py` | `e2e-test-tpu-v6e-1` | Every PR |
+
+### The Gap: No Score API Performance Benchmark
+
+**PyTorch SGLang has:** `run_score_benchmark` tests with latency/throughput thresholds in per-commit CI.
+
+**JAX SGLang has:** General serving benchmarks (`test_bench_serving_dense.py`) but **no Score API specific performance benchmark**.
+
+This is the primary gap this RFC addresses.
+
+## Goals
+
+1. **Enable local TPU testing** for fork development (gcloud on-demand)
+2. **Add Score API performance benchmark** with regression thresholds
+3. **Document contribution workflow** to upstream
+4. **Maintain compatibility** with upstream CI when PRs are submitted
 
 ## Proposed Solution
 
-### Three-Tier Testing Strategy
+### Part 1: Local Development Testing (Fork)
 
-**Tier 1: CPU Tests (Every PR)**
-- Static analysis (mypy, ruff, black)
-- Unit tests (no hardware required)
-- Type checking
-- Security scanning
-- **Cost:** $0 | **Time:** 2 min
+#### Option A: On-Demand TPU via gcloud (Recommended)
 
-**Tier 2: Nightly TPU Tests**
-- Full test suite on actual TPU
-- Performance regression checks
-- Coverage reporting
-- **Cost:** $0.60/month | **Time:** 5 min
+For occasional testing during development:
 
-**Tier 3: On-Demand TPU (Critical PRs)**
-- Label-triggered (`run-tpu-tests`)
-- Full validation before merge
-- **Cost:** $0.15/month | **Time:** 5 min
-
-### Architecture
-
-```
-GitHub Actions (orchestration)
-    ↓
-gcloud CLI (TPU management)
-    ↓
-TPU VM (test execution)
-    ↓
-Results → GitHub (comments, artifacts)
-```
-
-**Why not SkyPilot:**
-- Adds unnecessary complexity
-- Less reliable than direct gcloud
-- Another dependency to maintain
-- We already use gcloud everywhere
-
-## Implementation Details
-
-### GitHub Actions Workflow
-
-```yaml
-name: TPU Tests (Nightly)
-
-on:
-  schedule:
-    - cron: '0 2 * * *'  # 2 AM UTC daily
-  workflow_dispatch:      # Manual trigger
-
-env:
-  TPU_ZONE: us-central1-b
-  TPU_TYPE: v6e-1
-  TPU_NAME: ci-tpu-${{ github.run_id }}
-
-jobs:
-  tpu-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Create TPU VM
-        run: |
-          gcloud compute tpus tpu-vm create $TPU_NAME \
-            --zone=$TPU_ZONE \
-            --accelerator-type=$TPU_TYPE \
-            --version=v2-alpha-tpuv6e \
-            --preemptible \
-            --quiet
-
-          # Wait for VM to be ready
-          sleep 30
-
-      - name: Setup and run tests
-        id: tests
-        run: |
-          # Helper function
-          tpu_ssh() {
-            gcloud compute tpus tpu-vm ssh $TPU_NAME \
-              --zone=$TPU_ZONE \
-              --command="$1"
-          }
-
-          # Clone repo
-          tpu_ssh "git clone https://github.com/${{ github.repository }} ~/code"
-          tpu_ssh "cd ~/code && git checkout ${{ github.sha }}"
-
-          # Setup environment
-          tpu_ssh "cd ~/code && python3 -m venv .venv"
-          tpu_ssh "cd ~/code && source .venv/bin/activate && pip install -e ."
-
-          # Run tests
-          tpu_ssh "cd ~/code && source .venv/bin/activate && \
-                   python3 -m unittest test.srt.test_score_api.TestScoreAPI -v" \
-                   > test_output.txt 2>&1
-
-          # Check results
-          cat test_output.txt
-          grep -q "OK" test_output.txt
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ github.run_id }}
-          path: test_output.txt
-
-      - name: Cleanup TPU
-        if: always()
-        run: |
-          gcloud compute tpus tpu-vm delete $TPU_NAME \
-            --zone=$TPU_ZONE \
-            --quiet || true
-
-      - name: Report failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚨 Nightly TPU tests failed',
-              body: `TPU tests failed on commit ${context.sha}\n\nCheck logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
-              labels: ['ci-failure', 'tpu-tests']
-            })
-```
-
-### PR-Triggered Tests (Opt-In)
-
-```yaml
-name: TPU Tests (PR)
-
-on:
-  pull_request:
-    types: [labeled]
-
-jobs:
-  check-label:
-    if: contains(github.event.pull_request.labels.*.name, 'run-tpu-tests')
-    runs-on: ubuntu-latest
-
-    steps:
-      # Same as nightly, but post comment on PR
-      - name: Post success comment
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ TPU tests passed! Safe to merge.'
-            })
-```
-
-**Usage:**
 ```bash
-# Add label to PR to trigger TPU tests
-gh pr edit 123 --add-label "run-tpu-tests"
+#!/bin/bash
+# scripts/run_score_tests_tpu.sh
+
+set -e
+
+TPU_NAME="score-api-test-$(date +%s)"
+TPU_ZONE="us-central1-b"
+TPU_TYPE="v6e-1"
+PROJECT_ID="your-project-id"
+
+# Create TPU
+echo "Creating TPU VM..."
+gcloud compute tpus tpu-vm create $TPU_NAME \
+  --zone=$TPU_ZONE \
+  --accelerator-type=$TPU_TYPE \
+  --version=v2-alpha-tpuv6e \
+  --preemptible
+
+# Setup and run tests
+echo "Running Score API tests..."
+gcloud compute tpus tpu-vm ssh $TPU_NAME --zone=$TPU_ZONE --command="
+  git clone https://github.com/YOUR_USERNAME/sglang-jax.git ~/sglang-jax
+  cd ~/sglang-jax
+  git checkout YOUR_BRANCH
+  python3.12 -m venv .venv
+  source .venv/bin/activate
+  pip install uv
+  uv pip install -e 'python[all]'
+
+  export SGLANG_JAX_IS_IN_CI=true
+
+  # Run Score API tests
+  python test/srt/run_suite.py --suite e2e-test-tpu-v6e-1 --range-begin 4 --range-end 5
+"
+
+# Cleanup
+echo "Cleaning up..."
+gcloud compute tpus tpu-vm delete $TPU_NAME --zone=$TPU_ZONE --quiet
+
+echo "Done!"
 ```
 
-### Performance Tracking
+**Cost:** ~$0.05 per run (5 min × $0.64/hr preemptible)
 
-Add timing instrumentation to tests:
+#### Option B: CPU Testing (Quick Iteration)
+
+For fast iteration without TPU:
+
+```bash
+# Limited but fast - good for syntax/logic errors
+cd sglang-jax
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e "python[all]"
+
+# Run protocol/unit tests (no TPU needed)
+python -m pytest test/srt/openai_server/basic/test_protocol.py -v
+
+# Note: Full Score API tests require TPU for model inference
+```
+
+### Part 2: Score API Performance Benchmark (The Real Gap)
+
+#### New File: `test/srt/test_bench_score.py`
 
 ```python
-# test/srt/test_score_api.py
-import time
-import json
-import os
+"""
+Score API performance benchmark with regression detection.
 
-class TestScoreAPI(CustomTestCase):
+Runs as part of performance-test-tpu-v6e-1 suite.
+Validates latency and throughput thresholds.
+
+Usage:
+    python test/srt/test_bench_score.py
+"""
+
+import time
+import statistics
+import unittest
+from dataclasses import dataclass
+from typing import List
+
+from sgl_jax.test.test_utils import CustomTestCase
+from sglang import Engine
+
+
+# Thresholds (adjust based on baseline measurements)
+SCORE_LATENCY_P50_THRESHOLD_MS = 50.0   # p50 latency must be under 50ms
+SCORE_LATENCY_P99_THRESHOLD_MS = 150.0  # p99 latency must be under 150ms
+SCORE_THROUGHPUT_THRESHOLD_IPS = 100.0  # Must achieve at least 100 items/sec
+
+
+@dataclass
+class BenchmarkResult:
+    throughput_ips: float
+    latency_p50_ms: float
+    latency_p99_ms: float
+    latency_mean_ms: float
+    num_requests: int
+    total_items: int
+
+
+class TestScoreAPIPerformance(CustomTestCase):
+    """
+    Score API performance benchmarks with regression thresholds.
+
+    These tests validate that Score API performance meets minimum
+    requirements and catches regressions.
+    """
+
+    model_name = "meta-llama/Llama-3.2-1B-Instruct"
+    engine = None
+
     @classmethod
     def setUpClass(cls):
-        cls.start_time = time.time()
-        # ... existing setup ...
+        print(f"[Benchmark] Loading model: {cls.model_name}")
+        cls.engine = Engine(model_path=cls.model_name)
+        cls.tokenizer = cls.engine.tokenizer
+
+        # Get label token IDs
+        cls.label_tokens = [" yes", " no", " maybe"]
+        cls.label_token_ids = [
+            cls.tokenizer.encode(t, add_special_tokens=False)[0]
+            for t in cls.label_tokens
+        ]
+        print(f"[Benchmark] Model loaded, label_token_ids: {cls.label_token_ids}")
 
     @classmethod
     def tearDownClass(cls):
-        elapsed = time.time() - cls.start_time
+        if cls.engine:
+            cls.engine.shutdown()
 
-        # Store timing data
-        results = {
-            "timestamp": time.time(),
-            "elapsed_seconds": elapsed,
-            "commit": os.getenv("GITHUB_SHA", "unknown"),
-        }
+    def run_score_benchmark(
+        self,
+        batch_size: int,
+        num_requests: int,
+        warmup_requests: int = 5
+    ) -> BenchmarkResult:
+        """Run benchmark and return results."""
 
-        with open("/tmp/test_timing.json", "w") as f:
-            json.dump(results, f)
+        query = "Is this statement true or false? The answer is"
+        items = [f" Statement number {i} is being evaluated." for i in range(batch_size)]
+
+        # Warmup
+        for _ in range(warmup_requests):
+            self.engine.score(
+                query=query,
+                items=items,
+                label_token_ids=self.label_token_ids,
+                apply_softmax=True
+            )
+
+        # Benchmark
+        latencies_ms = []
+        for _ in range(num_requests):
+            start = time.perf_counter()
+            self.engine.score(
+                query=query,
+                items=items,
+                label_token_ids=self.label_token_ids,
+                apply_softmax=True
+            )
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            latencies_ms.append(elapsed_ms)
+
+        # Compute metrics
+        latencies_ms.sort()
+        total_items = batch_size * num_requests
+        total_time_sec = sum(latencies_ms) / 1000
+
+        p50_idx = int(len(latencies_ms) * 0.50)
+        p99_idx = min(int(len(latencies_ms) * 0.99), len(latencies_ms) - 1)
+
+        return BenchmarkResult(
+            throughput_ips=total_items / total_time_sec,
+            latency_p50_ms=latencies_ms[p50_idx],
+            latency_p99_ms=latencies_ms[p99_idx],
+            latency_mean_ms=statistics.mean(latencies_ms),
+            num_requests=num_requests,
+            total_items=total_items
+        )
+
+    def test_score_latency_single_item(self):
+        """
+        Test Score API latency with single item.
+
+        Validates p50 and p99 latency thresholds.
+        """
+        result = self.run_score_benchmark(batch_size=1, num_requests=50)
+
+        print(f"[Benchmark] Single item latency: "
+              f"p50={result.latency_p50_ms:.1f}ms, "
+              f"p99={result.latency_p99_ms:.1f}ms")
+
+        self.assertLess(
+            result.latency_p50_ms,
+            SCORE_LATENCY_P50_THRESHOLD_MS,
+            f"p50 latency {result.latency_p50_ms:.1f}ms exceeds threshold {SCORE_LATENCY_P50_THRESHOLD_MS}ms"
+        )
+
+        self.assertLess(
+            result.latency_p99_ms,
+            SCORE_LATENCY_P99_THRESHOLD_MS,
+            f"p99 latency {result.latency_p99_ms:.1f}ms exceeds threshold {SCORE_LATENCY_P99_THRESHOLD_MS}ms"
+        )
+
+    def test_score_throughput_batch(self):
+        """
+        Test Score API throughput with batched items.
+
+        Validates minimum throughput threshold.
+        """
+        result = self.run_score_benchmark(batch_size=8, num_requests=30)
+
+        print(f"[Benchmark] Batch throughput: "
+              f"{result.throughput_ips:.1f} items/sec, "
+              f"latency p50={result.latency_p50_ms:.1f}ms")
+
+        self.assertGreater(
+            result.throughput_ips,
+            SCORE_THROUGHPUT_THRESHOLD_IPS,
+            f"Throughput {result.throughput_ips:.1f} IPS below threshold {SCORE_THROUGHPUT_THRESHOLD_IPS} IPS"
+        )
+
+    def test_score_latency_large_batch(self):
+        """
+        Test Score API latency with large batch (20 items).
+
+        Ensures large batches don't cause excessive latency.
+        """
+        result = self.run_score_benchmark(batch_size=20, num_requests=20)
+
+        print(f"[Benchmark] Large batch (20 items): "
+              f"p50={result.latency_p50_ms:.1f}ms, "
+              f"throughput={result.throughput_ips:.1f} IPS")
+
+        # Large batch allowed higher latency, but should still be reasonable
+        large_batch_latency_threshold = SCORE_LATENCY_P99_THRESHOLD_MS * 2
+
+        self.assertLess(
+            result.latency_p99_ms,
+            large_batch_latency_threshold,
+            f"Large batch p99 latency {result.latency_p99_ms:.1f}ms exceeds threshold {large_batch_latency_threshold}ms"
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
 ```
 
-Check for regressions in CI:
+#### Add to Suite
 
-```yaml
-- name: Check performance regression
-  run: |
-    CURRENT=$(cat /tmp/test_timing.json | jq .elapsed_seconds)
-    BASELINE=105  # Known good baseline
+Update `test/srt/run_suite.py`:
 
-    if (( $(echo "$CURRENT > $BASELINE * 1.2" | bc -l) )); then
-      echo "::warning::Performance regression detected: ${CURRENT}s vs ${BASELINE}s"
-    fi
+```python
+# Add to performance-test-tpu-v6e-1 suite
+"performance-test-tpu-v6e-1": [
+    TestFile("test/srt/test_bench_serving_dense.py", 7),
+    TestFile("test/srt/test_bench_score.py", 3),  # NEW: Score API benchmark
+],
 ```
 
-## Alternatives Considered
+### Part 3: Contribution Workflow
 
-### Alternative 1: SkyPilot
-**Pros:**
-- Higher-level abstraction
-- Multi-cloud support
+#### Before Submitting PR to Upstream
 
-**Cons:**
-- Additional dependency
-- Less reliable (user feedback: "not very reliable")
-- More complex debugging
-- We don't need multi-cloud
+```bash
+# 1. Run local tests (CPU - quick validation)
+python -m pytest test/srt/openai_server/basic/test_protocol.py -v
 
-**Why rejected:** Adds complexity without clear benefits for our use case.
+# 2. Run Score API tests on TPU (using script from Part 1)
+./scripts/run_score_tests_tpu.sh
 
-### Alternative 2: Google Cloud Build
-**Pros:**
-- Native GCP integration
-- Built-in artifact storage
+# 3. Run Score API performance benchmark
+gcloud compute tpus tpu-vm ssh $TPU_NAME --zone=$TPU_ZONE --command="
+  cd ~/sglang-jax
+  source .venv/bin/activate
+  python test/srt/test_bench_score.py -v
+"
 
-**Cons:**
-- Requires managing two CI systems
-- Less familiar than GitHub Actions
-- More complex setup
+# 4. Submit PR to upstream
+# Upstream CI will run full test suite on their self-hosted runners
+```
 
-**Why rejected:** GitHub Actions is sufficient and familiar.
+#### What Upstream CI Will Run
 
-### Alternative 3: Persistent TPU VM
-**Pros:**
-- No startup time
-- Always ready
+When you submit a PR, upstream's `arc-runner-v6e-*` runners will execute:
 
-**Cons:**
-- $460/month cost (persistent v6e-1 spot)
-- vs $0.60/month (on-demand)
-- 700x more expensive
+1. **Unit tests** - `unit-test-tpu-v6e-1/4`
+2. **E2E tests** - `e2e-test-tpu-v6e-1/4` (includes Score API)
+3. **Accuracy tests** - `accuracy-test-tpu-v6e-1/4`
+4. **Performance tests** - `performance-test-tpu-v6e-1/4`
 
-**Why rejected:** Cost prohibitive for testing workload.
+You don't need to replicate all of this locally - just validate your specific changes work.
+
+### Part 4: Environment Variables
+
+The codebase already uses these environment variables:
+
+| Variable | Purpose | Set By |
+|----------|---------|--------|
+| `SGLANG_JAX_IS_IN_CI` | Indicates CI environment | Upstream CI, your scripts |
+| `HF_TOKEN` | HuggingFace authentication | GitHub secrets, local env |
+| `HF_HUB_DOWNLOAD_TIMEOUT` | Model download timeout | CI workflow |
+
+Use in your tests:
+
+```python
+import os
+
+def is_in_ci() -> bool:
+    return os.getenv("SGLANG_JAX_IS_IN_CI") == "true"
+```
 
 ## Implementation Plan
 
-### Phase 1: Foundation (Week 1)
-- [ ] Set up GitHub Actions for CPU tests
-- [ ] Add static analysis (mypy, ruff, black)
-- [ ] Configure code coverage tracking
-- [ ] Document CI/CD in README
+### Phase 1: Score API Performance Benchmark
 
-### Phase 2: TPU Testing (Week 2)
-- [ ] Create GCP service account for CI
-- [ ] Implement nightly TPU test workflow
-- [ ] Add performance regression checks
-- [ ] Set up failure notifications
+- [ ] Create `test/srt/test_bench_score.py` with threshold-based tests
+- [ ] Establish baseline thresholds on TPU v6e
+- [ ] Add to `performance-test-tpu-v6e-1` suite in `run_suite.py`
+- [ ] Test locally on TPU
 
-### Phase 3: PR Integration (Week 3)
-- [ ] Add label-based TPU testing for PRs
-- [ ] Implement result posting to PRs
-- [ ] Create test result dashboard
-- [ ] Document when to use TPU tests
+### Phase 2: Local Development Scripts
 
-### Phase 4: Optimization (Week 4)
-- [ ] Add test result caching
-- [ ] Implement flaky test detection
-- [ ] Set up cost monitoring dashboard
-- [ ] Optimize test parallelization
+- [ ] Create `scripts/run_score_tests_tpu.sh` for on-demand TPU testing
+- [ ] Document cost estimates
+- [ ] Test the workflow end-to-end
+
+### Phase 3: Documentation
+
+- [ ] Update runbooks with fork-specific instructions
+- [ ] Document contribution workflow
+- [ ] Add troubleshooting guide
 
 ## Cost Analysis
 
-| Test Type | Frequency | Duration | Cost/Run | Monthly |
-|-----------|-----------|----------|----------|---------|
-| CPU Tests | ~20 PRs/day | 2 min | $0 | $0 |
-| Nightly TPU | 1/day | 5 min | $0.03 | $0.90 |
-| PR TPU (opt-in) | ~5/month | 5 min | $0.03 | $0.15 |
-| **TOTAL** | | | | **~$1.05/month** |
+### Local Development (Your Fork)
 
-**Cost breakdown:**
-- TPU v6e-1 preemptible: $0.64/hour
-- 5 min test = 0.083 hours
-- 0.083 × $0.64 = ~$0.05 per run
-- Nightly: 30 days × $0.03 = $0.90/month
-- PR tests: 5 runs × $0.03 = $0.15/month
+| Activity | Frequency | Duration | Cost/Run | Monthly |
+|----------|-----------|----------|----------|---------|
+| Score API tests | 10/month | 5 min | $0.05 | $0.50 |
+| Performance benchmark | 5/month | 10 min | $0.11 | $0.55 |
+| Full e2e suite | 3/month | 30 min | $0.32 | $0.96 |
+| **Total** | | | | **~$2/month** |
 
-**ROI:**
-- Prevented 3 critical bugs in first week
-- Each bug = ~2 hours debugging = $200-400
-- CI/CD pays for itself immediately
+*Using preemptible TPU v6e at $0.64/hr*
 
-## Testing Strategy
+### Upstream CI (Free to You)
 
-### Validation
-1. Test the CI workflow itself
-2. Verify cleanup happens on failure
-3. Confirm costs match estimates
-4. Validate notifications work
+When you submit PRs, upstream's CI runs on their self-hosted runners at no cost to you.
 
-### Monitoring
-- Track test execution time
-- Monitor failure rates
-- Alert on cost overruns
-- Dashboard for test health
+## Alternatives Considered
 
-## Timeline
+### Alternative 1: Set Up Your Own Self-Hosted Runners
 
-- Week 1: GitHub Actions setup
-- Week 2: TPU integration
-- Week 3: PR automation
-- Week 4: Optimization and monitoring
+**Description:** Deploy persistent TPU VMs as GitHub Actions runners for your fork.
+
+**Pros:**
+- Matches upstream experience exactly
+- No spin-up time for tests
+
+**Cons:**
+- Cost: ~$460/month for persistent TPU v6e
+- Setup complexity (ARC runner deployment)
+- Overkill for occasional development
+
+**Why rejected:** Cost prohibitive for fork development. Use upstream CI for full validation.
+
+### Alternative 2: Skip Local TPU Testing
+
+**Description:** Only test on CPU locally, rely entirely on upstream CI.
+
+**Pros:**
+- Zero cost
+- Simpler workflow
+
+**Cons:**
+- TPU-specific bugs not caught until PR
+- Slower iteration cycle
+- More failed PRs
+
+**Why rejected:** Some local TPU validation is valuable before submitting PRs.
+
+### Alternative 3: Use Cloud Build Instead of gcloud
+
+**Description:** Use Google Cloud Build for automated TPU testing.
+
+**Pros:**
+- More automated
+- Better logging/artifacts
+
+**Cons:**
+- More complex setup
+- Another system to maintain
+- gcloud scripts are simpler for occasional use
+
+**Why rejected:** gcloud scripts are sufficient for fork development needs.
+
+## Success Metrics
+
+- [ ] Score API performance benchmark implemented with thresholds
+- [ ] Local TPU testing script works reliably
+- [ ] Contribution workflow documented
+- [ ] At least one PR submitted to upstream using this workflow
+- [ ] Performance regression caught before reaching upstream
 
 ## Open Questions
 
-- [ ] Should we run tests on multiple TPU types (v5e, v6e)?
-- [ ] Need separate workflows for different test suites?
-- [ ] Should we cache model weights to speed up tests?
-- [ ] Archive test results for how long?
+- [ ] What should the exact latency/throughput thresholds be? (Need baseline measurement)
+- [ ] Should we add Score API benchmark to upstream's suite? (Propose in upstream PR)
+- [ ] Need `HF_TOKEN` for model downloads - document how to set up?
 
 ## References
 
+- Upstream PR workflow: `sglang-jax/.github/workflows/pr-test.yml`
+- Test suite definition: `sglang-jax/test/srt/run_suite.py`
+- PyTorch Score API benchmark: `sglang/test/registered/perf/test_bench_serving_1gpu_part2.py`
 - RFC-001: Score API Comprehensive Tests
-- GitHub Actions: https://docs.github.com/actions
-- gcloud TPU commands: https://cloud.google.com/sdk/gcloud/reference/compute/tpus
-- Cost calculator: https://cloud.google.com/products/calculator
+- RFC-004: Score API Performance Benchmarks and Stress Tests
