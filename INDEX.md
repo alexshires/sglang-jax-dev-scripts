@@ -6,6 +6,14 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 ## RFCs (Request for Comments)
 
+### Foundational
+
+- **[RFC-000: Score API Design and Architecture](rfcs/000-score-api-design.md)**
+  - Status: Accepted
+  - Foundational design document for `/v1/score` API
+  - Architecture, design principles, request flow
+  - Use cases, performance characteristics, error handling
+
 ### Active
 
 - **[RFC-001: Score API Comprehensive Tests](rfcs/001-score-api-comprehensive-tests.md)**
@@ -25,6 +33,24 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Expands test coverage from 4 to 30+ tests
   - Shared fixtures, CI vs local/perf gating, edge cases, JAX features
   - Behavior validation decisions (empty inputs, negative IDs, mixed types)
+
+- **[RFC-004: Score API Performance Benchmarks and Stress Tests](rfcs/004-score-api-performance-benchmarks.md)**
+  - Status: Draft
+  - Performance benchmarking framework with tiered profiles (smoke/standard/full)
+  - Stress tests for large batches, concurrent requests, sustained load
+  - Baseline workflow, regression detection, CI integration
+
+- **[RFC-005: OpenAI Client Compatibility](rfcs/005-openai-client-compatibility.md)**
+  - Status: Draft
+  - Validate compatibility with official OpenAI Python client
+  - Test using `openai.Client` with SGLang as backend
+  - Migration guide from OpenAI to SGLang
+
+- **[RFC-006: Error Handling and API Contract](rfcs/006-error-handling-api-contract.md)**
+  - Status: Draft
+  - Error response schema (OpenAI-compatible)
+  - HTTP status code semantics (400 vs 422 vs 500)
+  - Validation rules and error codes
 
 ### Templates
 
@@ -76,6 +102,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - How to run tests locally on CPU
   - Cost management and debugging
 
+- **[Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)**
+  - Benchmark profiles: smoke, standard, full
+  - Stress tests: large batch, concurrent, sustained
+  - Baseline management and regression detection
+  - CI/CD integration and cost management
+
 ## Test Plans
 
 - **[Test Plan 001: Shared Fixtures and Core Tests](test-plans/001-shared-fixtures-and-core-tests.md)**
@@ -96,24 +128,50 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Performance benchmark tool (`bench_score.py`)
   - Baseline establishment and regression detection
 
+- **[Test Plan 004: Performance Benchmarks and Stress Tests](test-plans/004-performance-benchmarks-and-stress-tests.md)**
+  - Phase 7+ (Post Test Suite), P1 Production Readiness
+  - Enhanced `bench_score.py` with profiles and regression detection
+  - Stress tests (`bench_score_stress.py`): large batch, concurrent, sustained
+  - CI integration with nightly workflow
+
 ## Scripts
 
 *No utility scripts yet*
 
 ## Document Relationships
 
-### Score API Implementation Chain
+### Score API Design Chain
 
 ```
-RFC-001 (Test Strategy)
+RFC-000 (Design & Architecture)  ← START HERE
+    ↓
+RFC-006 (Error Handling)
+    ↓
+RFC-005 (OpenAI Compatibility)
     ↓
 ADR-001 (Softmax Decision)
     ↓
 Investigation: Architecture
+```
+
+### Score API Testing Chain
+
+```
+RFC-001 (Initial Tests)
     ↓
-Investigation: PyTorch vs JAX
+RFC-003 (Comprehensive Test Suite)
     ↓
-Runbook: Debugging
+Test Plan 001 (Shared Fixtures)
+    ↓
+Test Plan 002 (Edge Cases)
+    ↓
+Test Plan 003 (JAX Features)
+    ↓
+RFC-004 (Performance Benchmarks)
+    ↓
+Test Plan 004 (Benchmarks & Stress)
+    ↓
+Runbook: Running Performance Benchmarks
 ```
 
 ### CI/CD Chain
@@ -121,15 +179,28 @@ Runbook: Debugging
 ```
 RFC-002 (CI/CD Plan)
     ↓
+RFC-004 (Performance CI)
+    ↓
 Runbook: Debugging
 ```
 
 ## Quick Links by Topic
 
+### Design & API Contract
+- [RFC-000: Score API Design](rfcs/000-score-api-design.md) ← Start here
+- [RFC-006: Error Handling](rfcs/006-error-handling-api-contract.md)
+- [RFC-005: OpenAI Compatibility](rfcs/005-openai-client-compatibility.md)
+
 ### Testing
 - [RFC-001: Score API Tests](rfcs/001-score-api-comprehensive-tests.md)
+- [RFC-003: Comprehensive Test Suite](rfcs/003-score-api-comprehensive-test-suite.md)
 - [Debugging Runbook](runbooks/debugging-tpu-test-failures.md)
 - [RFC-002: CI/CD](rfcs/002-cicd-tpu-testing.md)
+
+### Performance
+- [RFC-004: Performance Benchmarks](rfcs/004-score-api-performance-benchmarks.md)
+- [Test Plan 004: Benchmarks and Stress Tests](test-plans/004-performance-benchmarks-and-stress-tests.md)
+- [Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)
 
 ### Architecture
 - [ADR-001: Pure Python Softmax](decisions/001-pure-python-softmax.md)
@@ -178,6 +249,18 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-01-29 (Late Night):** Foundational and API Contract RFCs
+  - RFC-000: Score API Design and Architecture (foundational document)
+  - RFC-005: OpenAI Client Compatibility
+  - RFC-006: Error Handling and API Contract
+  - Complete API specification with error codes and validation rules
+
+- **2026-01-29 (Night):** Performance Benchmarks and Stress Tests
+  - RFC-004: Score API Performance Benchmarks and Stress Tests
+  - Test Plan 004: Performance Benchmarks and Stress Tests
+  - Runbook: Running Performance Benchmarks
+  - Tiered profiles (smoke/standard/full), stress tests, CI integration
 
 - **2026-01-29 (Late Evening):** CI/CD Integration Guide
   - Runbook: Running Score API Tests (CI + local TPU + CPU)
