@@ -68,12 +68,18 @@ These tests assume a `compute_token_logprobs` function with the following signat
 def compute_token_logprobs(
     logits: np.ndarray,  # Shape: (seq_len, vocab_size)
     token_ids: List[int],  # Actual token IDs in sequence
-    label_token_ids: List[int],  # Token IDs to score (subset of token_ids)
+    label_token_ids: List[int],  # Vocabulary token IDs to extract logprobs for (arbitrary, not necessarily in sequence)
     start_position: int,  # Position to start scoring from
     attention_mask: Optional[List[int]] = None,  # 1 = real, 0 = padding
 ) -> List[float]:
     """
-    Compute token-level log probabilities for specified tokens.
+    Compute log probabilities for specified vocabulary tokens at each position.
+
+    Args:
+        label_token_ids: Arbitrary vocabulary token IDs to score. These are
+            candidate tokens we want probabilities for, NOT tokens that must
+            appear in the sequence. For example, scoring [" yes", " no"] tokens
+            regardless of what tokens are actually in token_ids.
 
     Returns log probabilities for each token in label_token_ids, where
     the probability of token at position t is computed using logits[t-1].
@@ -677,7 +683,10 @@ class TestFuzzAndProperties:
         # Generate random logits
         logits = np.random.randn(seq_len, vocab_size).astype(np.float32)
 
-        # Pick random label tokens
+        # Pick random label tokens (arbitrary vocab IDs, not necessarily in sequence)
+        # This is correct: label_token_ids are candidate tokens to score, not tokens
+        # that must appear in the sequence. We extract their logprobs from the model's
+        # vocabulary distribution at each position.
         label_token_ids = np.random.randint(0, vocab_size, size=num_labels).tolist()
 
         scores = compute_token_logprobs(
