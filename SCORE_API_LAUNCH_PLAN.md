@@ -100,7 +100,7 @@ The `/v1/score` Scoring API is implemented and functional in sglang-jax. This pl
 
 ### Development Model: Fork-First
 
-All development happens on the fork for the initial phase (estimated: 2-3 months). Once the Score API implementation is mature and well-tested, changes will be contributed upstream in batches.
+All development happens on the fork for the initial phase. Once the Score API implementation is mature and well-tested, changes will be contributed upstream in batches.
 
 ```
 Feature Branch → PR → Fork Main → (later) PR → Upstream Main
@@ -275,9 +275,11 @@ After fork development is stable, contribute to upstream in batches:
 ### MVP Launch (Priority 1 Complete)
 
 - [ ] `test_bench_score.py` merged to upstream
-- [ ] Performance tests running in CI on every PR
+- [ ] Basic performance benchmarks running in `performance-test-tpu-v6e-1` suite (every PR)
 - [ ] Baseline thresholds established and documented
 - [ ] No regressions in existing tests
+
+**Note:** Basic perf benchmarks run on every PR via upstream's performance suite. Detailed profiling (smoke/standard/full from RFC-004) runs nightly/on-demand only.
 
 **Success metric:** Score API performance regressions caught by CI.
 
@@ -326,9 +328,11 @@ After fork development is stable, contribute to upstream in batches:
 
 | Unknown | How to Resolve |
 |---------|----------------|
-| Exact performance thresholds | Run benchmarks on TPU, establish baseline |
 | Upstream appetite for perf tests | Ask maintainers before PR 1 |
 | OpenAI client version support | Test with 1.0.x, 1.5.x, document results |
+
+**Resolved:**
+- ~~Exact performance thresholds~~ → Done: p50 < 50ms, p99 < 150ms, throughput > 100 items/sec (in `test_bench_score.py`)
 
 ---
 
