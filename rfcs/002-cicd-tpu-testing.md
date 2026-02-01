@@ -106,6 +106,10 @@ gcloud compute tpus tpu-vm ssh $TPU_NAME --zone=$TPU_ZONE --command="
   export SGLANG_JAX_IS_IN_CI=true
 
   # Run Score API tests
+  # WARNING: Index-based selection (--range-begin/--range-end) is brittle and will
+  # silently drift as suite changes. Prefer explicit test selection with pytest:
+  # python -m pytest test/srt/test_score_api.py -v
+  # For compatibility with existing suite runner:
   python test/srt/run_suite.py --suite e2e-test-tpu-v6e-1 --range-begin 4 --range-end 5
 "
 
@@ -195,10 +199,12 @@ class TestScoreAPIPerformance(CustomTestCase):
 
         # Get label token IDs
         cls.label_tokens = [" yes", " no", " maybe"]
-        cls.label_token_ids = [
-            cls.tokenizer.encode(t, add_special_tokens=False)[0]
-            for t in cls.label_tokens
-        ]
+        cls.label_token_ids = []
+        for t in cls.label_tokens:
+            token_ids = cls.tokenizer.encode(t, add_special_tokens=False)
+            if len(token_ids) != 1:
+                raise ValueError(f"Label token '{t}' encoded to {len(token_ids)} tokens, expected 1")
+            cls.label_token_ids.append(token_ids[0])
         print(f"[Benchmark] Model loaded, label_token_ids: {cls.label_token_ids}")
 
     @classmethod

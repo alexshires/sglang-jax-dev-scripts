@@ -68,7 +68,10 @@ client = OpenAI(
     api_key="not-needed"  # SGLang doesn't validate by default
 )
 
-# Use Score API
+# Use Score API via OpenAI client's generic post method
+# Note: client.post() and cast_to= are part of OpenAI's public API (v1.0+)
+# but are less stable than typed methods. For maximum compatibility,
+# consider using httpx or requests directly (see below).
 response = client.post(
     "/score",
     body={
@@ -141,7 +144,16 @@ class TestScoreOpenAIClient:
 
     @classmethod
     def setup_class(cls):
-        """Start server for tests."""
+        """
+        Initialize OpenAI client for tests.
+
+        NOTE: These tests assume a running SGLang server. The server must be
+        started externally before running tests. Set SGLANG_BASE_URL to point
+        to your server, or start one locally at http://localhost:8000.
+
+        Example server startup:
+            python -m sgl_jax.launch_server --model meta-llama/Llama-3.2-1B-Instruct
+        """
         cls.base_url = os.getenv("SGLANG_BASE_URL", "http://localhost:8000")
         cls.client = OpenAI(
             base_url=f"{cls.base_url}/v1",
@@ -155,13 +167,24 @@ class TestScoreOpenAIClient:
         The /v1/score endpoint is an SGLang extension, so we use
         the generic .post() method rather than a typed method.
         """
+        from sgl_jax.test.score_test_utils import get_tokenizer, get_single_token_id
+
+        # Get tokenizer to derive single-token IDs
+        tokenizer = get_tokenizer("meta-llama/Llama-3.2-1B-Instruct")
+
+        # Use helper to ensure these are single tokens
+        # Note: Using letter tokens which are reliably single tokens
+        A_ID = get_single_token_id(tokenizer, " A")
+        B_ID = get_single_token_id(tokenizer, " B")
+        C_ID = get_single_token_id(tokenizer, " C")
+
         response = self.client.post(
             "/score",
             body={
                 "model": "meta-llama/Llama-3.2-1B-Instruct",
                 "query": "The capital of France is",
                 "items": [" Paris", " London", " Berlin"],
-                "label_token_ids": [3681, 4745, 9411],  # Paris, London, Berlin tokens
+                "label_token_ids": [A_ID, B_ID, C_ID],  # Verified single tokens
                 "apply_softmax": True,
                 "item_first": False
             },
@@ -256,6 +279,9 @@ class TestScoreOpenAIClientEdgeCases:
 
     def test_large_batch_openai_client(self):
         """Test large batch through OpenAI client."""
+        from sgl_jax.test.score_test_utils import get_tokenizer, get_single_token_id
+
+        tokenizer = get_tokenizer("meta-llama/Llama-3.2-1B-Instruct")
         items = [f" item{i}" for i in range(20)]
 
         response = self.client.post(
@@ -264,7 +290,11 @@ class TestScoreOpenAIClientEdgeCases:
                 "model": "meta-llama/Llama-3.2-1B-Instruct",
                 "query": "Score these items:",
                 "items": items,
-                "label_token_ids": [123, 456],
+                # Use helper to get verified single-token IDs
+                "label_token_ids": [
+                    get_single_token_id(tokenizer, " A"),
+                    get_single_token_id(tokenizer, " B"),
+                ],
                 "apply_softmax": True
             },
             cast_to=dict
@@ -274,13 +304,22 @@ class TestScoreOpenAIClientEdgeCases:
 
     def test_unicode_content_openai_client(self):
         """Test Unicode handling through OpenAI client."""
+        from sgl_jax.test.score_test_utils import get_tokenizer, get_single_token_id
+
+        tokenizer = get_tokenizer("meta-llama/Llama-3.2-1B-Instruct")
+
         response = self.client.post(
             "/score",
             body={
                 "model": "meta-llama/Llama-3.2-1B-Instruct",
                 "query": "Translate: こんにちは",
                 "items": [" Hello", " Goodbye", " Thanks"],
-                "label_token_ids": [15043, 10780, 3374],
+                # Use helper to get verified single-token IDs
+                "label_token_ids": [
+                    get_single_token_id(tokenizer, " X"),
+                    get_single_token_id(tokenizer, " Y"),
+                    get_single_token_id(tokenizer, " Z"),
+                ],
                 "apply_softmax": True
             },
             cast_to=dict
@@ -291,13 +330,22 @@ class TestScoreOpenAIClientEdgeCases:
 
     def test_special_characters_openai_client(self):
         """Test special characters in query/items."""
+        from sgl_jax.test.score_test_utils import get_tokenizer, get_single_token_id
+
+        tokenizer = get_tokenizer("meta-llama/Llama-3.2-1B-Instruct")
+
         response = self.client.post(
             "/score",
             body={
                 "model": "meta-llama/Llama-3.2-1B-Instruct",
                 "query": "Test with special chars: @#$%^&*()",
                 "items": [" option<1>", " option\"2\"", " option'3'"],
-                "label_token_ids": [29896, 29906, 29941],
+                # Use helper to get verified single-token IDs
+                "label_token_ids": [
+                    get_single_token_id(tokenizer, " 1"),
+                    get_single_token_id(tokenizer, " 2"),
+                    get_single_token_id(tokenizer, " 3"),
+                ],
                 "apply_softmax": True
             },
             cast_to=dict
@@ -321,7 +369,7 @@ class TestScoreOpenAIClientEdgeCases:
 
 ```json
 {
-    "model": "string (required)",
+    "model": "string (optional, uses server default if not provided)",
     "query": "string | list[int] (required)",
     "items": "list[string] | list[list[int]] (required)",
     "label_token_ids": "list[int] (required)",

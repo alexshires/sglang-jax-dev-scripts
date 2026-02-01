@@ -105,6 +105,21 @@ def get_label_token_ids(tokenizer, tokens: List[str]) -> List[int]:
     """Convert label tokens to IDs"""
     ...
 
+def get_single_token_id(tokenizer, text: str) -> int:
+    """
+    Get token ID for text that MUST tokenize to exactly one token.
+
+    Raises ValueError if text tokenizes to 0 or >1 tokens.
+    Use this for label_token_ids which must be single tokens.
+    """
+    token_ids = tokenizer.encode(text, add_special_tokens=False)
+    if len(token_ids) != 1:
+        raise ValueError(
+            f"Text '{text}' tokenizes to {len(token_ids)} tokens "
+            f"(expected 1): {token_ids}"
+        )
+    return token_ids[0]
+
 def default_query_items():
     """Canonical query/items for reuse across tests"""
     return {
@@ -119,18 +134,19 @@ def assert_scores_shape(scores, num_items: int, num_labels: int):
     for score_list in scores:
         assert len(score_list) == num_labels
 
-def assert_scores_probs(scores, apply_softmax: bool):
-    """Validate score probability constraints"""
+def assert_scores_valid(scores, apply_softmax: bool):
+    """Validate score constraints based on apply_softmax mode"""
     for score_list in scores:
-        # All values in valid range
-        assert all(0 <= s <= 1 for s in score_list)
-
         if apply_softmax:
-            # Softmax: sum ≈ 1
-            assert abs(sum(score_list) - 1.0) < 1e-6
+            # Softmax mode: probabilities in [0, 1], sum ≈ 1
+            assert all(0 <= s <= 1 for s in score_list), \
+                f"Softmax scores must be in [0, 1], got: {score_list}"
+            assert abs(sum(score_list) - 1.0) < 1e-6, \
+                f"Softmax scores must sum to 1.0, got sum: {sum(score_list)}"
         else:
-            # Logprob: no sum constraint
-            pass
+            # Logprob mode: values are negative log probabilities
+            assert all(s <= 0 for s in score_list), \
+                f"Logprob scores must be <= 0, got: {score_list}"
 
 def compute_hf_reference_scores(
     model: str,
@@ -139,12 +155,15 @@ def compute_hf_reference_scores(
     label_token_ids: List[int],
     item_first: bool = False,
     apply_softmax: bool = False
-) -> List[List[float]]:
+) -> Optional[List[List[float]]]:
     """
     Compute reference scores using HuggingFace.
 
     Gated by SGLANG_JAX_RUN_HF_REFERENCE env var.
     Requires torch + transformers installed.
+
+    Returns:
+        List of score lists if HF reference enabled, None otherwise.
     """
     if not should_run_hf_reference():
         return None
@@ -157,11 +176,13 @@ def should_run_hf_reference() -> bool:
 def skip_if_no_multidevice():
     """Skip test if < 2 JAX devices available"""
     import jax
+    import pytest
     if len(jax.devices()) < 2:
         pytest.skip("Requires multi-device setup")
 
 def skip_if_no_hf_reference():
     """Skip test if HF reference not enabled"""
+    import pytest
     if not should_run_hf_reference():
         pytest.skip("Set SGLANG_JAX_RUN_HF_REFERENCE=1 to run")
 ```
@@ -466,9 +487,9 @@ if query_is_text != items_is_text:
 - [ ] Create `python/sgl_jax/test/score_test_utils.py`
 - [ ] Implement `ScoreTestConfig` dataclass
 - [ ] Implement `build_engine()`, `get_tokenizer()`, `get_label_token_ids()`
-- [ ] Implement assertion helpers (`assert_scores_shape`, `assert_scores_probs`)
-- [ ] Implement HF reference helper (gated)
-- [ ] Implement skip decorators (`skip_if_no_multidevice`, etc.)
+- [ ] Implement assertion helpers (`assert_scores_shape`, `assert_scores_valid`)
+- [ ] Implement HF reference helper (gated) with Optional return type
+- [ ] Implement skip decorators (`skip_if_no_multidevice`, etc.) with pytest imports
 - [ ] Write docstrings and usage examples
 - [ ] Refactor existing tests to use fixtures (validate no regression)
 
@@ -590,6 +611,10 @@ pytest --cov=python/sgl_jax/srt/managers/tokenizer_manager \
 - Phase 6 (perf): 4 hours
 - Phase 7 (CI integration): 2 hours
 - **Total:** ~26 hours over 5 weeks
+
+**Note:** The `assert_scores_valid()` helper (renamed from `assert_scores_probs`) correctly handles both modes:
+- `apply_softmax=True`: Validates probabilities in [0, 1] that sum to 1.0
+- `apply_softmax=False`: Validates logprobs are <= 0 (negative values)
 
 **Ongoing Cost:**
 - CI runtime: +5 min/run (30 new tests)

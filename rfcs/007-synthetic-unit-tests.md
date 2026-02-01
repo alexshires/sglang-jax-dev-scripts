@@ -10,7 +10,7 @@
 
 ## Summary
 
-Add a layer of fast, deterministic synthetic unit tests that validate Score API correctness without requiring model inference. These tests use mock logits and controlled inputs to catch shift/mask/boundary bugs early, before they reach heavier integration tests.
+Add a layer of fast, deterministic synthetic unit tests that validate Score API correctness using mock logits and controlled inputs. The core tests (shift, mask, boundary, numerical stability) run without model inference, while JAX compilation tests require runtime but focus on caching behavior rather than model accuracy. This catches shift/mask/boundary bugs early, before they reach heavier integration tests.
 
 ## Motivation
 
@@ -61,6 +61,27 @@ Based on common Score API bugs in similar systems:
 #### Category 1: Shift Correctness Tests
 
 Validate that scoring uses logits at position t-1 to score token t.
+
+**Note on API Contract:**
+These tests assume a `compute_token_logprobs` function with the following signature:
+```python
+def compute_token_logprobs(
+    logits: np.ndarray,  # Shape: (seq_len, vocab_size)
+    token_ids: List[int],  # Actual token IDs in sequence
+    label_token_ids: List[int],  # Token IDs to score (subset of token_ids)
+    start_position: int,  # Position to start scoring from
+    attention_mask: Optional[List[int]] = None,  # 1 = real, 0 = padding
+) -> List[float]:
+    """
+    Compute token-level log probabilities for specified tokens.
+
+    Returns log probabilities for each token in label_token_ids, where
+    the probability of token at position t is computed using logits[t-1].
+    """
+```
+
+This is a proposed internal API for synthetic testing. If not yet implemented,
+this should be extracted or created from the existing score logic.
 
 ```python
 # test/srt/test_score_api_synthetic.py
@@ -480,12 +501,21 @@ class TestContinuationBoundary:
 
 #### Category 4: JAX Compilation Tests
 
+**Note:** These tests require JAX runtime and model inference. They are NOT
+purely synthetic unit tests and should be considered integration tests.
+They are included here for completeness but may be better suited for RFC-003's
+comprehensive test suite.
+
 Validate that same-shape requests don't trigger recompilation.
 
 ```python
 class TestJAXCompilation:
     """
     Validate JAX compilation behavior.
+
+    WARNING: These tests require JAX runtime and are NOT synthetic unit tests.
+    They call score_request() which performs model inference on TPU/GPU.
+    Consider moving to RFC-003's integration test suite.
 
     JAX compiles (traces) functions on first call with a new shape.
     Subsequent calls with the same shape should reuse the compiled version.
@@ -503,24 +533,36 @@ class TestJAXCompilation:
         Three requests with identical shapes should trigger only one compilation.
 
         This requires access to JAX compilation counters or timing analysis.
+
+        NOTE: This test requires make_score_request() helper. Either implement or use
+        the actual Score API request building logic.
         """
         import jax
         from sgl_jax.srt.managers.tokenizer_manager import score_request
+
+        # TBD: Define make_score_request() helper
+        # def make_score_request(batch_size, seq_len):
+        #     """Create a Score API request with specified shape."""
+        #     return {
+        #         "query": "a" * seq_len,
+        #         "items": ["x"] * batch_size,
+        #         "label_token_ids": [1, 2, 3],
+        #     }
 
         # Get initial compilation count (if available)
         # Note: This may require JAX internal APIs or custom instrumentation
 
         # Request 1: First call - triggers compilation
-        request1 = make_score_request(batch_size=4, seq_len=128)
-        result1 = score_request(request1)
+        # request1 = make_score_request(batch_size=4, seq_len=128)
+        # result1 = score_request(request1)
 
         # Request 2: Same shape - should NOT recompile
-        request2 = make_score_request(batch_size=4, seq_len=128)
-        result2 = score_request(request2)
+        # request2 = make_score_request(batch_size=4, seq_len=128)
+        # result2 = score_request(request2)
 
         # Request 3: Same shape - should NOT recompile
-        request3 = make_score_request(batch_size=4, seq_len=128)
-        result3 = score_request(request3)
+        # request3 = make_score_request(batch_size=4, seq_len=128)
+        # result3 = score_request(request3)
 
         # Verification options:
         # 1. Check JAX compilation counter (if instrumented)
@@ -528,20 +570,22 @@ class TestJAXCompilation:
         # 3. Check that no new compilation logs appear
 
         # Timing-based verification (less reliable but portable)
-        import time
+        # import time
 
-        t1_start = time.perf_counter()
-        score_request(make_score_request(batch_size=4, seq_len=128))
-        t1 = time.perf_counter() - t1_start
+        # t1_start = time.perf_counter()
+        # score_request(make_score_request(batch_size=4, seq_len=128))
+        # t1 = time.perf_counter() - t1_start
 
-        t2_start = time.perf_counter()
-        score_request(make_score_request(batch_size=4, seq_len=128))
-        t2 = time.perf_counter() - t2_start
+        # t2_start = time.perf_counter()
+        # score_request(make_score_request(batch_size=4, seq_len=128))
+        # t2 = time.perf_counter() - t2_start
 
         # Second call should be at least 2x faster (no compilation)
         # This is a heuristic - compilation typically takes 10-100x longer
-        assert t2 < t1 * 0.5 or t1 < 0.1, \
-            f"Possible recompilation: t1={t1:.3f}s, t2={t2:.3f}s"
+        # assert t2 < t1 * 0.5 or t1 < 0.1, \
+        #     f"Possible recompilation: t1={t1:.3f}s, t2={t2:.3f}s"
+
+        pytest.skip("TBD: make_score_request() not yet implemented")
 
     def test_recompile_on_different_shape(self):
         """
@@ -551,16 +595,18 @@ class TestJAXCompilation:
         expected JAX behavior but should be minimized in production.
         """
         # Shape 1
-        request1 = make_score_request(batch_size=4, seq_len=128)
-        result1 = score_request(request1)
+        # request1 = make_score_request(batch_size=4, seq_len=128)
+        # result1 = score_request(request1)
 
         # Shape 2 (different) - SHOULD recompile
-        request2 = make_score_request(batch_size=8, seq_len=256)
-        result2 = score_request(request2)
+        # request2 = make_score_request(batch_size=8, seq_len=256)
+        # result2 = score_request(request2)
 
         # Both should succeed
-        assert result1 is not None
-        assert result2 is not None
+        # assert result1 is not None
+        # assert result2 is not None
+
+        pytest.skip("TBD: make_score_request() not yet implemented")
 
     def test_bucketed_shapes_reduce_compilations(self):
         """
@@ -571,28 +617,30 @@ class TestJAXCompilation:
         share the same compiled function.
         """
         # Sequence length 100 - should bucket to 128
-        request1 = make_score_request(batch_size=1, seq_len=100)
+        # request1 = make_score_request(batch_size=1, seq_len=100)
 
         # Sequence length 120 - should also bucket to 128
-        request2 = make_score_request(batch_size=1, seq_len=120)
+        # request2 = make_score_request(batch_size=1, seq_len=120)
 
-        import time
+        # import time
 
         # First request with seq_len=100
-        t1_start = time.perf_counter()
-        score_request(request1)
-        t1 = time.perf_counter() - t1_start
+        # t1_start = time.perf_counter()
+        # score_request(request1)
+        # t1 = time.perf_counter() - t1_start
 
         # Second request with seq_len=120 (same bucket)
-        t2_start = time.perf_counter()
-        score_request(request2)
-        t2 = time.perf_counter() - t2_start
+        # t2_start = time.perf_counter()
+        # score_request(request2)
+        # t2 = time.perf_counter() - t2_start
 
         # If bucketing works, t2 should be fast (no recompilation)
         # Skip this assertion if bucketing isn't implemented
-        if hasattr(score_request, 'uses_bucketing') and score_request.uses_bucketing:
-            assert t2 < t1 * 0.5, \
-                "Bucketing may not be working - seq_len 100 and 120 should share compilation"
+        # if hasattr(score_request, 'uses_bucketing') and score_request.uses_bucketing:
+        #     assert t2 < t1 * 0.5, \
+        #         "Bucketing may not be working - seq_len 100 and 120 should share compilation"
+
+        pytest.skip("TBD: make_score_request() not yet implemented")
 ```
 
 #### Category 5: Fuzz and Property Tests
@@ -691,6 +739,9 @@ class TestFuzzAndProperties:
         Property: Order of items in batch doesn't affect their individual scores.
 
         For batch [A, B, C]: score(A) same whether batch is [A,B,C] or [C,A,B]
+
+        NOTE: This test requires batch_score() and make_score_request() to be defined.
+        These are TBD - either implement or mark this test as @pytest.mark.skip(reason="TBD: batch_score not yet implemented")
         """
         # This tests the high-level batch scoring API
         vocab_size = 100
@@ -700,15 +751,22 @@ class TestFuzzAndProperties:
             for _ in range(3)
         ]
 
+        # TBD: Define batch_score() helper function
+        # def batch_score(items, order):
+        #     """Score items in specified order."""
+        #     pass
+
         # Score in original order
-        scores_original = batch_score(items, order=[0, 1, 2])
+        # scores_original = batch_score(items, order=[0, 1, 2])
 
         # Score in different order
-        scores_reordered = batch_score(items, order=[2, 0, 1])
+        # scores_reordered = batch_score(items, order=[2, 0, 1])
 
         # Item 0's score should be the same in both
-        assert abs(scores_original[0] - scores_reordered[1]) < 1e-6, \
-            "Batch order affected scores"
+        # assert abs(scores_original[0] - scores_reordered[1]) < 1e-6, \
+        #     "Batch order affected scores"
+
+        pytest.skip("TBD: batch_score() not yet implemented")
 
     @given(
         real_len=st.integers(min_value=2, max_value=10),

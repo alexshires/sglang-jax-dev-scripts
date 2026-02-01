@@ -102,6 +102,20 @@ When set:
 {query}{delimiter_text}{item1}{delimiter_text}{item2}{delimiter_text}{item3}{delimiter_text}
 ```
 
+**IMPORTANT:** When using text inputs with a delimiter, the delimiter text MUST tokenize
+to exactly one token (the delimiter_token_id). If it tokenizes to multiple tokens, the
+logprob extraction logic will be incorrect. This should be validated at server startup:
+
+```python
+# Validation during initialization
+delimiter_tokens = tokenizer.encode(delimiter_text)
+if len(delimiter_tokens) != 1 or delimiter_tokens[0] != delimiter_token_id:
+    raise ValueError(
+        f"Delimiter text '{delimiter_text}' must tokenize to exactly one token "
+        f"(expected [{delimiter_token_id}], got {delimiter_tokens})"
+    )
+```
+
 **Token inputs:**
 ```
 [query_tokens...][delimiter_id][item1_tokens...][delimiter_id][item2_tokens...][delimiter_id][item3_tokens...][delimiter_id]
@@ -154,19 +168,51 @@ def _build_multi_item_token_sequence(
     return combined
 
 def _process_multi_item_scoring_results(
-    self, results, items, label_token_ids, apply_softmax
+    self, results, items, query_token_len: int, label_token_ids, apply_softmax
 ) -> List[List[float]]:
-    """Extract scores from input_token_ids_logprobs at delimiter positions."""
+    """Extract scores from input_token_ids_logprobs at delimiter positions.
+
+    The delimiter positions depend on cumulative token lengths!
+
+    For query<d>item1<d>item2<d>item3<d>:
+    - Delimiter 0: at position len(query)
+    - Delimiter 1: at position len(query) + 1 + len(item1)
+    - Delimiter 2: at position len(query) + 1 + len(item1) + 1 + len(item2)
+    - etc.
+
+    The logprobs at delimiter i are used to score item i.
+
+    Args:
+        results: Raw results from model forward pass
+        items: List of tokenized items (to get their lengths)
+        query_token_len: Length of query in tokens
+        label_token_ids: Token IDs to extract scores for
+        apply_softmax: Whether to apply softmax normalization
+    """
     input_logprobs = results[0]["meta_info"].get("input_token_ids_logprobs", [])
 
     scores = []
-    # Skip first delimiter (query/item1 boundary)
+
+    # Calculate delimiter positions based on cumulative token lengths
+    # Position of delimiter after item i:
+    #   query_token_len + sum(1 + len(item[j]) for j in 0..i)
+    #   = query_token_len + (i+1) + sum(len(item[j]) for j in 0..i)
+
+    cumulative_item_len = 0
     for i, item in enumerate(items):
-        logprobs_at_delimiter = input_logprobs[i + 1]
+        # Delimiter position after item i
+        delimiter_position = query_token_len + (i + 1) + cumulative_item_len + len(item)
+
+        # Extract logprobs at this delimiter position
+        logprobs_at_delimiter = input_logprobs[delimiter_position]
+
         score_list = self._convert_logprobs_to_scores(
             logprobs_at_delimiter, label_token_ids, apply_softmax
         )
         scores.append(score_list)
+
+        # Update cumulative length for next iteration
+        cumulative_item_len += len(item)
 
     return scores
 ```
@@ -195,17 +241,31 @@ Per ADR-001, softmax must be pure Python in TokenizerManager (device-agnostic). 
 
 ```python
 def _convert_logprobs_to_scores(self, logprobs, label_token_ids, apply_softmax):
+    """Convert logprobs to scores, optionally applying softmax.
+
+    Args:
+        logprobs: Dict mapping token_id -> log probability
+        label_token_ids: List of token IDs to score
+        apply_softmax: If True, convert logprobs to probabilities via softmax.
+                      If False, return raw log probabilities.
+
+    Returns:
+        List of scores (probabilities if apply_softmax=True, logprobs otherwise)
+    """
     score_list = [logprobs.get(tid, float("-inf")) for tid in label_token_ids]
 
     if apply_softmax:
         # Pure Python softmax (not JAX)
+        # Convert log probabilities to probabilities via exp and normalize
         max_logprob = max(score_list)
         exp_scores = [math.exp(x - max_logprob) if x != float("-inf") else 0.0
                       for x in score_list]
         sum_exp = sum(exp_scores)
         score_list = [x / sum_exp if sum_exp > 0 else 0.0 for x in exp_scores]
     else:
-        score_list = [math.exp(x) if x != float("-inf") else 0.0 for x in score_list]
+        # Return raw log probabilities, NOT exp(logprob)
+        # The API contract expects logprobs when apply_softmax=False
+        score_list = [x if x != float("-inf") else float("-inf") for x in score_list]
 
     return score_list
 ```

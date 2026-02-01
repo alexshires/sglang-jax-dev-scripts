@@ -76,28 +76,39 @@ Establish a comprehensive performance benchmarking and stress testing framework 
 
 **Purpose:** Deep analysis for releases and investigations
 **Runtime:** ~45-60 minutes
+**Hardware:** Requires TPU v6e-8 or larger (multi-host recommended for larger configs)
 
 | Parameter | Values |
 |-----------|--------|
-| Batch sizes | 1, 2, 4, 8, 16, 32, 64 |
+| Batch sizes | 1, 2, 4, 8, 16, 32 (64 only with 1B model on v6e-8+) |
 | Label counts | 2, 4, 8, 16 |
 | Num runs | 50 |
 | Warmup runs | 10 |
-| Models | Llama-3.2-1B, Llama-3.2-3B |
-| Dtypes | bfloat16, float32 |
+| Models | Llama-3.2-1B (all batch sizes), Llama-3.2-3B (batch sizes 1-16 only) |
+| Dtypes | bfloat16 (default), float32 (1B model only, batch sizes 1-16) |
+
+**Note:** Larger configurations (batch size 64, 3B model, float32 dtype) may OOM on TPU v6e-1.
+The tool will automatically skip configurations that exceed available memory.
 
 ### Stress Test Configurations
 
 #### Large Batch Stress Test
 
 **Purpose:** Validate behavior with very large batch sizes
+**Hardware:** TPU v6e-1 (single chip) for 50-100 batch sizes, v6e-8 recommended for 200+
+**Model:** Llama-3.2-1B-Instruct (smaller model to focus on batch scaling)
+**Max sequence length:** 128 tokens (to avoid sequence length OOMs)
+
 **Configurations:**
 
-| Batch Size | Label Count | Expected Behavior |
-|------------|-------------|-------------------|
-| 50 | 4 | Complete without OOM |
-| 100 | 4 | Complete without OOM |
-| 200 | 4 | Complete or graceful failure |
+| Batch Size | Label Count | Expected Behavior | Hardware Requirement |
+|------------|-------------|-------------------|---------------------|
+| 50 | 4 | Complete without OOM | TPU v6e-1 |
+| 100 | 4 | Complete without OOM | TPU v6e-1 |
+| 200 | 4 | Complete or graceful OOM error | TPU v6e-8 recommended |
+
+**Note:** Tests use short sequences (128 tokens max) and 1B model to isolate batch size scaling.
+Larger models or longer sequences will OOM at lower batch sizes.
 
 #### Concurrent Request Stress Test
 
@@ -272,9 +283,12 @@ sglang-jax-dev-scripts/
 
 - [ ] Create `bench_score_stress.py` for stress scenarios
 - [ ] Implement large batch stress test (50, 100, 200 items)
+  - [ ] Auto-detect hardware and skip unsupported configurations
+  - [ ] Add graceful OOM handling and clear error messages
+  - [ ] Use 1B model + 128 token max sequences for consistency
 - [ ] Implement concurrent request stress test
 - [ ] Add graceful failure handling and reporting
-- [ ] Document expected behavior at various scales
+- [ ] Document expected behavior at various scales and hardware requirements
 
 ### Phase 3: Baseline Establishment
 

@@ -202,7 +202,7 @@ All errors follow the OpenAI error response format:
 
 | Condition | Status | Type | Code | Message |
 |-----------|--------|------|------|---------|
-| Missing | 400 | `missing_parameter_error` | `missing_model` | `model is required` |
+| Missing | N/A | N/A | N/A | Uses server default (optional parameter per RFC-000) |
 | Not found | 400 | `model_error` | `model_not_found` | `Model '{model}' not found. Available models: [...]` |
 | Not loaded | 500 | `model_error` | `model_not_loaded` | `Model '{model}' is not currently loaded` |
 
@@ -304,6 +304,37 @@ def validate_score_request(
             code="mixed_input_types"
         )
 
+    # Validate all items have consistent types
+    if not query_is_text:
+        # When using token input mode, validate all items are list[int]
+        for i, item in enumerate(items):
+            if not isinstance(item, list):
+                raise ValidationError(
+                    message=f"items[{i}] must be a list of integers when using token input mode",
+                    error_type="invalid_request_error",
+                    param="items",
+                    code="invalid_items_type"
+                )
+            # Check that all elements in the list are integers
+            non_ints = [x for x in item if not isinstance(x, int)]
+            if non_ints:
+                raise ValidationError(
+                    message=f"items[{i}] contains non-integer values. All token IDs must be integers.",
+                    error_type="invalid_request_error",
+                    param="items",
+                    code="invalid_token_id_type"
+                )
+    else:
+        # When using text input mode, validate all items are strings
+        for i, item in enumerate(items):
+            if not isinstance(item, str):
+                raise ValidationError(
+                    message=f"items[{i}] must be a string when using text input mode",
+                    error_type="invalid_request_error",
+                    param="items",
+                    code="invalid_items_type"
+                )
+
     # Validate label_token_ids
     if label_token_ids is None:
         raise ValidationError(
@@ -358,6 +389,24 @@ def validate_score_request(
             error_type="invalid_value_error",
             param="label_token_ids",
             code="token_id_exceeds_vocab"
+        )
+
+    # Validate apply_softmax type
+    if not isinstance(apply_softmax, bool):
+        raise ValidationError(
+            message="apply_softmax must be a boolean",
+            error_type="invalid_request_error",
+            param="apply_softmax",
+            code="invalid_apply_softmax_type"
+        )
+
+    # Validate item_first type
+    if not isinstance(item_first, bool):
+        raise ValidationError(
+            message="item_first must be a boolean",
+            error_type="invalid_request_error",
+            param="item_first",
+            code="invalid_item_first_type"
         )
 ```
 

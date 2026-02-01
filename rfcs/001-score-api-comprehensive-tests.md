@@ -65,7 +65,7 @@ Implement 4 Tier 1 critical tests following the test pyramid:
 ```python
 ✓ Absolute difference < 1% for each probability
 ✓ All scores in valid range [0, 1]
-✓ Scores sum to 1.0 (within 6 decimal places)
+✓ Scores sum to 1.0 (within 6 decimal places, requires apply_softmax=True)
 ```
 
 **Test cases:**
@@ -102,7 +102,7 @@ Implement 4 Tier 1 critical tests following the test pyramid:
 
 **Validation:**
 ```python
-✓ max_new_tokens ≤ 1 (prevents decode loop)
+✓ max_new_tokens == 0 (strict prefill-only, prevents decode loop)
 ✓ token_ids_logprob is set (selective logprob extraction)
 ✓ return_logprob=True (request logprobs from model)
 ✓ stream=False (scoring is non-streaming)
