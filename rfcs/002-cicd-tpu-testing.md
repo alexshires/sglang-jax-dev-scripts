@@ -24,6 +24,8 @@ This RFC is written for development on a **fork** of sglang-jax. Key differences
 
 **Important:** When you submit PRs to upstream, their CI will run using their self-hosted runners. This RFC focuses on local development and testing before submitting upstream.
 
+**TPU generations:** Examples in this RFC use TPU v6e, but commands generalize to other generations (v2, v3, v4, v5e, v5p). Adjust `--accelerator-type` accordingly. See [RFC-004](004-score-api-performance-benchmarks.md#tpu-compatibility) for generation-specific performance considerations.
+
 ## Current State Analysis
 
 ### What Upstream Already Has (PR CI)

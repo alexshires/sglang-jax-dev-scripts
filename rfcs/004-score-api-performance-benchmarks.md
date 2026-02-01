@@ -441,6 +441,26 @@ gh workflow run nightly-perf.yaml --field profile=smoke
 | Regression threshold? | **10%** - balance sensitivity vs noise |
 | Baseline storage? | **Checked-in CSV** - simple, version-controlled |
 
+## TPU Compatibility
+
+This RFC uses **TPU v6e as the primary baseline**. Other TPU generations (v2, v3, v4, v5e, v5p) should work but have different characteristics:
+
+| Aspect | v6e (Baseline) | Other Generations |
+|--------|----------------|-------------------|
+| HBM capacity | 16 GB (v6e-1) | Varies (8-96 GB) |
+| Compilation time | Baseline | May differ significantly |
+| Performance | Baseline thresholds | Scale accordingly |
+| Batch size limits | As documented | Adjust for HBM |
+
+**Guidance for other TPU types:**
+
+- **Functional tests**: Expected to pass on all generations without modification
+- **Performance baselines**: v6e thresholds are not transferable; establish separate baselines per generation if needed
+- **Stress tests**: Batch size limits depend on HBM; the documented limits are v6e-specific
+- **Regression thresholds**: The 10% threshold is tuned for v6e variance; other generations may need adjustment
+
+If deploying on non-v6e hardware, run the full profile once to establish generation-specific baselines before using regression detection.
+
 ## Success Metrics
 
 **Phase 1-3 Complete:**
