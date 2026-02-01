@@ -3,8 +3,8 @@
 **Status:** Accepted
 **Author:** Engineering Team
 **Created:** 2026-01-29
-**Updated:** 2026-01-29
-**Related:** ADR-001, RFC-001
+**Updated:** 2026-02-01
+**Related:** ADR-001, RFC-001, RFC-008
 
 ## Summary
 
@@ -306,6 +306,84 @@ scores = [
 
 *Note: Actual numbers depend on model, sequence length, and hardware.*
 
+### TPU-Specific Behavior
+
+The Score API in sglang-jax runs on TPU. Users should be aware of these characteristics:
+
+#### 1. First-Request Latency (XLA Compilation)
+
+JAX compiles to XLA on first execution for each unique input shape. This means:
+
+```
+Request 1 (seq_len=50):  ~2-5 seconds  (compilation + inference)
+Request 2 (seq_len=50):  ~12ms         (cached, inference only)
+Request 3 (seq_len=75):  ~2-5 seconds  (new shape, recompile)
+Request 4 (seq_len=75):  ~12ms         (cached)
+```
+
+**Implications:**
+- First request is slow—this is expected, not a bug
+- Warmup with representative shapes before serving
+- The engine may bucket sequences to reduce unique shapes (check engine docs)
+
+#### 2. bfloat16 Precision
+
+TPU natively uses bfloat16 (bf16), which has less precision than float32:
+
+- **Model inference:** bf16 (TPU-optimized)
+- **Softmax computation:** float32 via pure Python (see ADR-001)
+- **Expected variance:** Scores may differ by ~0.01 vs float32 reference
+
+For most scoring tasks, bf16 precision is sufficient. If exact reproducibility with CPU/GPU float32 is required, this is a known limitation.
+
+#### 3. Process Architecture
+
+```
+Main Process (CPU)              Subprocess (TPU)
+┌─────────────────────┐        ┌─────────────────────┐
+│  TokenizerManager   │  IPC   │     Scheduler       │
+│  - Tokenization     │◄──────►│  - Model inference  │
+│  - Softmax (Python) │        │  - Logprob extract  │
+│  - Score formatting │        │  - TPU operations   │
+└─────────────────────┘        └─────────────────────┘
+```
+
+The Score API code in TokenizerManager is **device-agnostic**—it runs on CPU and communicates with the TPU via IPC. This design:
+- Avoids JAX device conflicts in multi-process setup
+- Allows softmax to use stable float32 math
+- Keeps TPU dedicated to model inference
+
+#### 4. Memory and Batch Limits
+
+TPU HBM (High Bandwidth Memory) limits maximum batch size:
+
+| TPU Type | HBM | Approximate Max Batch* |
+|----------|-----|------------------------|
+| v6e-1 | 16 GB | ~64-128 items |
+| v6e-4 | 64 GB | ~256-512 items |
+| v6e-8 | 128 GB | ~512-1024 items |
+
+*Depends on model size and sequence length. These are rough estimates for Llama-3.2-1B.
+
+If you hit OOM errors, reduce batch size or use multi-item scoring (RFC-008) when available.
+
+#### 5. Multi-Device Sharding
+
+For TPU pods (multiple chips), the model is sharded across devices:
+- Tensor parallelism splits model weights
+- Score API works transparently—no user changes needed
+- Results should be identical to single-device (verified by sharding tests)
+
+#### What Score API Does NOT Handle
+
+These are engine-level concerns, not Score API:
+- XLA compilation caching strategy
+- Sequence length bucketing
+- Device placement
+- Memory management
+
+If you need to tune these, see the sglang-jax engine documentation.
+
 ## Common Use Cases
 
 ### 1. Classification
@@ -382,10 +460,11 @@ See RFC-006 for complete error handling specification.
 
 ### Potential Enhancements
 
-1. **Streaming scores:** Return scores as items are processed (for very large batches)
-2. **Prefix caching:** Cache prefill for repeated queries
-3. **Multi-label scoring:** Score multiple label sets in one request
-4. **Batch queries:** Different queries in same request
+1. **Multi-item scoring (RFC-008):** Score N items in single forward pass instead of N passes. Major performance optimization—10-60x speedup for large N. Design complete, implementation pending.
+2. **Streaming scores:** Return scores as items are processed (for very large batches)
+3. **Prefix caching:** Cache prefill for repeated queries
+4. **Multi-label scoring:** Score multiple label sets in one request
+5. **Batch queries:** Different queries in same request
 
 ### Not Planned
 
@@ -400,5 +479,6 @@ See RFC-006 for complete error handling specification.
 - RFC-003: Comprehensive Score API Test Suite
 - RFC-005: OpenAI Client Compatibility
 - RFC-006: Error Handling and API Contract
+- RFC-008: Multi-Item Scoring (performance optimization)
 - Investigation: TokenizerManager Architecture
 - Investigation: Score API PyTorch vs JAX Comparison
