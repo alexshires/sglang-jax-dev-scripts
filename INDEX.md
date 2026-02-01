@@ -10,6 +10,7 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 - **[Score API Launch Plan](SCORE_API_LAUNCH_PLAN.md)** - Master plan for implementation
   - Implementation priority matrix and dependencies
+  - **Branch strategy with specific branch names and merge order**
   - PR strategy for upstream contribution
   - Launch criteria (definition of done)
   - Risk assessment
@@ -288,6 +289,14 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-01:** Branch Strategy Added to Launch Plan
+  - Added detailed branch naming convention (feat/, test/, ci/)
+  - Foundation branches: `feat/score-test-fixtures`, `feat/score-validation`
+  - Test branches (parallel): `test/score-synthetic`, `test/score-edge-cases`, etc.
+  - Feature branches: `feat/multi-item-scoring`
+  - Tooling branches: `feat/bench-score-profiles`, `ci/nightly-perf`
+  - Documented merge order and parallelization opportunities
 
 - **2026-02-01:** RFC-008: Multi-Item Scoring + RFC-007: Synthetic Unit Tests
   - **RFC-008:** Multi-item scoring design - score N items in 1 forward pass

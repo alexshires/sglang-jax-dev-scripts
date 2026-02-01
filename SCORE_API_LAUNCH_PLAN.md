@@ -5,6 +5,7 @@
 | **Status** | Active |
 | **Owner** | Engineering Team |
 | **Created** | 2026-01-30 |
+| **Updated** | 2026-02-01 |
 | **Target** | Upstream contribution to sglang-jax |
 
 This document is the master plan for completing the Score API implementation and contributing it upstream. It consolidates implementation priority, PR strategy, launch criteria, and risk assessment.
@@ -117,15 +118,66 @@ Each PR should do ONE thing. This makes review easier and rollback simpler.
 
 ### Phase 1: PRs to Fork
 
-Development PRs merged to fork's main branch:
+Development PRs merged to fork's main branch. Each PR corresponds to a feature branch.
+
+#### Branch Naming Convention
+
+```
+feat/   - New features or enhancements
+test/   - Test additions or improvements
+ci/     - CI/CD configuration changes
+```
+
+#### Foundation Branches (Sequential - must merge in order)
+
+| Branch | Description | Depends On | ~Size | Status |
+|--------|-------------|------------|-------|--------|
+| `feat/score-test-fixtures` | Shared fixtures (`score_test_utils.py`) | - | ~150 LOC | Not started |
+| `feat/score-validation` | Input validation (RFC-006) | fixtures | ~200 LOC | Not started |
+
+#### Test Branches (Parallel - after Foundation)
+
+| Branch | Description | Depends On | ~Size | Status |
+|--------|-------------|------------|-------|--------|
+| `test/score-synthetic` | RFC-007 synthetic unit tests | fixtures | ~300 LOC | Not started |
+| `test/score-edge-cases` | RFC-003 edge case tests | fixtures, validation | ~200 LOC | Not started |
+| `test/score-openai-client` | RFC-005 OpenAI client tests | fixtures | ~150 LOC | Not started |
+| `test/score-core-expansion` | RFC-003 core engine tests | fixtures | ~200 LOC | Not started |
+
+#### Feature Branches (After tests pass)
+
+| Branch | Description | Depends On | ~Size | Status |
+|--------|-------------|------------|-------|--------|
+| `feat/multi-item-scoring` | RFC-008 implementation | validation | ~400 LOC | Not started |
+| `test/multi-item-scoring` | RFC-008 tests | multi-item-scoring | ~200 LOC | Not started |
+
+#### Tooling Branches (Can parallel with Features)
+
+| Branch | Description | Depends On | ~Size | Status |
+|--------|-------------|------------|-------|--------|
+| `feat/bench-score-profiles` | RFC-004 benchmark profiles | fixtures | ~300 LOC | Not started |
+| `ci/nightly-perf` | RFC-002 CI integration | bench-score-profiles | ~100 LOC | Not started |
+
+#### Merge Order
+
+```
+1. feat/score-test-fixtures       ──► Foundation
+2. feat/score-validation          ──► Foundation
+   ├── 3a. test/score-synthetic       (parallel)
+   ├── 3b. test/score-edge-cases      (parallel)
+   ├── 3c. test/score-openai-client   (parallel)
+   └── 3d. test/score-core-expansion  (parallel)
+4. feat/multi-item-scoring        ──► Feature
+5. test/multi-item-scoring        ──► Feature tests
+6. feat/bench-score-profiles      ──► Tooling (can start after step 1)
+7. ci/nightly-perf                ──► Tooling
+```
+
+#### Legacy PRs (Already Complete)
 
 | PR | Description | Status |
 |----|-------------|--------|
 | Score API perf benchmark | `test_bench_score.py` + suite update | Ready |
-| Shared test fixtures | `score_test_utils.py` | Not started |
-| Extended test coverage | Edge cases, validation | Not started |
-| OpenAI client tests | Compatibility validation | Not started |
-| Performance analysis tool | `bench_score.py` with profiles | Not started |
 
 ### Phase 2: PRs to Upstream (Future)
 
