@@ -1,10 +1,12 @@
 # RFC-008: Multi-Item Scoring
 
-**Status:** Draft
-**Author:** Engineering Team
-**Created:** 2026-02-01
-**Updated:** 2026-02-01
-**Related:** [RFC-000](000-score-api-design.md), [ADR-001](../decisions/001-pure-python-softmax.md)
+| | |
+|------------|------|
+| **Status** | Draft |
+| **Author** | Engineering Team |
+| **Created** | 2026-02-01 |
+| **Updated** | 2026-02-01 |
+| **Related** | [RFC-000](000-score-api-design.md), [ADR-001](../decisions/001-pure-python-softmax.md) |
 
 ## Summary
 

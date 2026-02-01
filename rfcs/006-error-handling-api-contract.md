@@ -1,10 +1,12 @@
 # RFC-006: Error Handling and API Contract
 
-**Status:** Draft
-**Author:** Engineering Team
-**Created:** 2026-01-29
-**Updated:** 2026-01-29
-**Related RFC:** [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-005](005-openai-client-compatibility.md)
+| | |
+|------------|------|
+| **Status** | Draft |
+| **Author** | Engineering Team |
+| **Created** | 2026-01-29 |
+| **Updated** | 2026-01-29 |
+| **Related** | [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-005](005-openai-client-compatibility.md) |
 
 ## Summary
 

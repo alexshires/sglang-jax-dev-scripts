@@ -1,8 +1,10 @@
 # Investigation: TokenizerManager Architecture
 
-**Date:** 2026-01-29
-**Status:** Complete
-**Related:** [ADR-001](../decisions/001-pure-python-softmax.md), [RFC-001](../rfcs/001-score-api-comprehensive-tests.md)
+| | |
+|------------|------|
+| **Date** | 2026-01-29 |
+| **Status** | Complete |
+| **Related** | [ADR-001](../decisions/001-pure-python-softmax.md), [RFC-001](../rfcs/001-score-api-comprehensive-tests.md) |
 
 ## Summary
 

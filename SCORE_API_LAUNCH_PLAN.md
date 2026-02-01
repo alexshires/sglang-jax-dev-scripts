@@ -1,9 +1,11 @@
 # Score API Launch Plan
 
-**Status:** Active
-**Owner:** Engineering Team
-**Created:** 2026-01-30
-**Target:** Upstream contribution to sglang-jax
+| | |
+|------------|------|
+| **Status** | Active |
+| **Owner** | Engineering Team |
+| **Created** | 2026-01-30 |
+| **Target** | Upstream contribution to sglang-jax |
 
 This document is the master plan for completing the Score API implementation and contributing it upstream. It consolidates implementation priority, PR strategy, launch criteria, and risk assessment.
 

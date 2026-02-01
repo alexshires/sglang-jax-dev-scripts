@@ -1,10 +1,12 @@
 # RFC-007: Synthetic Unit Tests
 
-**Status:** Draft
-**Author:** Engineering Team
-**Created:** 2026-02-01
-**Updated:** 2026-02-01
-**Related RFCs:** [RFC-001](001-score-api-comprehensive-tests.md), [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-004](004-score-api-performance-benchmarks.md)
+| | |
+|------------|------|
+| **Status** | Draft |
+| **Author** | Engineering Team |
+| **Created** | 2026-02-01 |
+| **Updated** | 2026-02-01 |
+| **Related** | [RFC-001](001-score-api-comprehensive-tests.md), [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-004](004-score-api-performance-benchmarks.md) |
 
 ## Summary
 

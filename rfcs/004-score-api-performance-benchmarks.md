@@ -1,10 +1,12 @@
 # RFC-004: Score API Performance Benchmarks and Stress Tests
 
-**Status:** Draft
-**Author:** Engineering Team
-**Created:** 2026-01-29
-**Updated:** 2026-01-29
-**Related RFC:** [RFC-003](003-score-api-comprehensive-test-suite.md)
+| | |
+|------------|------|
+| **Status** | Draft |
+| **Author** | Engineering Team |
+| **Created** | 2026-01-29 |
+| **Updated** | 2026-01-29 |
+| **Related** | [RFC-003](003-score-api-comprehensive-test-suite.md) |
 
 ## Summary
 

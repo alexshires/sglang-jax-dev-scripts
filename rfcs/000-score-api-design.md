@@ -1,10 +1,17 @@
 # RFC-000: Score API Design and Architecture
 
-**Status:** Accepted
-**Author:** Engineering Team
-**Created:** 2026-01-29
-**Updated:** 2026-02-01 (v3: clarified items vs labels terminology, consistent use of get_single_token_id helper)
-**Related:** [ADR-001](../decisions/001-pure-python-softmax.md), [RFC-001](001-score-api-comprehensive-tests.md), [RFC-008](008-multi-item-scoring.md)
+| | |
+|------------|------|
+| **Status** | Accepted |
+| **Author** | Engineering Team |
+| **Created** | 2026-01-29 |
+| **Updated** | 2026-02-01 (v3) |
+| **Related** | [ADR-001](../decisions/001-pure-python-softmax.md), [RFC-001](001-score-api-comprehensive-tests.md), [RFC-008](008-multi-item-scoring.md) |
+
+**Revision History:**
+- v3 (2026-02-01): Clarified items vs labels terminology, consistent use of `get_single_token_id` helper
+- v2 (2026-02-01): Clarified scoring semantics, softmax axis, label constraints, fixed example patterns
+- v1 (2026-01-29): Initial version
 
 ## Summary
 

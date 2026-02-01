@@ -1,9 +1,11 @@
 # ADR-XXX: [Title]
 
-**Date:** YYYY-MM-DD
-**Status:** Proposed | Accepted | Superseded | Deprecated
-**Deciders:** [Names or team]
-**Related RFC:** RFC-XXX (optional)
+| | |
+|------------|------|
+| **Date** | YYYY-MM-DD |
+| **Status** | Proposed / Accepted / Superseded / Deprecated |
+| **Deciders** | [Names or team] |
+| **Related** | RFC-XXX (optional) |
 
 ## Context
 

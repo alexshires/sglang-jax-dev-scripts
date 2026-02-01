@@ -1,9 +1,11 @@
 # ADR-001: Pure Python Softmax in TokenizerManager
 
-**Date:** 2026-01-29
-**Status:** Accepted
-**Deciders:** Engineering Team
-**Related RFC:** [RFC-001](../rfcs/001-score-api-comprehensive-tests.md)
+| | |
+|------------|------|
+| **Date** | 2026-01-29 |
+| **Status** | Accepted |
+| **Deciders** | Engineering Team |
+| **Related** | [RFC-001](../rfcs/001-score-api-comprehensive-tests.md) |
 
 ## Context
 

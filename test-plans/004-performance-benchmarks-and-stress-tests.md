@@ -1,9 +1,11 @@
 # Test Plan 004: Performance Benchmarks and Stress Tests
 
-**Related RFC:** [RFC-004](../rfcs/004-score-api-performance-benchmarks.md)
-**Phase:** 7+ (Post Test Suite Implementation)
-**Priority:** P1 (Important for Production Readiness)
-**Dependencies:** Test Plan 001 (requires shared fixtures), Test Plan 003 (benchmark foundation)
+| | |
+|------------|------|
+| **Related** | [RFC-004](../rfcs/004-score-api-performance-benchmarks.md) |
+| **Phase** | 7+ |
+| **Priority** | P1 (Production Readiness) |
+| **Dependencies** | Test Plan 001, Test Plan 003 |
 
 ## Objective
 

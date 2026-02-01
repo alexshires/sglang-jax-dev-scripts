@@ -1,10 +1,12 @@
 # RFC-001: Comprehensive Testing for /v1/score API
 
-**Status:** Implemented
-**Author:** Engineering Team
-**Created:** 2026-01-29
-**Updated:** 2026-01-29
-**Related PR:** TBD
+| | |
+|------------|------|
+| **Status** | Implemented |
+| **Author** | Engineering Team |
+| **Created** | 2026-01-29 |
+| **Updated** | 2026-01-29 |
+| **Related** | PR TBD |
 
 ## Summary
 

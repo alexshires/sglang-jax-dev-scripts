@@ -1,10 +1,12 @@
 # RFC-003: Comprehensive Score API Test Suite
 
-**Status:** Draft
-**Author:** Engineering Team
-**Created:** 2026-01-29
-**Updated:** 2026-01-29
-**Related RFC:** [RFC-001](001-score-api-comprehensive-tests.md)
+| | |
+|------------|------|
+| **Status** | Draft |
+| **Author** | Engineering Team |
+| **Created** | 2026-01-29 |
+| **Updated** | 2026-01-29 |
+| **Related** | [RFC-001](001-score-api-comprehensive-tests.md) |
 
 ## Summary
 

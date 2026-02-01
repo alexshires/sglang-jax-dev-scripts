@@ -1,8 +1,10 @@
 # Runbook: Running Score API Tests
 
-**Last Updated:** 2026-01-29
-**Maintainer:** Engineering Team
-**Related:** [RFC-001](../rfcs/001-score-api-comprehensive-tests.md), [RFC-003](../rfcs/003-score-api-comprehensive-test-suite.md)
+| | |
+|------------|------|
+| **Last Updated** | 2026-01-29 |
+| **Maintainer** | Engineering Team |
+| **Related** | [RFC-001](../rfcs/001-score-api-comprehensive-tests.md), [RFC-003](../rfcs/003-score-api-comprehensive-test-suite.md) |
 
 ## Overview
 

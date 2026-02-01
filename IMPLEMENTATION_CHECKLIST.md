@@ -1,8 +1,10 @@
 # Implementation Checklist: Score API Test Integration
 
-**Task:** Integrate Score API tests into existing CI/CD and create gcloud-based test runner
-**Repository:** sglang-jax
-**Documentation:** This repo (sglang-jax-dev-scripts)
+| | |
+|------------|------|
+| **Task** | Integrate Score API tests into CI/CD and create gcloud-based test runner |
+| **Repository** | sglang-jax |
+| **Documentation** | This repo (sglang-jax-dev-scripts) |
 
 ## Changes Needed in sglang-jax Repository
 

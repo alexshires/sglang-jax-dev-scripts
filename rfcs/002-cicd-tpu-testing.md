@@ -1,10 +1,12 @@
 # RFC-002: CI/CD Strategy for Score API Testing
 
-**Status:** Implementing
-**Author:** Engineering Team
-**Created:** 2026-01-29
-**Updated:** 2026-01-30
-**Related RFC:** [RFC-001](001-score-api-comprehensive-tests.md), [RFC-004](004-score-api-performance-benchmarks.md)
+| | |
+|------------|------|
+| **Status** | Implementing |
+| **Author** | Engineering Team |
+| **Created** | 2026-01-29 |
+| **Updated** | 2026-01-30 |
+| **Related** | [RFC-001](001-score-api-comprehensive-tests.md), [RFC-004](004-score-api-performance-benchmarks.md) |
 
 ## Summary
 

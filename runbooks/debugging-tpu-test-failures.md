@@ -1,8 +1,10 @@
 # Runbook: Debugging TPU Test Failures
 
-**Last Updated:** 2026-01-29
-**Maintainer:** Engineering Team
-**Related:** [RFC-002](../rfcs/002-cicd-tpu-testing.md) (CI/CD)
+| | |
+|------------|------|
+| **Last Updated** | 2026-01-29 |
+| **Maintainer** | Engineering Team |
+| **Related** | [RFC-002](../rfcs/002-cicd-tpu-testing.md) (CI/CD) |
 
 ## Overview
 

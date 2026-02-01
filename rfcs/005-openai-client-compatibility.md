@@ -1,10 +1,12 @@
 # RFC-005: OpenAI Client Compatibility
 
-**Status:** Draft
-**Author:** Engineering Team
-**Created:** 2026-01-29
-**Updated:** 2026-01-29
-**Related RFC:** [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-006](006-error-handling-api-contract.md)
+| | |
+|------------|------|
+| **Status** | Draft |
+| **Author** | Engineering Team |
+| **Created** | 2026-01-29 |
+| **Updated** | 2026-01-29 |
+| **Related** | [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-006](006-error-handling-api-contract.md) |
 
 ## Summary
 

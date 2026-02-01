@@ -1,9 +1,11 @@
 # ADR-002: Use gcloud Directly for Unit Tests (No SkyPilot)
 
-**Date:** 2026-01-29
-**Status:** Accepted
-**Deciders:** Engineering Team
-**Related RFC:** [RFC-002](../rfcs/002-cicd-tpu-testing.md)
+| | |
+|------------|------|
+| **Date** | 2026-01-29 |
+| **Status** | Accepted |
+| **Deciders** | Engineering Team |
+| **Related** | [RFC-002](../rfcs/002-cicd-tpu-testing.md) |
 
 ## Context
 

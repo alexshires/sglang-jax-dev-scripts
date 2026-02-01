@@ -1,10 +1,12 @@
 # RFC-XXX: [Title]
 
-**Status:** Draft | Review | Accepted | Implementing | Implemented | Rejected
-**Author:** [Your name]
-**Created:** YYYY-MM-DD
-**Updated:** YYYY-MM-DD
-**Related PR:** #XXX (optional)
+| | |
+|------------|------|
+| **Status** | Draft / Review / Accepted / Implementing / Implemented / Rejected |
+| **Author** | [Your name] |
+| **Created** | YYYY-MM-DD |
+| **Updated** | YYYY-MM-DD |
+| **Related** | RFC-XXX, ADR-XXX (optional) |
 
 ## Summary
 
