@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-01-29
 **Updated:** 2026-01-30
-**Related RFC:** RFC-001, RFC-004
+**Related RFC:** [RFC-001](001-score-api-comprehensive-tests.md), [RFC-004](004-score-api-performance-benchmarks.md)
 
 ## Summary
 
@@ -522,5 +522,5 @@ When you submit PRs, upstream's CI runs on their self-hosted runners at no cost 
 - Upstream PR workflow: `sglang-jax/.github/workflows/pr-test.yml`
 - Test suite definition: `sglang-jax/test/srt/run_suite.py`
 - PyTorch Score API benchmark: `sglang/test/registered/perf/test_bench_serving_1gpu_part2.py`
-- RFC-001: Score API Comprehensive Tests
-- RFC-004: Score API Performance Benchmarks and Stress Tests
+- [RFC-001: Score API Comprehensive Tests](001-score-api-comprehensive-tests.md)
+- [RFC-004: Score API Performance Benchmarks and Stress Tests](004-score-api-performance-benchmarks.md)

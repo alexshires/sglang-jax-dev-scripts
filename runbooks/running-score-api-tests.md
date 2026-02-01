@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-01-29
 **Maintainer:** Engineering Team
-**Related:** RFC-001, RFC-003
+**Related:** [RFC-001](../rfcs/001-score-api-comprehensive-tests.md), [RFC-003](../rfcs/003-score-api-comprehensive-test-suite.md)
 
 ## Overview
 
@@ -268,7 +268,7 @@ See [debugging-tpu-test-failures.md](debugging-tpu-test-failures.md) for full tr
 
 1. **Device conflict error**
    - Check: JAX not imported in tokenizer_manager.py
-   - Fix: Use pure Python softmax (see ADR-001)
+   - Fix: Use pure Python softmax (see [ADR-001](../decisions/001-pure-python-softmax.md))
 
 2. **Slow tests (>150s)**
    - Check: `max_new_tokens=1` instead of `0`

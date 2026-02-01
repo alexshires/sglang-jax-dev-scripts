@@ -1,6 +1,6 @@
 # Test Plan 002: Edge Cases and HTTP/Protocol Tests
 
-**Related RFC:** RFC-003
+**Related RFC:** [RFC-003](../rfcs/003-score-api-comprehensive-test-suite.md)
 **Phase:** 3-4 (Week 3)
 **Priority:** P0 (Critical Coverage)
 **Dependencies:** Test Plan 001 (requires shared fixtures)

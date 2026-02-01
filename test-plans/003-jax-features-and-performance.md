@@ -1,6 +1,6 @@
 # Test Plan 003: JAX Features and Performance Benchmarks
 
-**Related RFC:** RFC-003
+**Related RFC:** [RFC-003](../rfcs/003-score-api-comprehensive-test-suite.md)
 **Phase:** 5-6 (Week 4)
 **Priority:** P1 (Important but not CI-blocking)
 **Dependencies:** Test Plan 001 (requires shared fixtures)

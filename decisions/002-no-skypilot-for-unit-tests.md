@@ -3,7 +3,7 @@
 **Date:** 2026-01-29
 **Status:** Accepted
 **Deciders:** Engineering Team
-**Related RFC:** RFC-002
+**Related RFC:** [RFC-002](../rfcs/002-cicd-tpu-testing.md)
 
 ## Context
 
@@ -215,7 +215,7 @@ trap "gcloud compute tpus tpu-vm delete $TPU_NAME --zone=$ZONE --quiet || true" 
 
 ## References
 
-- RFC-002: CI/CD for TPU Testing
+- [RFC-002: CI/CD for TPU Testing](../rfcs/002-cicd-tpu-testing.md)
 - User feedback: "the sky thing is not very reliable"
-- Runbook: Running Score API Tests
+- [Runbook: Running Score API Tests](../runbooks/running-score-api-tests.md)
 - GCP TPU docs: https://cloud.google.com/sdk/gcloud/reference/compute/tpus

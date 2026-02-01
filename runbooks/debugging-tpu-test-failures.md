@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-01-29
 **Maintainer:** Engineering Team
-**Related:** RFC-002 (CI/CD)
+**Related:** [RFC-002](../rfcs/002-cicd-tpu-testing.md) (CI/CD)
 
 ## Overview
 
@@ -481,10 +481,10 @@ grep -r "import jax" python/sgl_jax/srt/managers/tokenizer_manager.py && echo "E
 
 ## References
 
-- RFC-001: Score API Comprehensive Tests
-- RFC-002: CI/CD for TPU Testing
-- ADR-001: Pure Python Softmax Decision
-- Investigation: tokenizer-manager-architecture.md
+- [RFC-001: Score API Comprehensive Tests](../rfcs/001-score-api-comprehensive-tests.md)
+- [RFC-002: CI/CD for TPU Testing](../rfcs/002-cicd-tpu-testing.md)
+- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [Investigation: TokenizerManager Architecture](../investigations/tokenizer-manager-architecture.md)
 
 ## Escalation
 

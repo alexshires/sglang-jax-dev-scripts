@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-29
 **Status:** Needs Update
-**Related:** RFC-001, ADR-001, RFC-008
+**Related:** [RFC-001](../rfcs/001-score-api-comprehensive-tests.md), [ADR-001](../decisions/001-pure-python-softmax.md), [RFC-008](../rfcs/008-multi-item-scoring.md)
 
 > **Note (2026-02-01):** This investigation is outdated. PyTorch has added **multi-item scoring** since this was written - a major optimization that scores N items in 1 forward pass instead of N passes. See RFC-008 for details. The "feature-complete" conclusion below is no longer accurate.
 
@@ -324,8 +324,8 @@ Both isolate model execution in subprocess:
 - JAX source: `python/sgl_jax/srt/managers/tokenizer_manager.py`
 - PyTorch tests: `sglang/test/registered/core/test_score_api.py`
 - JAX tests: `test/srt/test_score_api.py`
-- RFC-001: Score API Comprehensive Tests
-- ADR-001: Pure Python Softmax Decision
+- [RFC-001: Score API Comprehensive Tests](../rfcs/001-score-api-comprehensive-tests.md)
+- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
 
 ## Conclusion
 

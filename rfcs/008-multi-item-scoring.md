@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-02-01
 **Updated:** 2026-02-01
-**Related:** RFC-000, ADR-001
+**Related:** [RFC-000](000-score-api-design.md), [ADR-001](../decisions/001-pure-python-softmax.md)
 
 ## Summary
 
@@ -414,7 +414,7 @@ if len(items) > threshold and delimiter_configured:
 
 ## References
 
-- RFC-000: Score API Design and Architecture
-- ADR-001: Pure Python Softmax Decision
+- [RFC-000: Score API Design and Architecture](000-score-api-design.md)
+- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
 - PyTorch implementation: `sglang/python/sglang/srt/managers/tokenizer_manager_multiitem_mixin.py`
-- Investigation: Score API PyTorch vs JAX Comparison (needs update)
+- [Investigation: Score API PyTorch vs JAX Comparison](../investigations/score-api-pytorch-vs-jax.md) (needs update)

@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-01-29
 **Updated:** 2026-01-29
-**Related RFC:** RFC-003
+**Related RFC:** [RFC-003](003-score-api-comprehensive-test-suite.md)
 
 ## Summary
 
@@ -441,7 +441,7 @@ gh workflow run nightly-perf.yaml --field profile=smoke
 
 ## References
 
-- RFC-003: Comprehensive Score API Test Suite
-- RFC-002: CI/CD for TPU Testing
-- Test Plan 003: JAX Features and Performance
+- [RFC-003: Comprehensive Score API Test Suite](003-score-api-comprehensive-test-suite.md)
+- [RFC-002: CI/CD for TPU Testing](002-cicd-tpu-testing.md)
+- [Test Plan 003: JAX Features and Performance](../test-plans/003-jax-features-and-performance.md)
 - v1/benchmark/README.md: Existing K8s benchmark infrastructure

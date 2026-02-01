@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-01-29
 **Maintainer:** Engineering Team
-**Related Docs:** RFC-004, Test Plan 004, Test Plan 003
+**Related Docs:** [RFC-004](../rfcs/004-score-api-performance-benchmarks.md), [Test Plan 004](../test-plans/004-performance-benchmarks-and-stress-tests.md), [Test Plan 003](../test-plans/003-jax-features-and-performance.md)
 
 ## Overview
 

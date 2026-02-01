@@ -1,6 +1,6 @@
 # Test Plan 001: Shared Fixtures and Core Engine Tests
 
-**Related RFC:** RFC-003
+**Related RFC:** [RFC-003](../rfcs/003-score-api-comprehensive-test-suite.md)
 **Phase:** 1-2 (Weeks 1-2)
 **Priority:** P0 (Foundation)
 

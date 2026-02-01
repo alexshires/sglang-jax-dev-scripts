@@ -302,7 +302,7 @@ See RFC-002 for automated testing infrastructure.
 
 - PyTorch reference tests: `sglang/test/registered/core/test_score_api.py`
 - PyTorch HTTP tests: `sglang/test/registered/openai_server/basic/test_openai_server.py`
-- Architecture investigation: `investigations/tokenizer-manager-architecture.md`
-- Comparison analysis: `investigations/score-api-pytorch-vs-jax.md`
-- ADR-001: Pure Python Softmax Decision
-- RFC-002: CI/CD for TPU Testing
+- [Investigation: TokenizerManager Architecture](../investigations/tokenizer-manager-architecture.md)
+- [Investigation: Score API PyTorch vs JAX](../investigations/score-api-pytorch-vs-jax.md)
+- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [RFC-002: CI/CD for TPU Testing](002-cicd-tpu-testing.md)

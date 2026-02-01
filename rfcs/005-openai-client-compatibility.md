@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-01-29
 **Updated:** 2026-01-29
-**Related RFC:** RFC-003, RFC-006
+**Related RFC:** [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-006](006-error-handling-api-contract.md)
 
 ## Summary
 
@@ -521,5 +521,5 @@ response = client.post("/score", body={...}, cast_to=dict)
 
 - OpenAI Python client: https://github.com/openai/openai-python
 - OpenAI API reference: https://platform.openai.com/docs/api-reference
-- RFC-003: Comprehensive Score API Test Suite
-- RFC-006: Error Handling and API Contract
+- [RFC-003: Comprehensive Score API Test Suite](003-score-api-comprehensive-test-suite.md)
+- [RFC-006: Error Handling and API Contract](006-error-handling-api-contract.md)

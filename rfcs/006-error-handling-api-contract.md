@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-01-29
 **Updated:** 2026-01-29
-**Related RFC:** RFC-003, RFC-005
+**Related RFC:** [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-005](005-openai-client-compatibility.md)
 
 ## Summary
 
@@ -607,6 +607,6 @@ class TestScoreAPIErrorHandling:
 ## References
 
 - OpenAI Error Handling: https://platform.openai.com/docs/guides/error-codes
-- RFC-003: Comprehensive Score API Test Suite
-- RFC-005: OpenAI Client Compatibility
+- [RFC-003: Comprehensive Score API Test Suite](003-score-api-comprehensive-test-suite.md)
+- [RFC-005: OpenAI Client Compatibility](005-openai-client-compatibility.md)
 - HTTP Status Codes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status

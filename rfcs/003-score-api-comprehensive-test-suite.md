@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-01-29
 **Updated:** 2026-01-29
-**Related RFC:** RFC-001
+**Related RFC:** [RFC-001](001-score-api-comprehensive-tests.md)
 
 ## Summary
 
@@ -701,9 +701,9 @@ pytest --cov=python/sgl_jax/srt/managers/tokenizer_manager \
 
 ## References
 
-- RFC-001: Score API Comprehensive Tests (baseline)
-- RFC-002: CI/CD for TPU Testing (infrastructure)
-- ADR-001: Pure Python Softmax Decision
+- [RFC-001: Score API Comprehensive Tests](001-score-api-comprehensive-tests.md) (baseline)
+- [RFC-002: CI/CD for TPU Testing](002-cicd-tpu-testing.md) (infrastructure)
+- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
 - PyTorch reference: `sglang/test/registered/core/test_score_api.py`
-- Investigation: Score API PyTorch vs JAX comparison
-- Runbook: Debugging TPU test failures
+- [Investigation: Score API PyTorch vs JAX](../investigations/score-api-pytorch-vs-jax.md)
+- [Runbook: Debugging TPU test failures](../runbooks/debugging-tpu-test-failures.md)

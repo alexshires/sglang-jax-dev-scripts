@@ -115,9 +115,9 @@ The main sglang-jax repository references these docs:
 ## Examples
 
 See existing documents for examples:
-- **RFC-001:** Score API comprehensive tests
-- **RFC-002:** CI/CD for TPU testing
-- **ADR-001:** Pure Python softmax decision
+- **[RFC-001](rfcs/001-score-api-comprehensive-tests.md):** Score API comprehensive tests
+- **[RFC-002](rfcs/002-cicd-tpu-testing.md):** CI/CD for TPU testing
+- **[ADR-001](decisions/001-pure-python-softmax.md):** Pure Python softmax decision
 
 ---
 

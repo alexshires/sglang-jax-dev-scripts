@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-02-01
 **Updated:** 2026-02-01
-**Related RFCs:** RFC-001, RFC-003, RFC-004
+**Related RFCs:** [RFC-001](001-score-api-comprehensive-tests.md), [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-004](004-score-api-performance-benchmarks.md)
 
 ## Summary
 
@@ -1049,9 +1049,9 @@ pip install hypothesis
 
 ## References
 
-- RFC-001: Score API Comprehensive Tests
-- RFC-003: Comprehensive Score API Test Suite
-- RFC-004: Score API Performance Benchmarks
+- [RFC-001: Score API Comprehensive Tests](001-score-api-comprehensive-tests.md)
+- [RFC-003: Comprehensive Score API Test Suite](003-score-api-comprehensive-test-suite.md)
+- [RFC-004: Score API Performance Benchmarks](004-score-api-performance-benchmarks.md)
 - [Hypothesis Documentation](https://hypothesis.readthedocs.io/)
 - [JAX Compilation Debugging](https://jax.readthedocs.io/en/latest/debugging/index.html)
 - ChatGPT analysis of Score API test gaps (2026-02-01)

@@ -3,7 +3,7 @@
 **Date:** 2026-01-29
 **Status:** Accepted
 **Deciders:** Engineering Team
-**Related RFC:** RFC-001
+**Related RFC:** [RFC-001](../rfcs/001-score-api-comprehensive-tests.md)
 
 ## Context
 
@@ -170,8 +170,8 @@ Difference:            [0.036%, 0.162%, 0.188%]  # All < 1%
 
 ## References
 
-- RFC-001: Score API Comprehensive Tests
+- [RFC-001: Score API Comprehensive Tests](../rfcs/001-score-api-comprehensive-tests.md)
 - PyTorch implementation: `sglang/python/sglang/srt/managers/tokenizer_manager.py`
-- Investigation: `investigations/tokenizer-manager-architecture.md`
+- [Investigation: TokenizerManager Architecture](../investigations/tokenizer-manager-architecture.md)
 - Test file: `test/srt/test_score_api.py`
 - JAX device management: https://jax.readthedocs.io/en/latest/faq.html#controlling-data-and-computation-placement-on-devices
