@@ -294,6 +294,25 @@ def validate_score_request(
     query_is_text = isinstance(query, str)
     items_is_text = isinstance(items[0], str) if items else True
 
+    # Validate query elements when in token mode
+    if not query_is_text:
+        if not isinstance(query, list):
+            raise ValidationError(
+                message="query must be a string or list of integers",
+                error_type="invalid_request_error",
+                param="query",
+                code="invalid_query_type"
+            )
+        non_ints = [x for x in query if not isinstance(x, int)]
+        if non_ints:
+            raise ValidationError(
+                message=f"query contains non-integer values when using token input mode. "
+                        f"All token IDs must be integers. Got types: {[type(x).__name__ for x in non_ints[:3]]}",
+                error_type="invalid_request_error",
+                param="query",
+                code="invalid_token_id_type"
+            )
+
     if query_is_text != items_is_text:
         raise ValidationError(
             message=f"query and items must both be text (str) or both be tokens (list[int]). "

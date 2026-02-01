@@ -78,7 +78,10 @@ response = client.post(
         "model": "meta-llama/Llama-3.2-1B-Instruct",
         "query": "I pledge allegiance",
         "items": [" to the flag", " of the United States"],
-        "label_token_ids": [311, 315, 369],  # Token IDs for labels
+        # IMPORTANT: These token IDs are model-specific examples for Llama-3.2.
+        # In production, derive IDs via tokenizer.encode() and validate they are
+        # single tokens. See get_single_token_id() helper in score_test_utils.py.
+        "label_token_ids": [311, 315, 369],
         "apply_softmax": True,
         "item_first": False
     },
@@ -103,6 +106,7 @@ response = requests.post(
         "model": "meta-llama/Llama-3.2-1B-Instruct",
         "query": "I pledge allegiance",
         "items": [" to the flag", " of the United States"],
+        # Model-specific token IDs (illustrative). Derive via tokenizer in production.
         "label_token_ids": [311, 315, 369],
         "apply_softmax": True
     }
