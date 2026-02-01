@@ -4,7 +4,7 @@
 **Author:** Engineering Team
 **Created:** 2026-01-29
 **Updated:** 2026-02-01
-**Related:** ADR-001, RFC-001, RFC-008
+**Related:** [ADR-001](../decisions/001-pure-python-softmax.md), [RFC-001](001-score-api-comprehensive-tests.md), [RFC-008](008-multi-item-scoring.md)
 
 ## Summary
 
@@ -94,7 +94,7 @@ The `apply_softmax` parameter controls whether raw logprobs or normalized probab
 **Why this matters:**
 - Raw logprobs useful for custom normalization
 - Probabilities easier to interpret and use directly
-- Softmax done in Python to avoid device conflicts (see ADR-001)
+- Softmax done in Python to avoid device conflicts (see [ADR-001](../decisions/001-pure-python-softmax.md))
 
 ## Architecture
 
@@ -151,7 +151,7 @@ The `apply_softmax` parameter controls whether raw logprobs or normalized probab
 The TokenizerManager runs in the main process and must be **device-agnostic**:
 
 1. **Process isolation:** Scheduler subprocess has exclusive TPU/GPU access
-2. **No device conflicts:** Main process can't use JAX operations (see ADR-001)
+2. **No device conflicts:** Main process can't use JAX operations (see [ADR-001](../decisions/001-pure-python-softmax.md))
 3. **Clean separation:** Tokenization/formatting separate from inference
 
 This is why softmax is implemented in pure Python, not JAX.
@@ -245,7 +245,7 @@ scores = [
 
 **Trade-off:** Slightly slower than JAX softmax, but negligible for small label sets.
 
-**See:** ADR-001 for detailed analysis.
+**See:** [ADR-001](../decisions/001-pure-python-softmax.md) for detailed analysis.
 
 ### Decision 3: Batch All Items Together
 
@@ -331,7 +331,7 @@ Request 4 (seq_len=75):  ~12ms         (cached)
 TPU natively uses bfloat16 (bf16), which has less precision than float32:
 
 - **Model inference:** bf16 (TPU-optimized)
-- **Softmax computation:** float32 via pure Python (see ADR-001)
+- **Softmax computation:** float32 via pure Python (see [ADR-001](../decisions/001-pure-python-softmax.md))
 - **Expected variance:** Scores may differ by ~0.01 vs float32 reference
 
 For most scoring tasks, bf16 precision is sufficient. If exact reproducibility with CPU/GPU float32 is required, this is a known limitation.
@@ -365,7 +365,7 @@ TPU HBM (High Bandwidth Memory) limits maximum batch size:
 
 *Depends on model size and sequence length. These are rough estimates for Llama-3.2-1B.
 
-If you hit OOM errors, reduce batch size or use multi-item scoring (RFC-008) when available.
+If you hit OOM errors, reduce batch size or use multi-item scoring ([RFC-008](008-multi-item-scoring.md)) when available.
 
 #### 5. Multi-Device Sharding
 
@@ -444,7 +444,7 @@ scores = engine.score(
 
 ## Error Handling
 
-See RFC-006 for complete error handling specification.
+See [RFC-006](006-error-handling-api-contract.md) for complete error handling specification.
 
 ### Common Errors
 
@@ -460,7 +460,7 @@ See RFC-006 for complete error handling specification.
 
 ### Potential Enhancements
 
-1. **Multi-item scoring (RFC-008):** Score N items in single forward pass instead of N passes. Major performance optimization—10-60x speedup for large N. Design complete, implementation pending.
+1. **Multi-item scoring ([RFC-008](008-multi-item-scoring.md)):** Score N items in single forward pass instead of N passes. Major performance optimization—10-60x speedup for large N. Design complete, implementation pending.
 2. **Streaming scores:** Return scores as items are processed (for very large batches)
 3. **Prefix caching:** Cache prefill for repeated queries
 4. **Multi-label scoring:** Score multiple label sets in one request
@@ -474,11 +474,11 @@ See RFC-006 for complete error handling specification.
 
 ## References
 
-- ADR-001: Pure Python Softmax Decision
-- RFC-001: Comprehensive Testing for Score API
-- RFC-003: Comprehensive Score API Test Suite
-- RFC-005: OpenAI Client Compatibility
-- RFC-006: Error Handling and API Contract
-- RFC-008: Multi-Item Scoring (performance optimization)
-- Investigation: TokenizerManager Architecture
-- Investigation: Score API PyTorch vs JAX Comparison
+- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [RFC-001: Comprehensive Testing for Score API](001-score-api-comprehensive-tests.md)
+- [RFC-003: Comprehensive Score API Test Suite](003-score-api-comprehensive-test-suite.md)
+- [RFC-005: OpenAI Client Compatibility](005-openai-client-compatibility.md)
+- [RFC-006: Error Handling and API Contract](006-error-handling-api-contract.md)
+- [RFC-008: Multi-Item Scoring](008-multi-item-scoring.md) (performance optimization)
+- [Investigation: TokenizerManager Architecture](../investigations/tokenizer-manager-architecture.md)
+- [Investigation: Score API PyTorch vs JAX Comparison](../investigations/score-api-pytorch-vs-jax.md)
