@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-01-30
+**Last Updated:** 2026-02-01
 
 ---
 
@@ -64,6 +64,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Error response schema (OpenAI-compatible)
   - HTTP status code semantics (400 vs 422 vs 500)
   - Validation rules and error codes
+
+- **[RFC-007: Synthetic Unit Tests](rfcs/007-synthetic-unit-tests.md)**
+  - Status: Draft
+  - Fast, deterministic tests without model inference
+  - Shift correctness, mask validation, continuation boundary tests
+  - JAX compilation caching verification
+  - Fuzz/property testing with hypothesis
 
 ### Templates
 
@@ -174,6 +181,8 @@ RFC-001 (Initial Tests)
     ↓
 RFC-003 (Comprehensive Test Suite)
     ↓
+RFC-007 (Synthetic Unit Tests)  ← NEW: Fast tests, no model needed
+    ↓
 Test Plan 001 (Shared Fixtures)
     ↓
 Test Plan 002 (Edge Cases)
@@ -212,6 +221,7 @@ Runbook: Debugging
 ### Testing
 - [RFC-001: Score API Tests](rfcs/001-score-api-comprehensive-tests.md)
 - [RFC-003: Comprehensive Test Suite](rfcs/003-score-api-comprehensive-test-suite.md)
+- [RFC-007: Synthetic Unit Tests](rfcs/007-synthetic-unit-tests.md) ← Fast tests, no model
 - [Debugging Runbook](runbooks/debugging-tpu-test-failures.md)
 - [RFC-002: CI/CD](rfcs/002-cicd-tpu-testing.md)
 
@@ -268,6 +278,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-01:** RFC-007: Synthetic Unit Tests
+  - Fast, deterministic tests that run without model inference
+  - Covers gaps from external analysis: shift correctness, mask validation, continuation boundary
+  - JAX compilation caching tests (no-recompile verification)
+  - Fuzz/property testing framework with hypothesis
+  - Runs on CPU in CI, provides early bug detection before integration tests
 
 - **2026-01-31:** Score API Performance Benchmark Implemented
   - Created `test/srt/test_bench_score.py` in sglang-jax repo

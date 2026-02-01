@@ -326,7 +326,7 @@ Track completed implementations with links to PRs/commits.
 
 | Date | Item | PR/Commit | Files | Notes |
 |------|------|-----------|-------|-------|
-| 2026-01-31 | Score API Performance Benchmark | PR to fork (pending) | `test/srt/test_bench_score.py`, `test/srt/run_suite.py` | 4 benchmark tests with latency/throughput thresholds |
+| 2026-01-31 | Score API Performance Benchmark | [PR #2](https://github.com/alexshires/sglang-jax/pull/2) | `test/srt/test_bench_score.py`, `test/srt/run_suite.py` | 4 benchmark tests with latency/throughput thresholds |
 
 ### How to Update This Log
 
