@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Author:** Engineering Team
 **Created:** 2026-01-29
-**Updated:** 2026-02-01
+**Updated:** 2026-02-01 (v3: clarified items vs labels terminology, consistent use of get_single_token_id helper)
 **Related:** [ADR-001](../decisions/001-pure-python-softmax.md), [RFC-001](001-score-api-comprehensive-tests.md), [RFC-008](008-multi-item-scoring.md)
 
 ## Summary
@@ -36,6 +36,159 @@ scores = engine.score(
 # Returns: [[0.85, 0.10, 0.05], [0.30, 0.60, 0.10]]
 #           ↑ item 1 scores     ↑ item 2 scores
 ```
+
+## Scoring Semantics
+
+This section precisely defines what the Score API computes.
+
+### What Position Is Scored?
+
+For each item, the API:
+1. Concatenates `query + item` (or `item + query` if `item_first=True`)
+2. Runs a model forward pass on this sequence
+3. Extracts logprobs at the **next-token position** (position after the last token)
+
+```
+Sequence:    "I pledge allegiance to the flag"
+Positions:    0    1       2       3   4   5    [6] ← next-token position
+                                                 ↑
+                                          Logprobs extracted here
+```
+
+The score answers: **"What is the probability of each label token being the next token after this sequence?"**
+
+### How Do Items and Labels Relate?
+
+- **Items** are context extensions appended to the query (can be empty `[""]`)
+- **Labels** are the candidate token IDs we're scoring as potential next tokens
+- The API computes a score for **every item × label combination**
+
+**Two common usage modes:**
+
+| Mode | Items | Labels | Use Case |
+|------|-------|--------|----------|
+| **Candidate scoring** | `[""]` (empty) | Candidate tokens | Classification, multiple choice, ranking |
+| **Context comparison** | Different contexts | Fixed target token(s) | Comparing which context leads to target |
+
+**Example: Context comparison mode**
+```
+query = "I pledge allegiance"
+items = [" to the flag", " of the republic"]  # Different context extensions
+label_token_ids = [311, 315, 369]  # Tokens to score after each context
+
+For item 0 (" to the flag"):
+  - Sequence: "I pledge allegiance to the flag"
+  - At next-token position: extract logprobs for tokens 311, 315, 369
+  - Result: [logprob_311, logprob_315, logprob_369]
+
+For item 1 (" of the republic"):
+  - Sequence: "I pledge allegiance of the republic"
+  - At next-token position: extract logprobs for tokens 311, 315, 369
+  - Result: [logprob_311, logprob_315, logprob_369]
+
+Final scores array: [
+    [score_item0_label0, score_item0_label1, score_item0_label2],
+    [score_item1_label0, score_item1_label1, score_item1_label2]
+]
+```
+
+**Example: Candidate scoring mode** (most common)
+```
+query = "The capital of France is"
+items = [""]  # Empty - no context extension
+label_token_ids = [PARIS_ID, LONDON_ID, BERLIN_ID]  # Candidate tokens
+
+Sequence: "The capital of France is"
+At next-token position: extract logprobs for Paris, London, Berlin tokens
+Result: [[logprob_Paris, logprob_London, logprob_Berlin]]
+```
+
+### Label Token ID Constraints
+
+**Each `label_token_id` must be a single token ID.** The API does not support multi-token labels.
+
+```python
+# ✓ Correct: Single token IDs
+label_token_ids = [311, 315, 369]
+
+# ✗ Incorrect: These are NOT supported
+label_token_ids = [[311, 312], [315, 316]]  # Multi-token sequences
+```
+
+**Verifying single-token labels:**
+
+```python
+def get_single_token_id(tokenizer, text):
+    """Get token ID, asserting it's a single token."""
+    ids = tokenizer.encode(text, add_special_tokens=False)
+    assert len(ids) == 1, f"'{text}' tokenizes to {len(ids)} tokens: {ids}"
+    return ids[0]
+
+# Safe: These are typically single tokens
+A_ID = get_single_token_id(tokenizer, " A")      # Letter with space
+YES_ID = get_single_token_id(tokenizer, " yes")  # Common word with space
+
+# Risky: These may be multi-token depending on tokenizer
+# " Paris" → might be [" Par", "is"] in some tokenizers
+# Always verify!
+```
+
+**Common single-token choices:**
+- Letters with leading space: `" A"`, `" B"`, `" C"` (good for multiple choice)
+- Single digits: `" 0"` through `" 9"`
+- Common short words: `" yes"`, `" no"`, `" true"`, `" false"`
+
+If you need to score multi-token labels, you must:
+1. Use only the first token of each label, OR
+2. Make multiple API calls with different label tokens, OR
+3. Use a different scoring approach (e.g., compute full sequence logprobs)
+
+### Common Scoring Patterns
+
+Remember: **scores are always for the next token AFTER the full `query + item` sequence.**
+
+**Pattern 1: Classification** - Score class labels as next token
+```python
+# "Is this positive or negative?"
+query = "This movie was great! Sentiment:"
+items = [""]  # Empty item - score what comes after query
+label_token_ids = [POS_TOKEN, NEG_TOKEN]  # Single token IDs for " positive", " negative"
+# scores[0] = [P(" positive" | query), P(" negative" | query)]
+```
+
+**Pattern 2: Multiple Choice** - Score answer options as next token
+```python
+# Which answer is most likely?
+query = "What is 2+2? The answer is"
+items = [""]  # Empty item - we want next token after the question
+label_token_ids = [TOKEN_3, TOKEN_4, TOKEN_5]  # Single token IDs for " 3", " 4", " 5"
+# scores[0] = [P(" 3" | query), P(" 4" | query), P(" 5" | query)]
+# Highest score = most likely answer
+```
+
+**Pattern 3: Ranking Candidates** - Score candidates as next token
+```python
+# Which continuation is most likely?
+query = "The capital of France is"
+items = [""]  # Empty - score candidates as next token
+label_token_ids = [PARIS_TOKEN, LONDON_TOKEN, BERLIN_TOKEN]
+# scores[0] = [P(" Paris" | query), P(" London" | query), P(" Berlin" | query)]
+# Compare scores to rank candidates
+```
+
+**Pattern 4: Continuation Quality** - Score how well each continuation leads to a target
+```python
+# Which context leads to target token most confidently?
+query = "The capital of"
+items = [" France is", " Germany is", " Japan is"]  # Different continuations
+label_token_ids = [PARIS_TOKEN]  # Score probability of " Paris" after each
+# scores = [[P(" Paris" | "The capital of France is")],
+#           [P(" Paris" | "The capital of Germany is")],
+#           [P(" Paris" | "The capital of Japan is")]]
+# France context should score highest for Paris
+```
+
+**Important:** For Patterns 1-3, use `apply_softmax=False` (raw logprobs) to compare across items. Softmax normalizes per-item, which is only meaningful when comparing labels within a single item.
 
 ## Design Principles
 
@@ -90,6 +243,24 @@ The `apply_softmax` parameter controls whether raw logprobs or normalized probab
 # apply_softmax=False: Returns raw logprobs [-2.3, -4.5, -6.7]
 # apply_softmax=True:  Returns probabilities [0.85, 0.10, 0.05] (sum to 1.0)
 ```
+
+**Softmax Axis:** Softmax is applied **per-item, across the provided labels only**. Each item's scores are normalized independently:
+
+```python
+# With 2 items and 3 labels:
+scores = [
+    [0.85, 0.10, 0.05],  # Item 0: sums to 1.0
+    [0.30, 0.60, 0.10]   # Item 1: sums to 1.0 (independent of item 0)
+]
+```
+
+**Important distinction:**
+- `apply_softmax=False`: Returns true model logprobs (log P(token | context) from full vocabulary)
+- `apply_softmax=True`: Returns **relative probabilities within the label set**, not true model probabilities. Useful for comparing labels, but the values only sum to 1.0 over your provided labels.
+
+**When to use each:**
+- Use `apply_softmax=False` when comparing scores across different items (e.g., ranking)
+- Use `apply_softmax=True` when comparing labels within a single item (e.g., classification)
 
 **Why this matters:**
 - Raw logprobs useful for custom normalization
@@ -164,7 +335,7 @@ This is why softmax is implemented in pure Python, not JAX.
 |-----------|------|-------------|
 | `query` | `str \| list[int]` | The context/query to score against |
 | `items` | `list[str] \| list[list[int]]` | Candidate items to score |
-| `label_token_ids` | `list[int]` | Token IDs to extract logprobs for |
+| `label_token_ids` | `list[int]` | Single token IDs to extract logprobs for (must be individual tokens, not sequences) |
 
 ### Optional Parameters
 
@@ -205,21 +376,30 @@ items = [[4874], [694]]
         "completion_tokens": 0,
         "total_tokens": 42
     },
-    "created": 1706540400
+    "created": 1769644800
 }
 ```
 
 ### Scores Array Structure
 
 ```
-scores[i][j] = score for item i, label j
+scores[i][j] = score for label_token_ids[j] given query + items[i]
 
 scores = [
-    [score_item0_label0, score_item0_label1, ...],
-    [score_item1_label0, score_item1_label1, ...],
+    [score_item0_label0, score_item0_label1, ...],  # Scores for item 0
+    [score_item1_label0, score_item1_label1, ...],  # Scores for item 1
     ...
 ]
 ```
+
+**Interpretation depends on `apply_softmax`:**
+
+| `apply_softmax` | `scores[i][j]` represents | Use case |
+|-----------------|---------------------------|----------|
+| `False` | True model logprob: log P(label[j] \| query + item[i]) | Cross-item comparison, ranking |
+| `True` | Relative probability within label set (sums to 1.0 per row) | Within-item label comparison |
+
+**Note:** With `apply_softmax=True`, scores are normalized over your provided labels only, not the full vocabulary. This is useful for "which label is most likely?" but the values are not true probabilities unless your labels cover all possible next tokens.
 
 ## Design Decisions
 
@@ -308,7 +488,7 @@ scores = [
 
 ### TPU-Specific Behavior
 
-The Score API in sglang-jax runs on TPU. Users should be aware of these characteristics:
+When running sglang-jax on TPU (the primary deployment target), users should be aware of these characteristics. Note that JAX also supports GPU and CPU backends, though TPU is the focus of this section:
 
 #### 1. First-Request Latency (XLA Compilation)
 
@@ -386,60 +566,89 @@ If you need to tune these, see the sglang-jax engine documentation.
 
 ## Common Use Cases
 
-### 1. Classification
-
-Score candidate class labels:
+**Reminder:** Scores are computed for the next token AFTER `query + item`. For candidate scoring (most common), use `items=[""]` and put candidate tokens in `label_token_ids`.
 
 ```python
+# Helper function (defined once, used in all examples below)
+def get_single_token_id(tokenizer, text):
+    """Get token ID, asserting it's a single token."""
+    ids = tokenizer.encode(text, add_special_tokens=False)
+    assert len(ids) == 1, f"'{text}' tokenizes to {len(ids)} tokens: {ids}"
+    return ids[0]
+```
+
+### 1. Classification
+
+Score candidate class labels as the next token:
+
+```python
+# Get verified single-token IDs for class labels
+POS_ID = get_single_token_id(tokenizer, " positive")
+NEG_ID = get_single_token_id(tokenizer, " negative")
+
 scores = engine.score(
-    query="This movie was absolutely terrible and boring.",
-    items=[" positive", " negative", " neutral"],
-    label_token_ids=get_token_ids([" positive", " negative", " neutral"]),
-    apply_softmax=True
+    query="This movie was absolutely terrible and boring. Sentiment:",
+    items=[""],  # Empty - score next token after query
+    label_token_ids=[POS_ID, NEG_ID],
+    apply_softmax=True  # Compare within label set
 )
-# Returns: [[0.02, 0.95, 0.03]]  # Strongly negative
+# Returns: [[0.05, 0.95]]  # Index 1 (negative) has highest probability
 ```
 
 ### 2. Multiple Choice
 
-Score answer options:
+Score answer options as the next token:
 
 ```python
+# Letters are typically single tokens
+A_ID = get_single_token_id(tokenizer, " A")
+B_ID = get_single_token_id(tokenizer, " B")
+C_ID = get_single_token_id(tokenizer, " C")
+
 scores = engine.score(
-    query="What is 2+2? The answer is",
-    items=[" 3", " 4", " 5"],
-    label_token_ids=get_token_ids([" 3", " 4", " 5"]),
+    query="What is 2+2?\nA) 3\nB) 4\nC) 5\nAnswer:",
+    items=[""],  # Empty - score next token after query
+    label_token_ids=[A_ID, B_ID, C_ID],
     apply_softmax=True
 )
-# Returns: [[0.05, 0.90, 0.05]]  # Answer is 4
+# Returns: [[0.05, 0.90, 0.05]]  # B (answer 4) is most likely
 ```
 
-### 3. Ranking
+### 3. Ranking Candidates
 
-Rank candidates by score:
+Rank candidates by their likelihood as next token:
 
 ```python
-candidates = [" Paris", " London", " Berlin", " Tokyo"]
+# Verify these are single tokens for your tokenizer
+PARIS_ID = get_single_token_id(tokenizer, " Paris")
+LONDON_ID = get_single_token_id(tokenizer, " London")
+BERLIN_ID = get_single_token_id(tokenizer, " Berlin")
+
 scores = engine.score(
     query="The capital of France is",
-    items=candidates,
-    label_token_ids=get_token_ids(candidates),
-    apply_softmax=True
+    items=[""],  # Empty - score next token after query
+    label_token_ids=[PARIS_ID, LONDON_ID, BERLIN_ID],
+    apply_softmax=False  # Raw logprobs for ranking
 )
-# Sort by score to get ranking
+# Returns: [[-0.5, -3.2, -4.1]]  # Paris has highest logprob
+# Rank by scores[0]: Paris > London > Berlin
 ```
 
-### 4. Next Token Prediction
+### 4. Comparing Contexts
 
-Score likely continuations:
+Score how different contexts lead to a target token:
 
 ```python
+TARGET_ID = get_single_token_id(tokenizer, " Paris")
+
 scores = engine.score(
-    query="The quick brown fox",
-    items=[" jumps", " runs", " sleeps"],
-    label_token_ids=get_token_ids([" jumps", " runs", " sleeps"]),
-    apply_softmax=True
+    query="The capital of",
+    items=[" France is", " Germany is", " Italy is"],  # Different contexts
+    label_token_ids=[TARGET_ID],  # Same target for all
+    apply_softmax=False  # Raw logprobs for comparison
 )
+# Returns: [[-0.5], [-5.2], [-4.8]]
+# "The capital of France is" → " Paris" has highest probability
 ```
 
 ## Error Handling
