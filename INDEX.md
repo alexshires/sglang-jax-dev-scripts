@@ -72,6 +72,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - JAX compilation caching verification
   - Fuzz/property testing with hypothesis
 
+- **[RFC-008: Multi-Item Scoring](rfcs/008-multi-item-scoring.md)**
+  - Status: Draft
+  - Score N items in single forward pass (vs N passes currently)
+  - Matches PyTorch implementation for performance parity
+  - Uses delimiter tokens to combine items into single sequence
+  - Estimated 10-60x speedup for large item counts
+
 ### Templates
 
 - **[RFC Template](rfcs/template.md)**
@@ -165,6 +172,8 @@ Quick reference for all design documents, decisions, and guides in this reposito
 ```
 RFC-000 (Design & Architecture)  ← START HERE
     ↓
+RFC-008 (Multi-Item Scoring)  ← NEW: Major optimization
+    ↓
 RFC-006 (Error Handling)
     ↓
 RFC-005 (OpenAI Compatibility)
@@ -215,6 +224,7 @@ Runbook: Debugging
 - [RFC-000: Score API Design](rfcs/000-score-api-design.md) ← Start here for design
 
 ### Design & API Contract
+- [RFC-008: Multi-Item Scoring](rfcs/008-multi-item-scoring.md) ← Performance optimization
 - [RFC-006: Error Handling](rfcs/006-error-handling-api-contract.md)
 - [RFC-005: OpenAI Compatibility](rfcs/005-openai-client-compatibility.md)
 
@@ -279,12 +289,16 @@ See [README.md](README.md) for document workflow and best practices.
 
 ## Recent Updates
 
-- **2026-02-01:** RFC-007: Synthetic Unit Tests
-  - Fast, deterministic tests that run without model inference
-  - Covers gaps from external analysis: shift correctness, mask validation, continuation boundary
-  - JAX compilation caching tests (no-recompile verification)
-  - Fuzz/property testing framework with hypothesis
-  - Runs on CPU in CI, provides early bug detection before integration tests
+- **2026-02-01:** RFC-008: Multi-Item Scoring + RFC-007: Synthetic Unit Tests
+  - **RFC-008:** Multi-item scoring design - score N items in 1 forward pass
+    - Matches PyTorch's new optimization (added since initial investigation)
+    - Estimated 10-60x speedup for large batch scoring workloads
+    - Implementation deferred - design documented for future work
+  - **RFC-007:** Fast, deterministic tests that run without model inference
+    - Covers gaps: shift correctness, mask validation, continuation boundary
+    - JAX compilation caching tests (no-recompile verification)
+    - Fuzz/property testing framework with hypothesis
+  - Updated investigation doc to note PyTorch has moved ahead
 
 - **2026-01-31:** Score API Performance Benchmark Implemented
   - Created `test/srt/test_bench_score.py` in sglang-jax repo

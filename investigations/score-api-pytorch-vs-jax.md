@@ -1,8 +1,10 @@
 # Investigation: Score API - PyTorch vs JAX Comparison
 
 **Date:** 2026-01-29
-**Status:** Complete
-**Related:** RFC-001, ADR-001
+**Status:** Needs Update
+**Related:** RFC-001, ADR-001, RFC-008
+
+> **Note (2026-02-01):** This investigation is outdated. PyTorch has added **multi-item scoring** since this was written - a major optimization that scores N items in 1 forward pass instead of N passes. See RFC-008 for details. The "feature-complete" conclusion below is no longer accurate.
 
 ## Summary
 
