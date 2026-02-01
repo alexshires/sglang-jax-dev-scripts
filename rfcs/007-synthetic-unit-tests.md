@@ -68,21 +68,26 @@ These tests assume a `compute_token_logprobs` function with the following signat
 def compute_token_logprobs(
     logits: np.ndarray,  # Shape: (seq_len, vocab_size)
     token_ids: List[int],  # Actual token IDs in sequence
-    label_token_ids: List[int],  # Vocabulary token IDs to extract logprobs for (arbitrary, not necessarily in sequence)
+    label_token_ids: List[int],  # Token IDs to score at each position (per-position mapping)
     start_position: int,  # Position to start scoring from
     attention_mask: Optional[List[int]] = None,  # 1 = real, 0 = padding
 ) -> List[float]:
     """
-    Compute log probabilities for specified vocabulary tokens at each position.
+    Compute log probabilities for tokens at consecutive positions.
+
+    This function scores label_token_ids[i] at position (start_position + i),
+    using logits[start_position + i - 1] (due to autoregressive shift).
 
     Args:
-        label_token_ids: Arbitrary vocabulary token IDs to score. These are
-            candidate tokens we want probabilities for, NOT tokens that must
-            appear in the sequence. For example, scoring [" yes", " no"] tokens
-            regardless of what tokens are actually in token_ids.
+        label_token_ids: Token IDs to score, one per position. The i-th token
+            is scored at position (start_position + i). Length must be <=
+            (seq_len - start_position) to avoid index overflow.
 
-    Returns log probabilities for each token in label_token_ids, where
-    the probability of token at position t is computed using logits[t-1].
+    Returns:
+        List of log probabilities, one per label_token_id.
+
+    Raises:
+        IndexError: If len(label_token_ids) > seq_len - start_position.
     """
 ```
 
@@ -673,27 +678,30 @@ class TestFuzzAndProperties:
     @given(
         vocab_size=st.integers(min_value=100, max_value=1000),
         seq_len=st.integers(min_value=2, max_value=100),
-        num_labels=st.integers(min_value=1, max_value=10),
     )
-    def test_scores_always_finite(self, vocab_size, seq_len, num_labels):
+    def test_scores_always_finite(self, vocab_size, seq_len):
         """Property: Scores must always be finite (no NaN or Inf)."""
+        start_position = 1
+        # Constrain num_labels to available positions to avoid index overflow
+        # With start_position=1, we can score positions 1 to seq_len-1
+        max_labels = seq_len - start_position
+        num_labels = np.random.randint(1, max(2, max_labels + 1))
+
         # Generate random tokens within vocab
         tokens = np.random.randint(0, vocab_size, size=seq_len).tolist()
 
         # Generate random logits
         logits = np.random.randn(seq_len, vocab_size).astype(np.float32)
 
-        # Pick random label tokens (arbitrary vocab IDs, not necessarily in sequence)
-        # This is correct: label_token_ids are candidate tokens to score, not tokens
-        # that must appear in the sequence. We extract their logprobs from the model's
-        # vocabulary distribution at each position.
+        # Pick random label tokens to score at each position
+        # label_token_ids[i] will be scored at position (start_position + i)
         label_token_ids = np.random.randint(0, vocab_size, size=num_labels).tolist()
 
         scores = compute_token_logprobs(
             logits=logits,
             token_ids=tokens,
             label_token_ids=label_token_ids,
-            start_position=1,
+            start_position=start_position,
         )
 
         for score in scores:

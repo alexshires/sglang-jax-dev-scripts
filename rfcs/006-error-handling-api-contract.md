@@ -265,6 +265,14 @@ def validate_score_request(
             code="empty_query"
         )
 
+    if isinstance(query, list) and len(query) == 0:
+        raise ValidationError(
+            message="query token list cannot be empty",
+            error_type="invalid_value_error",
+            param="query",
+            code="empty_query"
+        )
+
     # Validate items
     if items is None:
         raise ValidationError(
