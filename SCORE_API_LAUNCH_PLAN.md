@@ -39,11 +39,12 @@ The `/v1/score` Scoring API is implemented and functional in sglang-jax. This pl
 | Item | RFC | Status | Blocks |
 |------|-----|--------|--------|
 | Shared test fixtures (`score_test_utils.py`) | RFC-003 | Not Started | Nothing |
-| Edge case tests (empty inputs, bounds) | RFC-003 | Not Started | Fixtures |
-| Input validation tests | RFC-003 | Not Started | Fixtures |
+| Validation module (`sgl_jax.srt.validation`) | RFC-006 | Not Started | Fixtures |
+| Edge case tests (empty inputs, bounds) | RFC-003 | Not Started | Validation |
+| Input validation tests | RFC-003 | Not Started | Validation |
 | Large batch tests (20+ items) | RFC-003 | Not Started | Fixtures |
 
-**Why second:** Increases confidence in correctness. Uses shared fixtures to reduce duplication.
+**Why second:** Increases confidence in correctness. Validation module provides OpenAI-spec error handling (required for Full Launch). Uses shared fixtures to reduce duplication.
 
 ### Priority 3: Client Compatibility
 
@@ -205,9 +206,10 @@ After fork development is stable, contribute to upstream in batches:
 
 #### PR 3: Extended Test Coverage (Priority 2b)
 **Files:**
-- `test/srt/test_score_api.py` (EXPAND with edge cases)
+- `test/srt/test_score_api_edge_cases.py` (NEW - validation edge cases)
+- `test/srt/test_score_api_core.py` (NEW - core engine tests)
 
-**Size:** ~300 lines
+**Size:** ~500 lines
 **Review complexity:** Medium (many test cases)
 **Risk:** Low (tests only)
 
@@ -218,6 +220,8 @@ After fork development is stable, contribute to upstream in batches:
 **Size:** ~200 lines
 **Review complexity:** Low
 **Risk:** Low (tests only, optional dependency)
+
+**CI/Dependency Note:** Tests use `pytest.importorskip("openai")` to skip gracefully if the package is not installed. For full test coverage, add `openai>=1.0.0` to test dependencies. Tests also auto-skip if the SGLang server is not running (integration tests).
 
 #### PR 5: Performance Analysis Tool (Priority 4a)
 **Files:**
