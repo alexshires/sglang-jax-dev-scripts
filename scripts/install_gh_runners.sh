@@ -50,6 +50,14 @@ helm upgrade --install arc-runner-gpu oci://ghcr.io/actions/actions-runner-contr
   --set githubConfigSecret="gh-token-secret" \
   -f sglang-scripts/k8s/gpu-runner-values.yaml
 
+echo "Installing CPU Runner Scale Set (arc-runner-cpu)..."
+helm upgrade --install arc-runner-cpu oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set \
+  --namespace arc-runners \
+  --version 0.9.3 \
+  --set githubConfigUrl="$GITHUB_CONFIG_URL" \
+  --set githubConfigSecret="gh-token-secret" \
+  -f sglang-scripts/k8s/cpu-runner-values.yaml
+
 echo "Installing TPU Runner Scale Set (arc-runner-v6e-1)..."
 helm upgrade --install arc-runner-tpu oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set \
   --namespace arc-runners \

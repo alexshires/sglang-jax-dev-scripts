@@ -1,0 +1,17 @@
+runnerScaleSetName: "arc-runner-cpu"
+template:
+  spec:
+    serviceAccountName: sglang-gh-runner
+    nodeSelector:
+      iam.gke.io/gke-metadata-server-enabled: "true"
+    containers:
+    - name: "runner"
+      image: "ghcr.io/actions/actions-runner:latest"
+      command: ["/home/runner/run.sh"]
+      resources:
+        limits:
+          cpu: 4
+          memory: "8Gi"
+        requests:
+          cpu: 4
+          memory: "8Gi"

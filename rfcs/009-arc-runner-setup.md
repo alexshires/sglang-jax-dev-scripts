@@ -34,6 +34,7 @@ The fork (`alexshires/sglang-jax`) uses the same workflow as upstream but lacks 
 1. **Full CI parity** with upstream sgl-project/sglang-jax
 2. **TPU v6e runners** with labels `arc-runner-v6e-1`, `arc-runner-v6e-1-standard`, `arc-runner-v6e-4`, and `arc-runner-v5e-4`
 3. **GPU runners** with label `gpu-runner`
+4. **CPU runners** with label `arc-runner-cpu`
 4. **Persistent model storage** at `/models/` path via GCS FUSE
 5. **Reproducible setup** with automated installation scripts
 
@@ -132,6 +133,10 @@ Used for multi-chip tests requiring a 2x2 topology.
 Used for CUDA-based testing.
 - **Node Selector:** `pool_type: "gpu-spot-l4"`
 - **Resources:** 1 L4 GPU.
+
+#### 2.5 CPU Runner (`arc-runner-cpu`)
+Used for linting and lightweight protocol tests.
+- **Resources:** 4 CPUs, 8Gi RAM.
 
 ### Phase 3: Model Storage (GCS FUSE)
 
