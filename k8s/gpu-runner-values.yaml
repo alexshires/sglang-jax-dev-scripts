@@ -30,7 +30,7 @@ template:
           mountOptions: "implicit-dirs,only-dir=huggingface_models"
     containers:
     - name: "runner"
-      image: "ghcr.io/actions/actions-runner:latest"
+      image: "gcr.io/ashires-e7aaot/sglang-jax-runner:latest"
       command: ["/home/runner/run.sh"]
       env:
       - name: "HF_HOME"

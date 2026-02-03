@@ -6,7 +6,7 @@ template:
       iam.gke.io/gke-metadata-server-enabled: "true"
     containers:
     - name: "runner"
-      image: "ghcr.io/actions/actions-runner:latest"
+      image: "gcr.io/ashires-e7aaot/sglang-jax-runner:latest"
       command: ["/home/runner/run.sh"]
       resources:
         limits:
