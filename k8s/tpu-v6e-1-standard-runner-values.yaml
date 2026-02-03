@@ -1,0 +1,50 @@
+runnerScaleSetName: "arc-runner-v6e-1-standard"
+template:
+  metadata:
+    annotations:
+      gke-gcsfuse/volumes: "true"
+      gke-gcsfuse/cpu-limit: "0"
+      gke-gcsfuse/memory-limit: "0"
+      gke-gcsfuse/ephemeral-storage-limit: "0"
+  spec:
+    nodeSelector:
+      pool_type: "tpu-standard"
+      cloud.google.com/gke-tpu-accelerator: "tpu-v6e-slice"
+      cloud.google.com/gke-tpu-topology: "1x1"
+    tolerations:
+    - key: "google.com/tpu"
+      operator: "Exists"
+      effect: "NoSchedule"
+    volumes:
+    - name: dshm
+      emptyDir:
+        medium: Memory
+    - name: gcs-models
+      csi:
+        driver: gcsfuse.csi.storage.gke.io
+        volumeAttributes:
+          bucketName: ashires-e7aaot-model-download-europe-west4
+          mountOptions: "implicit-dirs,only-dir=huggingface_models"
+    containers:
+    - name: "runner"
+      image: "gcr.io/ashires-e7aaot/sglang-jax-runner:latest"
+      command: ["/home/runner/run.sh"]
+      env:
+      - name: "ACTIONS_RUNNER_DISABLE_OOM_SCORE_ADJ"
+        value: "true"
+      - name: "HF_HOME"
+        value: "/models"
+      resources:
+        limits:
+          google.com/tpu: 1
+          cpu: 40
+          memory: "150Gi"
+        requests:
+          google.com/tpu: 1
+          cpu: 40
+          memory: "150Gi"
+      volumeMounts:
+      - name: dshm
+        mountPath: /dev/shm
+      - name: gcs-models
+        mountPath: /models
