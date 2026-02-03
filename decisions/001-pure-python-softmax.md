@@ -93,7 +93,7 @@ score_list = (score_list / score_list.sum()).tolist()
 - Adds NumPy dependency to tokenizer_manager
 - NumPy might have device detection that conflicts later
 
-**Why rejected:** User feedback: "shouldnt we be using jax softmax though" - indicated preference for either JAX or pure Python over NumPy.
+**Why rejected:** Adds unnecessary dependency. Pure Python is sufficient for small arrays (typically <10 elements) and keeps TokenizerManager dependency-light. NumPy's vectorization benefits don't apply at this scale.
 
 ### Alternative 2: JAX with Explicit CPU Device
 **Description:**
