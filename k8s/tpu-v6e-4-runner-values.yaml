@@ -1,4 +1,4 @@
-runnerScaleSetName: "gpu-runner"
+runnerScaleSetName: "arc-runner-v6e-4"
 template:
   metadata:
     annotations:
@@ -9,13 +9,16 @@ template:
   spec:
     serviceAccountName: sglang-gh-runner
     nodeSelector:
-      pool_type: "gpu-spot-l4"
+      pool_type: "tpu-standard"
+      cloud.google.com/gke-tpu-accelerator: "tpu-v6e-slice"
+      cloud.google.com/gke-tpu-topology: "2x2"
+      cloud.google.com/gke-spot: "true"
     tolerations:
     - key: "cloud.google.com/gke-spot"
       operator: "Equal"
       value: "true"
       effect: "NoSchedule"
-    - key: "nvidia.com/gpu"
+    - key: "google.com/tpu"
       operator: "Exists"
       effect: "NoSchedule"
     volumes:
@@ -30,14 +33,22 @@ template:
           mountOptions: "implicit-dirs,only-dir=huggingface_models"
     containers:
     - name: "runner"
-      image: "ghcr.io/actions/actions-runner:latest"
+      image: "gcr.io/ashires-e7aaot/sglang-jax-runner:latest"
       command: ["/home/runner/run.sh"]
       env:
+      - name: "ACTIONS_RUNNER_DISABLE_OOM_SCORE_ADJ"
+        value: "true"
       - name: "HF_HOME"
         value: "/dev/shm/huggingface"
       resources:
         limits:
-          nvidia.com/gpu: 1
+          google.com/tpu: 4
+          cpu: 100
+          memory: "150Gi"
+        requests:
+          google.com/tpu: 4
+          cpu: 100
+          memory: "150Gi"
       volumeMounts:
       - name: dshm
         mountPath: /dev/shm

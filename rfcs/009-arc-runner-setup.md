@@ -32,7 +32,7 @@ The fork (`alexshires/sglang-jax`) uses the same workflow as upstream but lacks 
 ## Goals
 
 1. **Full CI parity** with upstream sgl-project/sglang-jax
-2. **TPU v6e runners** with labels `arc-runner-v6e-1`, `arc-runner-v6e-1-standard`, and `arc-runner-v5e-4`
+2. **TPU v6e runners** with labels `arc-runner-v6e-1`, `arc-runner-v6e-1-standard`, `arc-runner-v6e-4`, and `arc-runner-v5e-4`
 3. **GPU runners** with label `gpu-runner`
 4. **Persistent model storage** at `/models/` path via GCS FUSE
 5. **Reproducible setup** with automated installation scripts
@@ -118,7 +118,12 @@ Used for non-preemptible workloads or where spot availability is low.
 - **Node Selector:** `pool_type: "tpu-standard"`
 - **Resources:** 1 TPU chip, 40 CPUs, 150Gi RAM.
 
-#### 2.3 TPU v5e-4 Runner (`arc-runner-v5e-4`)
+#### 2.3 TPU v6e-4 Runner (`arc-runner-v6e-4`)
+Used for multi-chip tests requiring a 2x2 topology on v6e chips. Uses spot instances.
+- **Node Selector:** `pool_type: "tpu-standard"`, `cloud.google.com/gke-tpu-topology: "2x2"`, `cloud.google.com/gke-spot: "true"`
+- **Resources:** 4 TPU chips, 100 CPUs, 150Gi RAM.
+
+#### 2.4 TPU v5e-4 Runner (`arc-runner-v5e-4`)
 Used for multi-chip tests requiring a 2x2 topology.
 - **Node Selector:** `pool_type: "tpu-v5e-spot"`, `cloud.google.com/gke-tpu-topology: "2x2"`
 - **Resources:** 4 TPU chips, 100 CPUs, 150Gi RAM.

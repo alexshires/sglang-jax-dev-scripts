@@ -66,6 +66,14 @@ helm upgrade --install arc-runner-tpu-2 oci://ghcr.io/actions/actions-runner-con
   --set githubConfigSecret="gh-token-secret" \
   -f sglang-scripts/k8s/tpu-v6e-1-standard-runner-values.yaml
 
+echo "Installing TPU Runner v6e-4 Scale Set (arc-runner-v6e-4)..."
+helm upgrade --install arc-runner-tpu-v6e-4 oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set \
+  --namespace arc-runners \
+  --version 0.9.3 \
+  --set githubConfigUrl="$GITHUB_CONFIG_URL" \
+  --set githubConfigSecret="gh-token-secret" \
+  -f sglang-scripts/k8s/tpu-v6e-4-runner-values.yaml
+
 echo "Installing TPU Runner v5e Scale Set (arc-runner-v5e-4)..."
 helm upgrade --install arc-runner-tpu-v5e oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set \
   --namespace arc-runners \

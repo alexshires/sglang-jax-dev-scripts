@@ -7,6 +7,7 @@ template:
       gke-gcsfuse/memory-limit: "0"
       gke-gcsfuse/ephemeral-storage-limit: "0"
   spec:
+    serviceAccountName: sglang-gh-runner
     nodeSelector:
       pool_type: "tpu-standard"
       cloud.google.com/gke-tpu-accelerator: "tpu-v6e-slice"
@@ -33,7 +34,7 @@ template:
       - name: "ACTIONS_RUNNER_DISABLE_OOM_SCORE_ADJ"
         value: "true"
       - name: "HF_HOME"
-        value: "/models"
+        value: "/dev/shm/huggingface"
       resources:
         limits:
           google.com/tpu: 1
