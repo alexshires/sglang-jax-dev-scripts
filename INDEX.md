@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-03
 
 ---
 
@@ -79,6 +79,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Matches PyTorch implementation for performance parity
   - Uses delimiter tokens to combine items into single sequence
   - Estimated 10-60x speedup for large item counts
+
+- **[RFC-009: Self-Hosted ARC Runners with TPU](rfcs/009-arc-runner-setup.md)**
+  - Status: Draft
+  - Set up GitHub Actions self-hosted runners on GKE with TPU
+  - Matches upstream sgl-project infrastructure
+  - Includes GCS/Filestore model storage setup
+  - Cost analysis and autoscaling configuration
 
 ### Templates
 
@@ -211,6 +218,8 @@ Runbook: Running Performance Benchmarks
 ```
 RFC-002 (Fork CI/CD Strategy)
     ↓
+RFC-009 (ARC Runner Setup)  ← NEW: Self-hosted TPU runners
+    ↓
 RFC-004 (Performance Benchmarks)
     ↓
 Runbook: Running Score API Tests
@@ -289,6 +298,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-03:** RFC-009: Self-Hosted ARC Runners with TPU
+  - Complete guide to setting up GitHub Actions self-hosted runners on GKE
+  - TPU v6e node pools with autoscaling (scale-to-zero)
+  - Model storage via GCS FUSE or Filestore at `/models/`
+  - Cost analysis: ~$330-500/month for medium usage with spot instances
+  - Enables full CI parity with upstream sgl-project/sglang-jax
 
 - **2026-02-01:** Branch Strategy Added to Launch Plan
   - Added detailed branch naming convention (feat/, test/, ci/)
