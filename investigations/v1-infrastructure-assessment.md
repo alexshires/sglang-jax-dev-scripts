@@ -44,23 +44,6 @@ Assessment of the `v1/` K8s infrastructure directory to determine readiness for 
 | `implememtation_overview.md` | Architecture deep dive for /v1/score in JAX | Yes | Design doc, not infra (typo in filename) |
 | `optimization_context_jan27.md` | Performance optimization findings (Jan 27) | Yes | Historical context; references TPU v5e (not v6e) |
 
-### Files on GitHub Not in Local Copy
-
-The GitHub repo (`alexshires/sglang-jax-dev-scripts`) has additional directories not in the local `v1/` directory:
-
-| Directory/File | Purpose |
-|----------------|---------|
-| `k8s/cpu-runner-values.yaml` | Helm values for CPU ARC runner |
-| `k8s/gpu-runner-values.yaml` | Helm values for GPU ARC runner |
-| `k8s/tpu-v5e-4-runner-values.yaml` | Helm values for TPU v5e-4 runner |
-| `k8s/tpu-v6e-1-runner-values.yaml` | Helm values for TPU v6e-1 runner |
-| `k8s/tpu-v6e-1-standard-runner-values.yaml` | Helm values for TPU v6e-1 standard (non-spot) runner |
-| `k8s/tpu-v6e-4-runner-values.yaml` | Helm values for TPU v6e-4 runner |
-| `docker/Dockerfile` | Separate Dockerfile (distinct from v1/Dockerfile) |
-| `scripts/install_gh_runners.sh` | GitHub Actions runner installation script |
-
-These `k8s/` files are the ARC runner configs documented in RFC-009 and are relevant for CI infrastructure, not directly for benchmarking.
-
 ## Critical Findings
 
 ### Finding 1: All Manifests Hardcoded to One Developer's Environment
