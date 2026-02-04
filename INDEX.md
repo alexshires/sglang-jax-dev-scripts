@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-03
+**Last Updated:** 2026-02-04
 
 ---
 
@@ -87,6 +87,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Includes GCS/Filestore model storage setup
   - Cost analysis and autoscaling configuration
 
+- **[RFC-010: Cross-Backend Benchmarking (PyTorch GPU vs JAX TPU)](rfcs/010-cross-backend-benchmarking.md)**
+  - Status: Draft
+  - Unified benchmarking infrastructure for comparing PyTorch/GPU and JAX/TPU
+  - K8s Jobs on existing GKE cluster with Kustomize overlays
+  - Common output schema, comparison reporting, GCS result storage
+  - Cost analysis: ~$2.12 per comparison run
+
 ### Templates
 
 - **[RFC Template](rfcs/template.md)**
@@ -122,6 +129,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Comprehensive comparison of implementations
   - Identified 3 bugs in JAX version by comparing with PyTorch
   - Test coverage gap analysis (17 tests vs 0 → 4)
+
+- **[v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)**
+  - Gap analysis of v1/ K8s templates for cross-backend benchmarking
+  - Audited all 11 files, cross-referenced with actual code in both repos
+  - 7 critical gaps identified (hardcoded values, no GPU support, missing bench_score.py)
+  - Benchmark script comparison: PyTorch vs JAX tooling
 
 ## Runbooks
 
@@ -218,9 +231,13 @@ Runbook: Running Performance Benchmarks
 ```
 RFC-002 (Fork CI/CD Strategy)
     ↓
-RFC-009 (ARC Runner Setup)  ← NEW: Self-hosted TPU runners
+RFC-009 (ARC Runner Setup)  ← Self-hosted TPU runners
     ↓
 RFC-004 (Performance Benchmarks)
+    ↓
+RFC-010 (Cross-Backend Benchmarking)  ← NEW: PyTorch GPU vs JAX TPU
+    ↓
+Investigation: v1 Infrastructure Assessment  ← NEW: Gap analysis
     ↓
 Runbook: Running Score API Tests
     ↓
@@ -247,6 +264,8 @@ Runbook: Debugging
 
 ### Performance
 - [RFC-004: Performance Benchmarks](rfcs/004-score-api-performance-benchmarks.md)
+- [RFC-010: Cross-Backend Benchmarking](rfcs/010-cross-backend-benchmarking.md) ← PyTorch GPU vs JAX TPU
+- [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 - [Test Plan 004: Benchmarks and Stress Tests](test-plans/004-performance-benchmarks-and-stress-tests.md)
 - [Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)
 
@@ -256,6 +275,7 @@ Runbook: Debugging
 
 ### Comparisons
 - [PyTorch vs JAX Score API](investigations/score-api-pytorch-vs-jax.md)
+- [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 
 ### Operations
 - [Debugging TPU Tests](runbooks/debugging-tpu-test-failures.md)
@@ -298,6 +318,17 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-04:** Investigation: v1 Infrastructure Assessment + RFC-010: Cross-Backend Benchmarking
+  - **Investigation:** Audited all 11 files in v1/ directory for cross-backend benchmarking readiness
+    - 7 critical gaps: hardcoded values, no GPU support, missing bench_score.py, path mismatches
+    - Benchmark script comparison: PyTorch has bench_score.py, JAX does not
+    - Verdict: v1/ is a foundation but not sufficient for PyTorch vs JAX comparison
+  - **RFC-010:** Proposes unified benchmarking infrastructure on existing GKE cluster
+    - K8s Jobs with Kustomize overlays (base + jax-tpu + pytorch-gpu)
+    - Common JSON output schema for cross-backend comparison
+    - 4-phase implementation: parameterize templates → add GPU → comparison harness → baselines
+    - Cost: ~$2.12 per comparison run
 
 - **2026-02-03:** RFC-009: Self-Hosted ARC Runners with TPU
   - Complete guide to setting up GitHub Actions self-hosted runners on GKE
