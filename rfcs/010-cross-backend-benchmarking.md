@@ -130,6 +130,40 @@ Two images, one per backend:
 
 The JAX Dockerfile exists at `sglang-jax/Dockerfile`. The PyTorch Dockerfile exists at `sglang/docker/Dockerfile`.
 
+### Input Parity Specification
+
+For a fair comparison, both backends **must** use identical input construction. Without this, results reflect config differences rather than performance.
+
+#### Locked Parameters (must be identical across backends)
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| Model | Same model and revision on both sides | Eliminates model differences |
+| Chat template | Disabled (`--chat-template none` or raw text) | Chat templates may differ between backends |
+| Tokenizer | Same HuggingFace tokenizer (from model) | Ensures identical token sequences |
+| Prompt construction | Raw token IDs, not text (avoids template divergence) | Byte-exact parity |
+| `apply_softmax` | `true` on both | Score post-processing must match |
+| `item_first` | `false` on both (or match PyTorch default) | Item ordering affects scoring |
+| `dtype` | `bfloat16` on both | Numerical precision parity |
+| `max_new_tokens` | `0` on both | Prefill-only scoring (no generation) |
+| Label token IDs | Same IDs (e.g., `[9454, 2753]` for Yes/No) | Scoring target parity |
+| BOS/EOS tokens | Explicitly controlled (include or exclude on both) | Tokenizer config can differ |
+
+#### Server Args Parity
+
+Server launch args that affect scoring performance must be documented and controlled:
+
+| Arg | JAX Default | PyTorch Default | Benchmark Value |
+|-----|-------------|-----------------|-----------------|
+| `--tp-size` | 1 (v6e-1) | 1 (single GPU) | 1 on both |
+| `--mem-fraction-static` | 0.8 | 0.88 | 0.8 on both |
+| `--max-prefill-tokens` | 8192 | 16384 | 8192 on both |
+| `--chunked-prefill-size` | varies | varies | Same value or disabled on both |
+| `--disable-radix-cache` | no | no | Same on both |
+| `--max-running-requests` | varies | varies | Same on both |
+
+Any divergence from these locked values must be documented in the results metadata with justification.
+
 ### Unified Benchmark Script
 
 A Score API-specific benchmark script is needed for the JAX side. Two approaches:
@@ -153,10 +187,17 @@ Both benchmark scripts should produce JSON output in this format:
   "metadata": {
     "backend": "jax-tpu" | "pytorch-gpu",
     "model": "meta-llama/Llama-3.2-1B-Instruct",
+    "model_revision": "main",
     "hardware": "tpu-v6e-1" | "nvidia-a100",
     "timestamp": "2026-02-04T10:30:00Z",
     "commit": "abc123",
-    "profile": "standard"
+    "profile": "standard",
+    "server_args": {
+      "tp_size": 1,
+      "mem_fraction_static": 0.8,
+      "max_prefill_tokens": 8192,
+      "dtype": "bfloat16"
+    }
   },
   "config": {
     "batch_sizes": [1, 4, 8, 16, 32],
@@ -164,24 +205,56 @@ Both benchmark scripts should produce JSON output in this format:
     "query_tokens": 128,
     "item_tokens": 64,
     "num_requests": 1000,
-    "warmup_requests": 10,
-    "runs": 3
+    "warmup_requests_per_shape": 5,
+    "runs": 3,
+    "apply_softmax": true,
+    "item_first": false,
+    "label_token_ids": [9454, 2753],
+    "max_new_tokens": 0
+  },
+  "load_generation": {
+    "mode": "closed_loop",
+    "concurrency": 1,
+    "distribution": "constant",
+    "target_rps": null
   },
   "results": [
     {
       "batch_size": 8,
       "items_per_request": 5,
-      "throughput_ips": 245.3,
+      "concurrency": 1,
+      "throughput_rps": 30.6,
+      "throughput_ips": 153.2,
       "latency_p50_ms": 32.1,
       "latency_p95_ms": 48.7,
       "latency_p99_ms": 62.3,
       "success_rate": 1.0,
       "runs": 3,
-      "stddev_throughput": 5.2
+      "stddev_throughput_ips": 5.2
     }
   ]
 }
 ```
+
+#### Throughput Definitions
+
+To avoid ambiguity:
+
+| Metric | Definition | Formula |
+|--------|-----------|---------|
+| `throughput_rps` | Requests per second | `successful_requests / elapsed_seconds` |
+| `throughput_ips` | Items per second | `throughput_rps * items_per_request` |
+
+A request with `items_per_request=5` that completes in 100ms contributes 10 RPS and 50 IPS.
+
+#### Load Generation Modes
+
+| Mode | Description | When to Use |
+|------|-------------|-------------|
+| `closed_loop` | Fixed concurrency, next request sent when previous completes | Default. Measures max throughput at given parallelism. |
+| `open_loop` | Fixed RPS with Poisson arrivals, independent of completion | Measures latency under controlled load. |
+
+Default is **closed-loop with concurrency=1** (serial requests). This is the simplest and most reproducible mode. Open-loop with Poisson distribution can be used for latency-under-load analysis but both backends must use the same distribution and target RPS.
 
 ## Benchmark Matrix
 
@@ -220,14 +293,43 @@ items_per_dollar = throughput_ips * 3600 / hourly_cost
 
 ### Warmup Protocol
 
-Fair comparison requires accounting for compilation overhead:
+Fair comparison requires accounting for compilation overhead. This is especially critical for JAX where XLA JIT-compiles a new program for each unique input shape.
 
-| Backend | Warmup | Reason |
-|---------|--------|--------|
-| JAX/TPU | 10+ requests | XLA JIT compilation on first few requests |
-| PyTorch/GPU | 5+ requests | CUDA kernel warmup; `torch.compile` if used |
+#### JAX/TPU: Per-Shape Warmup
 
-Warmup requests are excluded from measurements.
+JAX recompiles for each new `(batch_size, sequence_length)` combination. Since the benchmark matrix varies batch sizes and items per request, **each shape in the matrix triggers a new compilation**.
+
+**Strategy: Per-shape warmup before measurement**
+
+```
+For each (batch_size, items_per_request) in matrix:
+    1. Send 5 warmup requests with this exact shape
+       → Triggers XLA compilation and caches the compiled program
+    2. Wait for compilation to complete (check JAX compilation cache)
+    3. Begin measurement phase (compilation is cached)
+```
+
+**Alternative: Input padding to fixed shapes**
+
+Pad all inputs to a small set of bucket sizes (e.g., powers of 2) to reduce the number of unique compilations. This trades compute efficiency for compilation stability. If using padding, document the bucket sizes in results metadata.
+
+**What to watch for:**
+- `JAX_COMPILATION_CACHE_DIR` must be set (avoids recompilation across server restarts)
+- First request at each shape will be 10-100x slower than subsequent requests
+- If compilation time is not excluded, it will dominate latency for low-run-count benchmarks
+
+#### PyTorch/GPU: Standard Warmup
+
+| Phase | Requests | Purpose |
+|-------|----------|---------|
+| CUDA warmup | 3 requests | Kernel initialization, memory allocation |
+| `torch.compile` warmup (if used) | 2 requests | Compilation of optimized kernels |
+
+PyTorch is generally shape-agnostic for eager mode. If `torch.compile` is enabled, it may also recompile for new shapes, but this is less common than JAX.
+
+#### Warmup Validation
+
+Both backends should log warmup completion before measurement begins. The benchmark script should verify that the compilation cache is warm by checking that the last warmup request's latency is within 2x of the expected steady-state latency. If not, additional warmup requests are sent.
 
 ### Statistical Rigor
 
@@ -237,6 +339,60 @@ Warmup requests are excluded from measurements.
 - Record system state: chip utilization, memory pressure
 
 ## Infrastructure Requirements
+
+### Prerequisites
+
+Before any benchmark jobs can run, the following must be in place:
+
+#### Authentication & Secrets
+
+| Requirement | Why | How |
+|-------------|-----|-----|
+| HuggingFace token (`HF_TOKEN`) | Gated models (Llama-3.2) require authentication | K8s Secret in `eval-serving` namespace, mounted as env var |
+| Container registry access | Pull benchmark images | GKE default service account or Workload Identity |
+
+> **Note on gated models:** Llama-3.2-1B-Instruct requires HuggingFace access approval and a valid `HF_TOKEN`. For automated jobs, consider using an ungated model (e.g., `Qwen/Qwen3-0.6B`) to avoid auth fragility. If gated models are used, the token must be stored as a K8s Secret and injected into job pods.
+
+```yaml
+# Create HF token secret
+kubectl create secret generic hf-token \
+  --namespace eval-serving \
+  --from-literal=HF_TOKEN=hf_xxxxx
+```
+
+#### GPU Node Pool Requirements
+
+GPU node pools on GKE require additional configuration beyond just adding nodes:
+
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| NVIDIA GPU device plugin | Exposes GPUs to K8s scheduler | Auto-installed by GKE on GPU node pools |
+| NVIDIA drivers | GPU kernel drivers | Auto-installed by GKE (Container-Optimized OS) |
+| Node taints | Prevent non-GPU workloads on GPU nodes | Add `nvidia.com/gpu=present:NoSchedule` |
+| Pod tolerations | Allow benchmark pods on GPU nodes | Must be in job YAML |
+| Resource requests | Request GPU allocation | `nvidia.com/gpu: "1"` in resources.limits |
+
+Example GPU node pool creation:
+```bash
+gcloud container node-pools create gpu-a100-pool \
+  --cluster=<cluster-name> \
+  --zone=<zone> \
+  --machine-type=a2-highgpu-1g \
+  --accelerator=type=nvidia-tesla-a100,count=1 \
+  --num-nodes=0 \
+  --enable-autoscaling --min-nodes=0 --max-nodes=2 \
+  --spot \
+  --node-taints=nvidia.com/gpu=present:NoSchedule
+```
+
+Example toleration in job YAML:
+```yaml
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Equal"
+    value: "present"
+    effect: "NoSchedule"
+```
 
 ### GKE Node Pools
 
@@ -371,9 +527,11 @@ Warmup requests are excluded from measurements.
 ## Open Questions
 
 1. **GPU type:** A100 vs L4? A100 is more comparable to TPU v6e in compute class. L4 is cheaper but lower-end.
-2. **Model selection:** Start with Llama-3.2-1B-Instruct (gated, common) or Qwen3-0.6B (PyTorch bench_score.py default, smaller)?
+2. **Model selection:** Llama-3.2-1B-Instruct is gated (requires `HF_TOKEN`, approval). Qwen/Qwen3-0.6B is ungated and is the PyTorch bench_score.py default. For automated jobs, ungated is more reliable. Recommendation: start with Qwen3-0.6B for automation, add Llama-3.2 as optional gated model.
 3. **JAX bench_score.py:** Create new script or adapt `bench_serving.py` with a `--score` mode?
 4. **Multi-item scoring:** Include multi-item benchmarks now, or defer until RFC-008 is implemented?
+5. **Prompt/template parity:** Should the parity spec (see Input Parity Specification section) be enforced programmatically in the benchmark script, or documented as a manual checklist? Recommendation: enforce in script via a shared config file that both backends consume.
+6. **Throughput definition:** This RFC defines `throughput_ips` as `items/sec` and `throughput_rps` as `requests/sec`. The PyTorch bench_score.py reports only RPS. Should we report both, or standardize on one? Recommendation: report both, use `throughput_ips` as the primary comparison metric since it normalizes for `items_per_request`.
 
 ## References
 

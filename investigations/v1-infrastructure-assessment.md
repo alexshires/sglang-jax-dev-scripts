@@ -35,7 +35,7 @@ Assessment of the `v1/` K8s infrastructure directory to determine readiness for 
 | `benchmark/benchmark-job.yaml` | K8s Job: clone repo, start JAX server, run bench_score.py | No | Hardcoded fork/branch/image/bucket; references non-existent bench_score.py |
 | `benchmark/run_benchmark.sh` | Renders YAML template, submits via kubectl | Partially | GPU path exists but fragile sed; path mismatch to template |
 | `benchmark/benchmark-job-rendered.yaml` | Pre-rendered output of run_benchmark.sh | No | Same issues as template; no actual benefit over template |
-| `benchmark/README.md` | Docs for benchmarking suite | Yes | Accurate description of tools and metrics |
+| `benchmark/README.md` | Docs for benchmarking suite | Partially | References non-existent `bench_score.py`; metrics description is accurate |
 | `Dockerfile` | Builds JAX+TPU image | No | Hardcoded `--tp-size=4`; no model path; no GPU variant |
 | `cloudbuild.yaml` | Cloud Build pipeline for Docker image | No | Path mismatch (`sglang-scripts/` vs `v1/`) |
 | `test-runner-job.yaml` | K8s Job for running Score API tests on TPU | No | Hardcoded fork/branch/image/bucket |
@@ -117,7 +117,7 @@ Benchmark results go to `kubectl logs` and disappear. There is:
 
 ### PyTorch Score Benchmark
 
-**File:** `sglang/benchmark/prefill_only/bench_score.py` (270 lines)
+**File:** `sglang/benchmark/prefill_only/bench_score.py` (192 lines)
 
 | Aspect | Detail |
 |--------|--------|
@@ -127,7 +127,7 @@ Benchmark results go to `kubectl logs` and disappear. There is:
 | **Output format** | CSV to stdout (per-minute intervals) |
 | **Metrics** | RPS, success/fail counts, avg/p50/p90/p99 latency |
 | **Config** | RPS=160, duration=60s, 100 unique requests, Poisson distribution |
-| **Dependencies** | `util.py` (900+ lines) — BenchmarkConfig, request generation, profiler |
+| **Dependencies** | `util.py` (814 lines) — BenchmarkConfig, request generation, profiler |
 | **Label tokens** | `[9454, 2753]` (Yes/No for Qwen) |
 | **Items per request** | 10 |
 
