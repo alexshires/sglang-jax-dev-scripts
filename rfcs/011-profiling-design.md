@@ -22,8 +22,12 @@ Design a comprehensive profiling framework for sglang-jax that enables deep perf
 6. [Score API Profiling Strategy](#score-api-profiling-strategy)
 7. [Step-by-Step Profiling Guides](#step-by-step-profiling-guides)
 8. [Visualization Tools](#visualization-tools)
-9. [Implementation Plan](#implementation-plan)
-10. [Cost Analysis](#cost-analysis)
+9. [General Benchmarking Tools](#general-benchmarking-tools)
+10. [Distributed Profiling (TP/EP)](#distributed-profiling-tpep)
+11. [Advanced Options](#advanced-options)
+12. [Known Issues and Troubleshooting](#known-issues-and-troubleshooting)
+13. [Implementation Plan](#implementation-plan)
+14. [Cost Analysis](#cost-analysis)
 
 ---
 
@@ -1494,15 +1498,463 @@ Based on TPU v6e-1 at $0.64/hr.
 
 ---
 
+## General Benchmarking Tools
+
+This section covers the standard benchmarking tools available in sglang-jax, aligned with the [official sglang documentation](https://docs.sglang.io/developer_guide/benchmark_and_profiling.html).
+
+### bench_one_batch: Static Batch Benchmarking
+
+Benchmark latency of running a single static batch **without a server**. Useful for isolating model inference time from server overhead.
+
+**Location:** `sglang-jax/python/sgl_jax/bench_one_batch.py`
+
+```bash
+# Basic usage
+python -m sgl_jax.bench_one_batch \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --batch-size 1 4 8 16 \
+    --input-len 256 512 \
+    --output-len 32
+
+# With profiling enabled
+python -m sgl_jax.bench_one_batch \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --batch-size 8 \
+    --input-len 512 \
+    --output-len 32 \
+    --profile \
+    --profile-filename-prefix /tmp/one_batch_profile
+```
+
+**Key flags:**
+| Flag | Description |
+|------|-------------|
+| `--batch-size` | Batch sizes to test (space-separated) |
+| `--input-len` | Input sequence lengths (space-separated) |
+| `--output-len` | Output tokens to generate |
+| `--profile` | Enable JAX profiling |
+| `--profile-filename-prefix` | Output directory for traces |
+| `--correctness-test` | Run correctness validation |
+
+**Note:** This runs without dynamic batching, so may OOM at batch sizes a real server can handle.
+
+### bench_one_batch_server: Server-Based Single Batch
+
+Similar to `bench_one_batch` but runs against a live server via HTTP.
+
+```bash
+# Start server first
+python -m sgl_jax.launch_server \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --port 30000
+
+# Run benchmark
+python -m sgl_jax.bench_one_batch_server \
+    --base-url http://127.0.0.1:30000 \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --batch-size 32 \
+    --input-len 256 \
+    --output-len 32
+```
+
+### bench_offline_throughput: Offline Throughput
+
+Measures throughput for offline batch processing without server overhead.
+
+**Location:** `sglang-jax/python/sgl_jax/bench_offline_throughput.py`
+
+```bash
+python -m sgl_jax.bench_offline_throughput \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --num-prompts 100 \
+    --input-len 512 \
+    --output-len 128
+```
+
+### bench_serving: Online Serving Benchmark
+
+Comprehensive benchmark for online serving with configurable request patterns.
+
+**Location:** `sglang-jax/python/sgl_jax/bench_serving.py`
+
+```bash
+# Start server
+python -m sgl_jax.launch_server \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --port 30000
+
+# Basic benchmark
+python -m sgl_jax.bench_serving \
+    --backend sgl-jax \
+    --num-prompts 100
+
+# With profiling
+python -m sgl_jax.bench_serving \
+    --backend sgl-jax \
+    --num-prompts 50 \
+    --dataset-name random \
+    --random-input-len 512 \
+    --random-output-len 128 \
+    --profile \
+    --num-steps 10
+```
+
+**Recommended benchmark matrix (from docs):**
+
+```bash
+#!/bin/bash
+# Standard benchmark matrix
+input_seq_lens=(1024 4096 8192)
+output_seq_lens=(1 1024)  # 1 for TTFT measurement
+max_concurrencies=(8 16 32 64 128 256)
+
+for input_len in "${input_seq_lens[@]}"; do
+    for output_len in "${output_seq_lens[@]}"; do
+        for concurrency in "${max_concurrencies[@]}"; do
+            num_prompts=$((3 * concurrency))
+            python -m sgl_jax.bench_serving \
+                --backend sgl-jax \
+                --dataset-name random \
+                --num-prompts ${num_prompts} \
+                --random-input-len ${input_len} \
+                --random-output-len ${output_len} \
+                --max-concurrency ${concurrency} \
+                --random-range-ratio 1 \
+                --disable-ignore-eos \
+                --warmup-requests 0
+        done
+    done
+done
+```
+
+---
+
+## Distributed Profiling (TP/EP)
+
+When running with tensor parallelism (TP) or expert parallelism (EP), profiling requires special handling.
+
+### HTTP API Parameters Reference
+
+The `/start_profile` endpoint accepts these parameters:
+
+```json
+{
+    "output_dir": "/tmp/profile",       // Trace output directory
+    "num_steps": 10,                    // Number of forward steps to profile (optional)
+    "start_step": 5,                    // Skip warmup steps before profiling (optional)
+    "host_tracer_level": 2,             // 0=off, 1=minimal, 2=medium, 3=verbose
+    "python_tracer_level": 1,           // 0=off, 1=enabled
+    "profile_id": "my_profile"          // Custom identifier for trace files
+}
+```
+
+**Note:** If `num_steps` is not specified, profiling continues until `/stop_profile` is called.
+
+### Multi-Device Profiling
+
+sglang-jax automatically handles profiling across TP/EP ranks. Each rank generates its own trace file with a standardized naming convention.
+
+```bash
+# Launch with TP=4
+python -m sgl_jax.launch_server \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --tp-size 4 \
+    --port 30000
+
+# Start profiling - traces generated for each rank
+curl -X POST 'http://localhost:30000/start_profile' \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "output_dir": "/tmp/tp4_profile",
+        "num_steps": 5,
+        "profile_id": "tp4_test"
+    }'
+```
+
+**Generated files follow this naming convention:**
+```
+/tmp/tp4_profile/
+├── plugins/profile/<timestamp>/
+│   ├── tp4_test-TP-0-EP-0.trace.json.gz
+│   ├── tp4_test-TP-1-EP-0.trace.json.gz
+│   ├── tp4_test-TP-2-EP-0.trace.json.gz
+│   ├── tp4_test-TP-3-EP-0.trace.json.gz
+│   └── merged-tp4_test.trace.json.gz    # Auto-merged if supported
+```
+
+**File naming format:** `{profile_id}-TP-{tp_rank}-EP-{ep_rank}.trace.json.gz`
+
+For setups with expert parallelism (MoE models):
+```
+# TP=2, EP=2 setup
+├── moe_profile-TP-0-EP-0.trace.json.gz
+├── moe_profile-TP-0-EP-1.trace.json.gz
+├── moe_profile-TP-1-EP-0.trace.json.gz
+└── moe_profile-TP-1-EP-1.trace.json.gz
+```
+
+### Stage-Based Profiling (Prefill vs Decode)
+
+PyTorch SGLang supports profiling prefill and decode stages separately via `profile_by_stage` parameter. This is useful for identifying stage-specific bottlenecks.
+
+**PyTorch approach (for reference):**
+```bash
+# Profile prefill and decode separately
+curl -X POST 'http://localhost:30000/start_profile' \
+    -d '{
+        "output_dir": "/tmp/profile",
+        "num_steps": 10,
+        "profile_by_stage": true,
+        "profile_stages": ["prefill", "decode"]
+    }'
+```
+
+**JAX current status:**
+
+The sglang-jax scheduler profiler mixin (`scheduler_profiler_mixing.py`) supports basic step-based profiling but does not yet have explicit prefill/decode stage separation like PyTorch. However, you can achieve similar analysis by:
+
+1. **Using named scopes in traces** - Look for `forward_batch` scopes and analyze batch types
+2. **Filtering by batch size** - Prefill typically has larger batch token counts
+3. **Manual separation** - Run separate profiling sessions for prefill-heavy vs decode-heavy workloads
+
+**Score API note:** For Score API workloads, this distinction is less relevant since scoring is **prefill-only** (no token generation). All Score API requests use `max_new_tokens=0`.
+
+### PD Disaggregation Profiling
+
+For prefill-decode disaggregated deployments (separate prefill and decode workers), PyTorch SGLang requires profiling workers separately:
+
+**PyTorch approach:**
+```bash
+# Profile prefill workers only
+python -m sglang.bench_serving \
+    --backend sglang-oai \
+    --profile \
+    --profile-prefill-url http://prefill-worker-0:30000 http://prefill-worker-1:30000
+
+# Profile decode workers only (in separate run)
+python -m sglang.bench_serving \
+    --backend sglang-oai \
+    --profile \
+    --profile-decode-url http://decode-worker-0:30010 http://decode-worker-1:30010
+```
+
+**Note:** `--profile-prefill-url` and `--profile-decode-url` are mutually exclusive.
+
+**JAX status:** PD disaggregation is supported in sglang-jax (see `schedule_batch.py:327`), but dedicated profiling flags for disaggregated workers are not yet implemented. Profile each worker separately using standard `/start_profile` endpoints.
+
+### Trace Merging for Distributed Runs
+
+For multi-host setups, traces must be collected to shared storage:
+
+```bash
+# Ensure shared storage (e.g., NFS, GCS FUSE)
+export SGLANG_JAX_PROFILER_DIR=/shared/profiles
+
+# After profiling, merge traces
+python -c "
+from sgl_jax.srt.utils.trace_merger import merge_traces
+merge_traces('/shared/profiles', output='/shared/profiles/merged.trace.json.gz')
+"
+```
+
+### Analyzing TP Communication Overhead
+
+Look for these kernels in traces to understand TP overhead:
+
+| Kernel | Description | Optimization Target |
+|--------|-------------|---------------------|
+| `all_gather` | Gather weights/activations | Overlap with compute |
+| `reduce_scatter` | Distribute gradients | Batch size tuning |
+| `all_reduce` | Collective reduction | TP size vs compute |
+| `psum` | JAX collective sum | Sharding strategy |
+
+---
+
+## Advanced Options
+
+### Dummy Weights for Rapid Prototyping
+
+Test profiling setup without loading real model weights:
+
+```bash
+# Create minimal config.json in a directory
+mkdir -p /tmp/dummy_model
+cat > /tmp/dummy_model/config.json << 'EOF'
+{
+    "architectures": ["LlamaForCausalLM"],
+    "hidden_size": 4096,
+    "num_hidden_layers": 4,
+    "num_attention_heads": 32,
+    "intermediate_size": 11008,
+    "vocab_size": 32000
+}
+EOF
+
+# Launch with dummy weights
+python -m sgl_jax.launch_server \
+    --model-path /tmp/dummy_model \
+    --load-format dummy \
+    --port 30000
+```
+
+### Model Architecture Override
+
+Test different model configurations without retraining:
+
+```bash
+# Override number of layers for quick profiling
+python -m sgl_jax.launch_server \
+    --model-path meta-llama/Llama-3.2-1B-Instruct \
+    --json-model-override-args '{"num_hidden_layers": 4}' \
+    --port 30000
+```
+
+### Environment Variable Reference
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SGLANG_JAX_PROFILER_DIR` | Default profiler output directory | `/tmp` |
+| `ENABLE_MEMORY_PROFILING` | Enable memory profiling | `0` |
+| `SGL_MEMORY_OUTPUT_DIR` | Memory profile output directory | `memory_profiles` |
+| `MEMORY_PROFILING_LAYERS` | Layers to profile (`all`, `4`, `0,1,2`) | `4` |
+| `JAX_COMPILATION_CACHE_DIR` | XLA compilation cache | None |
+| `XLA_FLAGS` | XLA compiler flags | None |
+
+---
+
+## Known Issues and Troubleshooting
+
+### Issue 1: Large Trace Files
+
+**Symptom:** Browser cannot open trace file, or Perfetto crashes.
+
+**Cause:** Trace files can be hundreds of MB for long runs.
+
+**Solutions:**
+1. Reduce `--num-steps` to profile fewer forward passes
+2. Reduce `--num-prompts` in benchmark
+3. Use shorter sequences (`--random-input-len 128`)
+4. Split into multiple shorter profiling sessions
+
+```bash
+# Generate smaller trace (<100MB)
+curl -X POST 'http://localhost:30000/start_profile' \
+    -d '{"output_dir": "/tmp/profile", "num_steps": 3}'
+```
+
+### Issue 2: XLA Recompilation During Profiling
+
+**Symptom:** First profiled run is much slower than subsequent runs.
+
+**Cause:** XLA compiles new shapes on first encounter.
+
+**Solutions:**
+1. Warm up with same shapes before profiling
+2. Use compilation cache:
+   ```bash
+   export JAX_COMPILATION_CACHE_DIR=/tmp/jax_cache
+   ```
+3. Use `start_step` parameter to skip warmup:
+   ```json
+   {"output_dir": "/tmp/profile", "num_steps": 5, "start_step": 10}
+   ```
+
+### Issue 3: Memory Profiling Not Generating Output
+
+**Symptom:** No memory profile files generated.
+
+**Cause:** Environment variables not set, or wrong directory permissions.
+
+**Solution:**
+```bash
+# Verify environment
+export ENABLE_MEMORY_PROFILING=1
+export SGL_MEMORY_OUTPUT_DIR=/tmp/memory
+mkdir -p /tmp/memory
+
+# Check permissions
+ls -la /tmp/memory
+```
+
+### Issue 4: Profile HTTP API Returns Error
+
+**Symptom:** `/start_profile` returns `"Profiling is already in progress"`.
+
+**Solution:** Stop existing profiling session first:
+```bash
+curl -X POST 'http://localhost:30000/stop_profile'
+# Then start new session
+curl -X POST 'http://localhost:30000/start_profile' -d '...'
+```
+
+### Issue 5: Named Scopes Not Appearing in Trace
+
+**Symptom:** Trace shows flat kernel list without hierarchy.
+
+**Cause:** Named scopes require proper JAX profiler configuration.
+
+**Solution:** Ensure `host_tracer_level` >= 2:
+```json
+{
+    "output_dir": "/tmp/profile",
+    "num_steps": 5,
+    "host_tracer_level": 2,
+    "python_tracer_level": 1
+}
+```
+
+### Issue 6: OOM During Profiling
+
+**Symptom:** OOM errors only when profiling is enabled.
+
+**Cause:** Profiling adds ~10-20% memory overhead.
+
+**Solutions:**
+1. Reduce batch size during profiling
+2. Profile smaller model first
+3. Use memory profiling to identify peak usage:
+   ```bash
+   export ENABLE_MEMORY_PROFILING=1
+   ```
+
+### Debugging Tips
+
+1. **Check server logs** for profiler initialization:
+   ```bash
+   grep -i "profil" server.log
+   ```
+
+2. **Verify trace files exist:**
+   ```bash
+   find /tmp/profile -name "*.trace.json.gz" -ls
+   ```
+
+3. **Test with minimal config:**
+   ```bash
+   python -c "
+   import jax
+   with jax.profiler.trace('/tmp/test_trace'):
+       x = jax.numpy.ones((100, 100))
+       y = x @ x
+       y.block_until_ready()
+   print('Trace saved to /tmp/test_trace')
+   "
+   ```
+
+---
+
 ## References
 
+- [Official SGLang Benchmark & Profiling Guide](https://docs.sglang.io/developer_guide/benchmark_and_profiling.html) - PyTorch reference
 - [JAX Profiling Documentation](https://docs.jax.dev/en/latest/profiling.html)
 - [XProf Documentation](https://github.com/openxla/xprof)
 - [Perfetto UI](https://ui.perfetto.dev)
 - [Cloud TPU Profiling Guide](https://docs.cloud.google.com/tpu/docs/profile-tpu-vm)
+- [How to Scale Your Model - Profiling](https://jax-ml.github.io/scaling-book/profiling/)
 - [RFC-004: Performance Benchmarks](004-score-api-performance-benchmarks.md)
 - [RFC-010: Cross-Backend Benchmarking](010-cross-backend-benchmarking.md)
 - [ADR-001: Pure Python Softmax](../decisions/001-pure-python-softmax.md)
+- [sglang-jax Benchmark Docs](../../sglang-jax/docs/developer_guide/benchmark_and_profiling.md)
 
 ---
 
