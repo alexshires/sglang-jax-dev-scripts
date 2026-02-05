@@ -218,6 +218,27 @@ export DISABLE_PROF_GENERATION=1      # Disable .prof files (jax memory snapshot
 export DISABLE_MEMORY_CONSOLE_LOG=1   # Disable console logging
 ```
 
+> **⚠️ LATENCY IMPACT WARNING:**
+>
+> Memory profiling via `jax.profiler.save_device_memory_profile()` **forces device synchronization**.
+> This adds significant latency overhead (10-50ms+ per capture).
+>
+> **DO NOT** run latency benchmarks with `ENABLE_MEMORY_PROFILING=1`. Results will be invalid.
+>
+> The bench_score.py script should:
+> 1. Check if `ENABLE_MEMORY_PROFILING=1` is set
+> 2. Print a loud warning: `"⚠️ Memory profiling enabled - latency metrics will be inflated!"`
+> 3. Optionally refuse to run with `--strict` flag
+>
+> ```python
+> # In bench_score.py
+> if os.environ.get("ENABLE_MEMORY_PROFILING") == "1":
+>     print("⚠️ WARNING: ENABLE_MEMORY_PROFILING=1 detected!")
+>     print("   Latency benchmarks will be INVALID due to synchronization overhead.")
+>     if args.strict:
+>         sys.exit(1)
+> ```
+
 #### 4. Kernel Performance Utilities (`python/sgl_jax/srt/kernels/utils/perf.py`)
 
 ```python
@@ -846,6 +867,16 @@ async def run_single_score_request(
     NOTE: For proper benchmarking, label_token_ids should be actual vocabulary
     token IDs (e.g., "Yes"/"No" tokens), not just range(label_count).
     Use get_tokenizer() to look up real token IDs for the model.
+
+    ASYNC DISPATCH CONSIDERATION:
+    JAX uses async dispatch - Python can return while TPU is still running.
+    The /v1/score endpoint transfers scores from Device->Host before returning,
+    which forces synchronization. This means HTTP response time accurately
+    reflects end-to-end latency including TPU execution.
+
+    If you modify the endpoint to return before D2H transfer, benchmarks will
+    measure submission time, not execution time. Verify sync behavior if you
+    change the endpoint implementation.
     """
     import aiohttp
 
@@ -900,15 +931,96 @@ async def get_environment_metadata(base_url: str) -> Dict[str, Any]:
     }
 
 
+async def sanity_check(base_url: str, model: str) -> bool:
+    """Pre-flight sanity check before running benchmarks.
+
+    Validates:
+    1. Server is reachable
+    2. Model matches expected config
+    3. Single request returns valid response
+
+    Returns True if all checks pass, False otherwise.
+    """
+    import aiohttp
+
+    print("Running sanity checks...")
+
+    # Check 1: Server reachable
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{base_url}/health", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status != 200:
+                    print(f"  ❌ Server not healthy: status {resp.status}")
+                    return False
+        print("  ✓ Server is reachable")
+    except Exception as e:
+        print(f"  ❌ Cannot connect to server: {e}")
+        return False
+
+    # Check 2: Server info / model match
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{base_url}/get_server_info") as resp:
+                info = await resp.json()
+                server_model = info.get("model_path", "unknown")
+                if model != "default" and model not in server_model:
+                    print(f"  ⚠️ Model mismatch: expected '{model}', server has '{server_model}'")
+                else:
+                    print(f"  ✓ Model: {server_model}")
+    except Exception as e:
+        print(f"  ⚠️ Could not verify model: {e}")
+
+    # Check 3: Single request works
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{base_url}/v1/score",
+                json={"query": "test", "items": ["a"], "label_token_ids": [1000]},
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                if resp.status != 200:
+                    print(f"  ❌ Score request failed: status {resp.status}")
+                    return False
+                result = await resp.json()
+                if "scores" not in result:
+                    print(f"  ❌ Invalid response: missing 'scores' key")
+                    return False
+        print("  ✓ Score request returned valid JSON")
+    except Exception as e:
+        print(f"  ❌ Score request failed: {e}")
+        return False
+
+    print("All sanity checks passed!\n")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Score API Benchmark")
     parser.add_argument("--profile", choices=PROFILES.keys(), default="smoke")
     parser.add_argument("--base-url", default="http://localhost:30000")
+    parser.add_argument("--model", default="default", help="Expected model name (for sanity check)")
     parser.add_argument("--enable-trace", action="store_true")
     parser.add_argument("--enable-memory", action="store_true")
     parser.add_argument("--output-dir", default="/tmp/score_benchmark")
     parser.add_argument("--output-json", default=None)
+    parser.add_argument("--skip-sanity-check", action="store_true", help="Skip pre-flight checks")
+    parser.add_argument("--strict", action="store_true", help="Fail on warnings (e.g., memory profiling)")
     args = parser.parse_args()
+
+    # Check for memory profiling (invalidates latency benchmarks)
+    if os.environ.get("ENABLE_MEMORY_PROFILING") == "1":
+        print("⚠️  WARNING: ENABLE_MEMORY_PROFILING=1 detected!")
+        print("   Latency benchmarks will be INVALID due to synchronization overhead.")
+        if args.strict:
+            print("   Exiting due to --strict flag. Disable memory profiling for benchmarks.")
+            sys.exit(1)
+        print()
+
+    # Run sanity checks
+    if not args.skip_sanity_check:
+        if not asyncio.run(sanity_check(args.base_url, args.model)):
+            print("\nSanity checks failed. Use --skip-sanity-check to bypass.")
+            sys.exit(1)
 
     config = PROFILES[args.profile]
     results = asyncio.run(run_benchmark(
@@ -1884,6 +1996,47 @@ def analyze_score_requests(trace_path: str):
 - Track score request latency separately in dashboards
 - Debug score-specific performance issues in mixed workloads
 
+### Enhancement: Request ID Correlation
+
+> **Problem:** There is no shared ID or clock between `time.perf_counter()` in TokenizerManager
+> (CPU timing) and the `ts` (timestamp) in JAX traces. You cannot correlate a high-latency log
+> entry to its corresponding TPU slice.
+
+**Solution:** Add a unique `req_id` that propagates from TokenizerManager through to TraceAnnotation:
+
+```python
+# Step 1: Generate unique ID in TokenizerManager
+import uuid
+
+async def score_request(self, ...):
+    req_id = str(uuid.uuid4())[:8]  # Short unique ID
+
+    # Log with req_id for CPU timing correlation
+    logger.info(f"[{req_id}] score_request start")
+    t0 = time.perf_counter()
+
+    batch_request = GenerateReqInput(
+        # ... existing fields ...
+        request_type="score",
+        req_id=req_id,  # NEW: Pass request ID
+    )
+
+# Step 2: Include in TraceAnnotation
+with jax.profiler.TraceAnnotation(
+    "run_batch",
+    batch_size=batch.batch_size(),
+    request_type=batch.request_type or "unknown",
+    req_id=batch.req_id,  # NEW: Correlatable ID
+):
+    output = self.tp_worker.forward_batch_generation(...)
+```
+
+**Benefit:** Find exact TPU slice corresponding to a specific high-latency log entry:
+```bash
+# In logs: [abc12345] score_request took 250ms (expected 50ms)
+# In trace: Search for req_id="abc12345" to find the corresponding TPU events
+```
+
 ---
 
 ## Implementation Plan
@@ -2235,10 +2388,13 @@ for f in glob.glob('/shared/profiles/**/*.trace.json.gz', recursive=True):
     with gzip.open(f, 'rb') as fh:
         traces.append(json.load(fh))
 
-# Manual merge (basic)
+# Manual merge (basic) - WARNING: see caveats below
 merged = {'traceEvents': []}
-for t in traces:
-    merged['traceEvents'].extend(t.get('traceEvents', []))
+for rank, t in enumerate(traces):
+    for event in t.get('traceEvents', []):
+        # IMPORTANT: Remap pid to avoid collisions between ranks
+        event['pid'] = rank
+        merged['traceEvents'].append(event)
 
 with gzip.open('/shared/profiles/merged.trace.json.gz', 'wt') as f:
     json.dump(merged, f)
@@ -2247,6 +2403,24 @@ with gzip.open('/shared/profiles/merged.trace.json.gz', 'wt') as f:
 
 > **⚠️ TODO:** The `sgl_jax.srt.utils.trace_merger` module is **planned but not yet implemented**.
 > See [Implementation Plan Phase 1](#phase-1-core-infrastructure-priority-high) for the `trace_merger.py` task.
+
+> **⚠️ Trace Merging Caveats:**
+>
+> Merging traces from multiple ranks is NOT just concatenating JSON files:
+>
+> 1. **Clock Drift:** If profiling across multiple hosts (distributed TP), timestamps may not align.
+>    Each host has its own clock. Consider using a common reference point or accepting ~ms skew.
+>
+> 2. **PID Remapping:** Each rank reports `pid: 1` by default. Without remapping (as shown above),
+>    all ranks overlap in Perfetto. Assign unique PIDs per rank.
+>
+> 3. **Perfetto Metadata:** The merged trace should include proper `metadata` entries for Perfetto
+>    to correctly label each rank.
+>
+> **Recommendation:** Before writing a custom merger, investigate if existing tools can be reused:
+> - `tensorboard_plugin_profile` has trace utilities
+> - `perfetto` Python package has trace parsing/writing support
+> - PyTorch SGLang's `ProfileMerger` as reference (if porting to JAX)
 
 ### Analyzing TP Communication Overhead
 
@@ -2321,6 +2495,36 @@ python -m sgl_jax.launch_server \
 > ```bash
 > export JAX_COMPILATION_CACHE_DIR=/persistent/jax_cache
 > # Or in Docker: -v /host/jax_cache:/persistent/jax_cache
+> ```
+
+> **CI/CD Cache Management:**
+>
+> For nightly CI profiling workflows, consider these trade-offs:
+>
+> | Strategy | Pros | Cons | When to Use |
+> |----------|------|------|-------------|
+> | **Preserve cache** | Skip compilation time (~1-5 min) | May hide compilation regressions | Performance benchmarks |
+> | **Clear cache each run** | Tests full cold-start path | Adds compilation overhead | Release validation |
+> | **Rotate weekly** | Balance of both | Requires cron job | Most CI setups |
+>
+> ```yaml
+> # GitHub Actions example - preserve cache for benchmarks
+> - name: Restore XLA cache
+>   uses: actions/cache@v3
+>   with:
+>     path: /tmp/jax_cache
+>     key: jax-xla-cache-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
+>
+> # Or clear cache to test compilation
+> - name: Clear XLA cache (release builds)
+>   if: github.event_name == 'release'
+>   run: rm -rf /tmp/jax_cache
+> ```
+>
+> **Disk management:** XLA caches can grow large (1-10GB). Set up periodic cleanup:
+> ```bash
+> # Cron job to clear old caches (> 7 days)
+> find /persistent/jax_cache -type f -mtime +7 -delete
 > ```
 
 ---
