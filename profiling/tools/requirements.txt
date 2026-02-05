@@ -1,0 +1,9 @@
+xprof
+# TensorBoard deps are used by xprof conversions
+# Keeping explicit for clarity
+# These packages are lightweight compared to full TF installs
+
+tensorboard
+tensorboard-plugin-profile
+matplotlib
+ijson

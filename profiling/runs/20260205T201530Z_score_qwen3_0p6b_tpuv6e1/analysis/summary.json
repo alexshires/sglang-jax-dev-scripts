@@ -1,0 +1,9 @@
+{
+  "device_idle_us": 10088428.100328,
+  "device_non_idle_us": 1515.1012500000022,
+  "device_total_us": 10089943.201578,
+  "host_trace_window_ms": 385.046565,
+  "score_requests": 3,
+  "start_profile_calls": 1,
+  "stop_profile_calls": 1
+}

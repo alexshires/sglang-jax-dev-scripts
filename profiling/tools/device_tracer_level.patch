@@ -1,0 +1,193 @@
+diff --git a/python/sgl_jax/profiler.py b/python/sgl_jax/profiler.py
+index 31465b5..94fb6df 100644
+--- a/python/sgl_jax/profiler.py
++++ b/python/sgl_jax/profiler.py
+@@ -24,6 +24,9 @@ def _run_profile(
+     output_dir: str | None = None,
+     profile_name: str | None = None,
+     profile_by_stage: bool = False,
++    host_tracer_level: int | None = None,
++    python_tracer_level: int | None = None,
++    device_tracer_level: int | None = None,
+ ) -> str:
+     if output_dir is None:
+         output_dir = PARENT_FOLDER
+@@ -58,6 +61,12 @@ def _run_profile(
+         "activities": activities,
+         "profile_by_stage": profile_by_stage,
+     }
++    if host_tracer_level is not None:
++        json_data["host_tracer_level"] = host_tracer_level
++    if python_tracer_level is not None:
++        json_data["python_tracer_level"] = python_tracer_level
++    if device_tracer_level is not None:
++        json_data["device_tracer_level"] = device_tracer_level
+ 
+     response = requests.post(url=url + "/start_profile", json=json_data)
+     response.raise_for_status()
+@@ -73,9 +82,22 @@ def run_profile(
+     output_dir: str | None = None,
+     profile_name: str | None = None,
+     profile_by_stage: bool = False,
++    host_tracer_level: int | None = None,
++    python_tracer_level: int | None = None,
++    device_tracer_level: int | None = None,
+ ):
+     # step based profile will self terminate on num_steps constraints
+-    link = _run_profile(url, num_steps, activities, output_dir, profile_name, profile_by_stage)
++    link = _run_profile(
++        url,
++        num_steps,
++        activities,
++        output_dir,
++        profile_name,
++        profile_by_stage,
++        host_tracer_level,
++        python_tracer_level,
++        device_tracer_level,
++    )
+     return link
+ 
+ 
+@@ -112,6 +134,24 @@ if __name__ == "__main__":
+         default=False,
+         help="The number of forward steps to profile.",
+     )
++    parser.add_argument(
++        "--host-tracer-level",
++        type=int,
++        default=None,
++        help="JAX host tracer level for /start_profile (0-3).",
++    )
++    parser.add_argument(
++        "--python-tracer-level",
++        type=int,
++        default=None,
++        help="JAX python tracer level for /start_profile (0-1).",
++    )
++    parser.add_argument(
++        "--device-tracer-level",
++        type=int,
++        default=None,
++        help="JAX device tracer level for /start_profile (0+).",
++    )
+     parser.add_argument(
+         "--cpu",
+         action=argparse.BooleanOptionalAction,
+@@ -158,4 +198,7 @@ if __name__ == "__main__":
+         args.output_dir,
+         args.profile_name,
+         args.profile_by_stage,
++        args.host_tracer_level,
++        args.python_tracer_level,
++        args.device_tracer_level,
+     )
+diff --git a/python/sgl_jax/srt/entrypoints/http_server.py b/python/sgl_jax/srt/entrypoints/http_server.py
+index dc56697..077a44a 100644
+--- a/python/sgl_jax/srt/entrypoints/http_server.py
++++ b/python/sgl_jax/srt/entrypoints/http_server.py
+@@ -383,6 +383,7 @@ async def start_profile_async(obj: ProfileReqInput | None = None):
+         num_steps=obj.num_steps,
+         host_tracer_level=obj.host_tracer_level,
+         python_tracer_level=obj.python_tracer_level,
++        device_tracer_level=obj.device_tracer_level,
+     )
+     return Response(
+         content="Start profiling.\n",
+diff --git a/python/sgl_jax/srt/managers/io_struct.py b/python/sgl_jax/srt/managers/io_struct.py
+index 4edfff0..27eb614 100644
+--- a/python/sgl_jax/srt/managers/io_struct.py
++++ b/python/sgl_jax/srt/managers/io_struct.py
+@@ -648,6 +648,11 @@ class ProfileReqInput:
+     # 0: Disables Python function call tracing.
+     # 1: Enables Python tracing (this is the default).
+     python_tracer_level: int | None = None
++    # Controls whether device tracing is enabled.
++    # 0: Disables device tracing.
++    # 1: Enables device tracing (default in many JAX builds).
++    # 2+: Enables more verbose device tracing (more overhead).
++    device_tracer_level: int | None = None
+ 
+ 
+ class ProfileReqType(Enum):
+@@ -663,6 +668,7 @@ class ProfileReq:
+     num_steps: int | None = None
+     host_tracer_level: int | None = None
+     python_tracer_level: int | None = None
++    device_tracer_level: int | None = None
+     profile_id: str | None = None
+ 
+ 
+diff --git a/python/sgl_jax/srt/managers/scheduler_profiler_mixing.py b/python/sgl_jax/srt/managers/scheduler_profiler_mixing.py
+index 917c0de..60633b6 100644
+--- a/python/sgl_jax/srt/managers/scheduler_profiler_mixing.py
++++ b/python/sgl_jax/srt/managers/scheduler_profiler_mixing.py
+@@ -19,6 +19,7 @@ class SchedulerProfilerMixin:
+         self.profile_in_progress: bool = False
+         self.host_tracer_level: int | None = None
+         self.python_tracer_level: int | None = None
++        self.device_tracer_level: int | None = None
+ 
+     def start_profile(
+         self,
+@@ -27,6 +28,7 @@ class SchedulerProfilerMixin:
+         num_steps: int | None,
+         host_tracer_level: int | None,
+         python_tracer_level: int | None,
++        device_tracer_level: int | None,
+         profile_id: str,
+     ) -> ProfileReqOutput:
+         if self.profile_in_progress:
+@@ -52,6 +54,7 @@ class SchedulerProfilerMixin:
+         self.profile_id = profile_id
+         self.host_tracer_level = host_tracer_level
+         self.python_tracer_level = python_tracer_level
++        self.device_tracer_level = device_tracer_level
+ 
+         if start_step:
+             self.profiler_start_forward_ct = max(start_step, self.forward_ct + 1)
+@@ -79,6 +82,8 @@ class SchedulerProfilerMixin:
+             profiler_options.host_tracer_level = host_tracer_level
+         if python_tracer_level:
+             profiler_options.python_tracer_level = python_tracer_level
++        if device_tracer_level is not None and hasattr(profiler_options, "device_tracer_level"):
++            profiler_options.device_tracer_level = device_tracer_level
+ 
+         print(f"profiler_options: {profiler_options}")
+ 
+@@ -122,6 +127,7 @@ class SchedulerProfilerMixin:
+                 self.profile_steps,
+                 self.host_tracer_level,
+                 self.python_tracer_level,
++                self.device_tracer_level,
+                 self.profile_id,
+             )
+ 
+@@ -133,6 +139,7 @@ class SchedulerProfilerMixin:
+                 recv_req.num_steps,
+                 recv_req.host_tracer_level,
+                 recv_req.python_tracer_level,
++                recv_req.device_tracer_level,
+                 recv_req.profile_id,
+             )
+         else:
+diff --git a/python/sgl_jax/srt/managers/tokenizer_manager.py b/python/sgl_jax/srt/managers/tokenizer_manager.py
+index a6abe89..c7374ac 100644
+--- a/python/sgl_jax/srt/managers/tokenizer_manager.py
++++ b/python/sgl_jax/srt/managers/tokenizer_manager.py
+@@ -608,6 +608,7 @@ class TokenizerManager:
+         num_steps: int | None = None,
+         host_tracer_level: int | None = None,
+         python_tracer_level: int | None = None,
++        device_tracer_level: int | None = None,
+     ):
+         self.auto_create_handle_loop()
+         req = ProfileReq(
+@@ -617,6 +618,7 @@ class TokenizerManager:
+             num_steps=num_steps,
+             host_tracer_level=host_tracer_level,
+             python_tracer_level=python_tracer_level,
++            device_tracer_level=device_tracer_level,
+             profile_id=str(time.time()),
+         )
+         return await self._execute_profile(req)

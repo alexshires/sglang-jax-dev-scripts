@@ -1,6 +1,12 @@
-# Profiling trace files (large, stored in GCS)
-profiling/*/traces/
-profiling/*/server.log
-
+# Profiling artifacts (large)
+profiling/runs/**/artifacts/raw/
+profiling/runs/**/artifacts/derived/**/trace_viewer.json
+profiling/runs/**/artifacts/derived/**/trace_viewer*.json
+profiling/runs/**/logs/*.log
+profiling/archive/**/traces/
+profiling/archive/**/*.pb
+profiling/archive/**/*.SSTABLE
+# Local analysis env
+.venv-profile/
 # OS files
 .DS_Store
