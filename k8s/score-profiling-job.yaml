@@ -44,7 +44,7 @@ spec:
           - "--output-dir"
           - "/models/profiles"
           - "--profiler"
-          - "cprofile"
+          - "jax"
           
         securityContext:
           capabilities:
