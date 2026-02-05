@@ -349,6 +349,5 @@ In other words, **the trace shows the host mostly waiting**, which implies the r
 
 ## Next Steps (If You Want Device Kernel Attribution)
 
-This would require enabling device tracing in JAX profiling. The current server code only sets host/python tracer levels. To attribute delay to exact TPU kernels, we would need a profiling run that includes device tracer data (likely a small code change to set a device tracer level or a different profiling entrypoint). I did not make any code changes per your requirement.
+This would require enabling device tracing in JAX profiling. The current server code only sets host/python tracer levels. To attribute delay to exact TPU kernels, we would need a profiling run that includes device tracer data (likely a small code change to set a device tracer level or a different profiling entrypoint). 
 
-If you want, I can propose a no-code-change re-run with different parameters (e.g., more steps) but it may still omit device kernels unless device tracing is explicitly enabled.
