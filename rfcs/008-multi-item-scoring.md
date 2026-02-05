@@ -63,16 +63,18 @@ This enables:
 - **Better hardware utilization**
 - **~Nx throughput improvement** for large N
 
-### Performance Impact (Actual from PR #10979)
+### Performance Impact (from PR #10979 Description)
 
-Benchmarked on Qwen3-0.6B with 300-token queries, 10 items per request, 120 QPS on H100:
+The following numbers are cited from the PR description. They have not been independently verified in the codebase and should be treated as indicative benchmarks:
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
 | P99 Latency | 8,276 ms | 511 ms | **16.2x faster** |
 | Throughput | 950 items/sec | 1,200 items/sec | **26.3% higher** |
 
-*Note: JAX/TPU performance will differ. These numbers are for GPU reference.*
+*Configuration: Qwen3-0.6B, 300-token queries, 10 items/request, 120 QPS, H100 GPU.*
+
+*Note: JAX/TPU performance will differ. These numbers are GPU-specific and require independent validation.*
 
 ---
 
@@ -171,6 +173,23 @@ max_item_len_ptr: [1]  # All items are single tokens
 
 The position reset at each delimiter creates the attention boundaries.
 
+### Backend Restriction: FlashInfer Required
+
+> **CRITICAL:** In PyTorch, multi-item attention isolation is implemented **only** in the FlashInfer backend. Other backends (e.g., Triton, native PyTorch) do NOT support the `MultiItemScoringParams` and will silently produce incorrect results.
+
+```python
+# FlashInfer backend check (from flashinfer_backend.py)
+if self.multi_item_scoring_delimiter is not None:
+    # Only FlashInfer supports multi-item params
+    # Other backends would compute standard causal attention
+    multi_item_params = self._process_multi_item_scoring(forward_batch)
+```
+
+**Implications for JAX:**
+- JAX must implement an equivalent attention isolation mechanism
+- Without it, multi-item mode will give wrong results (items attending to each other)
+- This is not a "nice to have" - it's a correctness requirement
+
 ### JAX Implementation Requirements
 
 For JAX/TPU, we need an equivalent mechanism. Options to investigate:
@@ -196,8 +215,11 @@ When `--multi-item-scoring-delimiter` is set, the following constraints apply:
 |------------|-------------|-----------|
 | Radix Cache | **Must be disabled** (`--disable-radix-cache`) | Cache keys don't account for item boundaries |
 | Chunked Prefill | **Must be disabled** (`--chunked-prefill-size -1`) | Chunking could split across item boundaries |
-| Sliding Window | **Automatically disabled** | Window could cross item boundaries |
-| Ragged Prefill | **Automatically disabled** | Incompatible with multi-item params |
+| Sliding Window | **Automatically disabled** (FlashInfer only) | Window could cross item boundaries |
+| Ragged Prefill | **Automatically disabled** (FlashInfer only) | Incompatible with multi-item params |
+| Attention Backend | **FlashInfer required** (PyTorch) | Only backend implementing multi-item params |
+
+**Note:** Sliding window and ragged prefill are disabled *within FlashInfer* when multi-item params are enabled. Other backends don't support multi-item at all.
 
 ### Validation at Startup
 
@@ -223,7 +245,16 @@ if server_args.multi_item_scoring_delimiter is not None:
 | Prefill-only | Multi-item only activates for scoring (no generation) |
 | `max_new_tokens` | Must be 0 for multi-item requests |
 | `item_first` | Ignored in multi-item mode |
-| Speculative decoding | Incompatible with multi-item scoring |
+| Speculative decoding | **Incompatible** - see warning below |
+
+> **WARNING: Speculative Decoding Interaction**
+>
+> When `speculative_algorithm` is set, multi-item scoring is **implicitly disabled** in the scheduler/logits path, but the TokenizerManager may still build the multi-item prompt format. This mismatch can cause:
+> - Shape assumption violations in logprob arrays
+> - Incorrect scoring results
+> - Silent failures
+>
+> **Recommendation:** Validate at startup that `speculative_algorithm` is not set when `multi_item_scoring_delimiter` is configured, or explicitly document this as unsupported.
 
 ### `next_token_logits` Handling
 
@@ -271,7 +302,21 @@ python -m sglang.launch_server \
 When set:
 - Score requests use multi-item mode (prefill-only)
 - `item_first` parameter is ignored (fixed format)
-- Delimiter token should be a special token unlikely to appear in content
+- Delimiter token **MUST NOT appear** in query or item content (see below)
+
+> **CRITICAL: Delimiter Collision Hazard**
+>
+> The PR treats **any occurrence** of the delimiter token as a boundary when building attention params and slicing logits. If the delimiter token appears inside the query or item text, scoring becomes incorrect:
+>
+> ```python
+> # In logits_processor.py - finds ALL delimiter occurrences
+> multi_item_indices = (input_ids == delimiter_token).nonzero(as_tuple=True)[0] - 1
+> ```
+>
+> **This is a HARD REQUIREMENT, not a suggestion:**
+> - Choose a delimiter token that cannot appear in user content
+> - Recommended: Use model-specific special tokens (e.g., `<|eot_id|>` for Llama-3)
+> - Consider adding validation that scans query/items for delimiter token before processing
 
 ### Internal Sequence Format
 
@@ -412,6 +457,48 @@ def compute_logprobs_for_multi_item_scoring(
         ...
     )
 ```
+
+### Metadata Adjustment: `extend_logprob_pruned_lens_cpu`
+
+> **IMPORTANT:** The PR recomputes `extend_logprob_pruned_lens_cpu` based on delimiter counts, not original sequence lengths. This is required for correct indexing of `top_logprobs` and `token_ids_logprobs`.
+
+```python
+# From logits_processor.py:1021-1042
+# Original: extend_logprob_pruned_lens_cpu contains sequence lengths
+# Multi-item: Recompute to contain delimiter counts per request
+
+if logits_metadata.token_ids_logprobs or logits_metadata.extend_return_top_logprob:
+    logits_metadata.extend_logprob_pruned_lens_cpu = []
+
+    if logits_metadata.extend_seq_lens_cpu is not None:
+        # Multi-request batch: count delimiters per request
+        input_pt = 0
+        for req_seq_len in logits_metadata.extend_seq_lens_cpu:
+            req_input_ids = input_ids[input_pt : input_pt + req_seq_len]
+            delimiter_count = (req_input_ids == delimiter_token).sum().item()
+            logits_metadata.extend_logprob_pruned_lens_cpu.append(delimiter_count)
+            input_pt += req_seq_len
+    else:
+        # Single request: all delimiters belong to one request
+        total_delimiters = (input_ids == delimiter_token).sum().item()
+        logits_metadata.extend_logprob_pruned_lens_cpu = [total_delimiters]
+```
+
+**JAX Implication:** If JAX exposes `top_logprobs` or `token_ids_logprobs` fields, it must also recompute the pruned lengths based on delimiter counts.
+
+### Output Shape Changes: All Logprob Arrays
+
+The PR changes **multiple** output arrays to contain only delimiter positions, not just `input_token_ids_logprobs`:
+
+| Array | Standard Mode | Multi-Item Mode |
+|-------|---------------|-----------------|
+| `input_token_logprobs` | Length = seq_len | Length = num_delimiters |
+| `input_top_logprobs_val` | Length = seq_len | Length = num_delimiters |
+| `input_top_logprobs_idx` | Length = seq_len | Length = num_delimiters |
+| `input_token_ids_logprobs_val` | Length = seq_len | Length = num_delimiters |
+| `input_token_ids_logprobs_idx` | Length = seq_len | Length = num_delimiters |
+
+This reshaping happens in `scheduler_output_processor_mixin.py:590-683`. Any downstream code (e.g., detokenizer) must be aware of this shape change.
 
 ### TokenizerManager Processing (Simplified)
 
@@ -694,9 +781,12 @@ def _convert_logprobs_to_scores(self, ...):
 ### Phase 1: Infrastructure
 
 - [ ] Add `multi_item_scoring_delimiter` to server args
-- [ ] Add startup validation for required flags
+- [ ] Add startup validation for required flags (radix cache, chunked prefill)
+- [ ] Add startup validation for incompatible flags (speculative decoding)
 - [ ] Add `multi_item_delimiter_text` derivation from token ID
-- [ ] Implement optional delimiter text validation
+- [ ] Implement delimiter text validation (single-token re-encoding)
+- [ ] Add runtime validation: delimiter token not in query/items
+- [ ] Add runtime validation: query must have at least one token
 
 ### Phase 2: Attention Mechanism (Critical Path)
 
@@ -708,6 +798,8 @@ def _convert_logprobs_to_scores(self, ...):
 ### Phase 3: Logprob Extraction
 
 - [ ] Implement `compute_logprobs_for_multi_item_scoring()` in LogitsProcessor
+- [ ] Recompute `extend_logprob_pruned_lens_cpu` based on delimiter counts
+- [ ] Reshape all logprob arrays (`input_token_logprobs`, `input_top_logprobs_*`, `input_token_ids_logprobs_*`) to delimiter-only positions
 - [ ] Modify scheduler to emit delimiter-only logprobs
 - [ ] Update TokenizerManager to consume pre-sliced logprobs
 - [ ] Handle `next_token_logits=None` in workers
@@ -828,7 +920,54 @@ def test_deterministic_consistency():
     scores2 = score_multi_item(query, items, label_ids)
 
     assert scores1 == scores2, "Results should be deterministic"
+
+def test_empty_query_tokens():
+    """Handle empty tokenized query (edge case).
+
+    WARNING: If query tokenizes to empty list, the first delimiter
+    is at position 0, and (delimiter_index - 1) = -1, causing
+    incorrect slicing.
+
+    Text inputs usually inject BOS token, masking this issue.
+    Token inputs are vulnerable.
+    """
+    # This should either:
+    # 1. Raise a clear error for empty query
+    # 2. Handle gracefully by ensuring minimum query length
+    with pytest.raises(ValueError, match="Query must not be empty"):
+        score_multi_item_tokens(
+            query_tokens=[],  # Empty!
+            item_tokens=[[1, 2], [3, 4]],
+            label_token_ids=[1, 2, 3],
+        )
+
+def test_delimiter_not_in_content():
+    """Verify delimiter doesn't appear in query or items."""
+    delimiter_token = 128009
+
+    # This should fail validation or produce a warning
+    query_with_delimiter = f"Query with delimiter token {delimiter_token}"
+    # If delimiter appears in tokenized query, results will be wrong
 ```
+
+### Edge Case: Empty Query with Token Inputs
+
+> **WARNING:** In the PR, scoring positions are computed as `(delimiter_index - 1)`. If the query token list is empty, the first delimiter is at position 0, leading to index `-1` and incorrect slicing.
+
+Text inputs usually inject BOS token, so this is less visible. Token inputs are vulnerable:
+
+```python
+# Problematic case
+query_tokens = []  # Empty query
+item_tokens = [[100, 101], [200, 201]]
+delimiter = 50256
+
+# Combined: [<d>, 100, 101, <d>, 200, 201, <d>]
+# First delimiter at position 0
+# Scoring position = 0 - 1 = -1  # WRONG!
+```
+
+**Recommendation:** Add validation that query must have at least one token (or BOS).
 
 ### Performance Tests
 
@@ -891,7 +1030,7 @@ def test_memory_usage():
    **Answer:** Model-specific. Llama-3 uses `128009` (<|eot_id|>). User must configure.
 
 2. ~~**`logprob_start_len` support:** Does JAX scheduler support this?~~
-   **Answer:** Not needed - PR computes logprobs only at delimiter positions.
+   **Answer:** Still required. The PR sets `logprob_start_len=0` and uses it to count delimiters and shape logprob arrays correctly. While the final output only contains delimiter positions, the scheduler uses this parameter internally. JAX needs an equivalent mechanism for delimiter slicing.
 
 3. ~~**Prefix caching interaction:** Does multi-item work with prefix caching?~~
    **Answer:** No - radix cache must be disabled.
@@ -1003,3 +1142,4 @@ if len(items) > threshold and delimiter_configured:
 |------|--------|
 | 2026-02-01 | Initial draft |
 | 2026-02-05 | Major update based on PR #10979 analysis: added attention mask section, runtime constraints, corrected logprob dataflow, resolved apply_softmax semantics, added JAX considerations, expanded testing |
+| 2026-02-05 | Second review pass: added FlashInfer backend requirement, corrected logprob_start_len explanation, added extend_logprob_pruned_lens_cpu metadata adjustment, documented all logprob array shape changes, strengthened speculative decoding warning, added delimiter collision as hard requirement, added empty query edge case, scoped sliding window to FlashInfer |
