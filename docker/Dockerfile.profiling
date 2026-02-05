@@ -1,9 +1,9 @@
 FROM python:3.12
 
 # Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends 
-    git 
-    curl 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install profiling tools
@@ -17,9 +17,9 @@ WORKDIR /app
 ARG REPO_URL=https://github.com/alexshires/sglang-jax.git
 ARG BRANCH_NAME=main
 
-RUN git clone ${REPO_URL} sglang-jax && 
-    cd sglang-jax && 
-    git checkout ${BRANCH_NAME} && 
+RUN git clone ${REPO_URL} sglang-jax && \
+    cd sglang-jax && \
+    git checkout ${BRANCH_NAME} && \
     pip install -e "python[all]"
 
 # Install additional test dependencies if needed
