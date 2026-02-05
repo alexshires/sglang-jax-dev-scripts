@@ -1,9 +1,9 @@
-# ADR-001: Pure Python Softmax in TokenizerManager
+# ADR-001: SciPy Softmax in TokenizerManager
 
 | | |
 |------------|------|
 | **Date** | 2026-01-29 |
-| **Status** | Accepted |
+| **Status** | Implemented |
 | **Deciders** | Engineering Team |
 | **Related** | [RFC-001](../rfcs/001-score-api-comprehensive-tests.md) |
 
@@ -38,45 +38,62 @@ RuntimeError: TPU is already in use by process with pid 12345
 
 ## Decision
 
-Use **pure Python softmax** implementation in `tokenizer_manager.py`:
+Use **SciPy's softmax** implementation in `tokenizer_manager.py`:
 
 ```python
+from scipy.special import softmax
+
 if apply_softmax:
-    # Implement softmax using pure Python to avoid JAX device conflicts
-    # softmax(x) = exp(x - max(x)) / sum(exp(x - max(x)))
-    max_logprob = max(score_list)
-    exp_scores = [math.exp(x - max_logprob) if x != float("-inf") else 0.0
-                  for x in score_list]
-    sum_exp = sum(exp_scores)
-    score_list = [x / sum_exp if sum_exp > 0 else 0.0 for x in exp_scores]
+    score_list = softmax(score_list).tolist()
 ```
 
 **Key aspects:**
 - No JAX dependencies in TokenizerManager
-- Numerically stable (subtracts max before exp)
-- Handles -inf values gracefully
-- Matches PyTorch version's approach
+- Uses well-tested, numerically stable library function
+- SciPy is already a project dependency
+- Concise and readable
 
 ## Consequences
 
 ### Positive
 - **Eliminates device conflicts:** TokenizerManager stays device-agnostic
-- **Numerically stable:** Max subtraction prevents overflow
-- **Consistent with PyTorch:** PyTorch version doesn't use torch.nn in tokenizer_manager either
-- **Simple and debuggable:** Pure Python is easier to trace
+- **Numerically stable:** SciPy handles overflow/underflow correctly
+- **Battle-tested:** Uses established library rather than custom implementation
+- **Concise:** Single function call vs manual implementation
 - **No performance impact:** Softmax over small arrays (typically <10 items)
 
 ### Negative
-- **Not using JAX:** Mixing paradigms (JAX for model, Python for utils)
-- **Code duplication:** Reimplementing standard operation
+- **Not using JAX:** Mixing paradigms (JAX for model, SciPy for utils)
 
 ### Neutral
 - **Performance:** Negligible difference for small arrays (<100 elements)
-- **Maintenance:** Standard softmax formula, unlikely to need changes
+- **Maintenance:** Uses standard library, unlikely to need changes
 
 ## Alternatives Considered
 
-### Alternative 1: NumPy
+### Alternative 1: Pure Python
+**Description:**
+```python
+import math
+max_logprob = max(score_list)
+exp_scores = [math.exp(x - max_logprob) if x != float("-inf") else 0.0
+              for x in score_list]
+sum_exp = sum(exp_scores)
+score_list = [x / sum_exp if sum_exp > 0 else 0.0 for x in exp_scores]
+```
+
+**Pros:**
+- No external dependencies
+- Full control over implementation
+
+**Cons:**
+- Reimplements standard operation
+- More code to maintain
+- Need to handle edge cases manually
+
+**Why rejected:** SciPy provides a well-tested implementation with proper edge case handling. No need to reinvent the wheel.
+
+### Alternative 2: NumPy
 **Description:**
 ```python
 import numpy as np
@@ -90,12 +107,12 @@ score_list = (score_list / score_list.sum()).tolist()
 - No device conflicts
 
 **Cons:**
-- Adds NumPy dependency to tokenizer_manager
-- NumPy might have device detection that conflicts later
+- Still requires manual implementation of softmax formula
+- SciPy provides a dedicated function
 
-**Why rejected:** Adds unnecessary dependency. Pure Python is sufficient for small arrays (typically <10 elements) and keeps TokenizerManager dependency-light. NumPy's vectorization benefits don't apply at this scale.
+**Why rejected:** SciPy's `softmax` is more direct and handles edge cases automatically.
 
-### Alternative 2: JAX with Explicit CPU Device
+### Alternative 3: JAX with Explicit CPU Device
 **Description:**
 ```python
 import jax
@@ -114,7 +131,7 @@ with jax.default_device(jax.devices('cpu')[0]):
 
 **Why rejected:** Empirically failed during testing. JAX initialization happens before device selection.
 
-### Alternative 3: Move Softmax to Scheduler Subprocess
+### Alternative 4: Move Softmax to Scheduler Subprocess
 **Description:**
 Apply softmax inside the Scheduler subprocess where JAX/TPU is available.
 
@@ -132,7 +149,12 @@ Apply softmax inside the Scheduler subprocess where JAX/TPU is available.
 
 ## Implementation Notes
 
-**Location:** `python/sgl_jax/srt/managers/tokenizer_manager.py:~1280`
+**Location:** `python/sgl_jax/srt/managers/tokenizer_manager.py`
+
+**Import added:**
+```python
+from scipy.special import softmax
+```
 
 **Removed imports:**
 ```python
@@ -140,16 +162,6 @@ Apply softmax inside the Scheduler subprocess where JAX/TPU is available.
 import jax
 import jax.numpy as jnp
 ```
-
-**Formula:**
-```
-softmax(x_i) = exp(x_i - max(x)) / sum(exp(x_j - max(x)))
-```
-
-**Edge cases handled:**
-- `-inf` values → 0.0 after softmax
-- Empty list → handled by max() raising ValueError
-- Sum = 0 → returns 0.0 for all elements
 
 ## Validation
 
@@ -167,7 +179,7 @@ Difference:            [0.036%, 0.162%, 0.188%]  # All < 1%
 
 **Runtime impact:**
 - Before fix: Tests failed with device conflict
-- After fix: 3/3 tests passed, 104.9s runtime
+- After fix: All tests pass
 - Softmax execution time: Negligible (<1ms for typical array sizes)
 
 ## References
@@ -176,4 +188,4 @@ Difference:            [0.036%, 0.162%, 0.188%]  # All < 1%
 - PyTorch implementation: `sglang/python/sglang/srt/managers/tokenizer_manager.py`
 - [Investigation: TokenizerManager Architecture](../investigations/tokenizer-manager-architecture.md)
 - Test file: `test/srt/test_score_api.py`
-- JAX device management: https://jax.readthedocs.io/en/latest/faq.html#controlling-data-and-computation-placement-on-devices
+- SciPy softmax: https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.softmax.html

@@ -116,10 +116,10 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 ## ADRs (Architecture Decision Records)
 
-- **[ADR-001: Pure Python Softmax in TokenizerManager](decisions/001-pure-python-softmax.md)**
+- **[ADR-001: SciPy Softmax in TokenizerManager](decisions/001-pure-python-softmax.md)**
   - Date: 2026-01-29
-  - Status: Accepted
-  - Use pure Python softmax instead of JAX to avoid device conflicts
+  - Status: Implemented
+  - Use SciPy softmax instead of JAX to avoid device conflicts
   - TokenizerManager runs in main process, must be device-agnostic
 
 - **[ADR-002: Use gcloud Directly for Unit Tests](decisions/002-no-skypilot-for-unit-tests.md)**
@@ -296,7 +296,7 @@ Runbook: Debugging
 - [Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)
 
 ### Architecture
-- [ADR-001: Pure Python Softmax](decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax](decisions/001-pure-python-softmax.md)
 - [TokenizerManager Architecture](investigations/tokenizer-manager-architecture.md)
 
 ### Comparisons
@@ -447,7 +447,7 @@ See [README.md](README.md) for document workflow and best practices.
 - **2026-01-29 (Morning):** Created repository with initial RFCs, ADRs, investigations, and runbook
   - RFC-001: Score API comprehensive tests (Implemented)
   - RFC-002: CI/CD for TPU testing (Draft)
-  - ADR-001: Pure Python softmax decision (Accepted)
+  - ADR-001: SciPy softmax decision (Implemented)
   - Investigation: TokenizerManager architecture
   - Investigation: PyTorch vs JAX comparison
   - Runbook: Debugging TPU test failures

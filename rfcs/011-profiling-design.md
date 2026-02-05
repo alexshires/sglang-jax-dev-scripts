@@ -34,7 +34,7 @@ Design a comprehensive profiling framework for sglang-jax that enables deep perf
 |-------|--------|------------|
 | **`create_perfetto_link=True` blocks** | ✅ Fixed | Removed from examples, added warning |
 | **Missing `block_until_ready()`** | ✅ Fixed | Added to profiling examples with warning |
-| **Softmax inconsistency (scipy vs pure Python)** | ❌ Code issue | ADR-001 says pure Python, code uses scipy. Needs ADR update or code fix |
+| **Softmax implementation** | ✅ Resolved | ADR-001 updated to document SciPy as the standard implementation |
 | **Memory profile format** | ✅ Documented | Clarified .prof format, not .json.gz |
 | **Step-based vs request-based profiling** | ✅ Documented | Added warnings about dynamic batching |
 | **`trace_merger.py` doesn't exist** | ✅ Documented | Marked as "planned but not implemented" |
@@ -55,9 +55,7 @@ Design a comprehensive profiling framework for sglang-jax that enables deep perf
 
 ### Remaining Code Issues (Outside RFC Scope)
 
-| Issue | Component | Action Required |
-|-------|-----------|-----------------|
-| Softmax: scipy vs pure Python | `tokenizer_manager.py` + ADR-001 | Either update ADR-001 to allow scipy, or change code to pure Python |
+*None - all issues resolved.*
 
 ---
 
@@ -360,7 +358,7 @@ PyTorch SGLang has more mature profiling infrastructure we can learn from:
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  Post-processing (TokenizerManager)                         [PROFILE POINT 6]│
 │  - Logprob extraction                                       CPU time          │
-│  - Softmax application (scipy)                              Pure Python       │
+│  - Softmax application (SciPy)                              CPU (device-agnostic) │
 │  - Response formatting                                                        │
 └──────────────────────────────────────────────────────────────────────────────┘
        │
@@ -2435,6 +2433,270 @@ Look for these kernels in traces to understand TP overhead:
 
 ---
 
+## Artifact Storage Strategy
+
+### Quick Start (Minimal)
+
+For getting started quickly - sufficient for ad-hoc profiling and small teams.
+
+**Local/TPU VM:**
+```bash
+# Traces go to /tmp/profile by default
+curl -X POST 'http://localhost:30000/start_profile' \
+    -d '{"output_dir": "/tmp/profile", "num_steps": 10}'
+
+# IMPORTANT: Copy off before deleting VM!
+gsutil cp -r /tmp/profile gs://YOUR_BUCKET/profiles/$(date +%Y%m%d)-manual/
+```
+
+**CI (GitHub Actions):**
+```yaml
+# Already sufficient - 90-day retention
+- name: Upload profiling artifacts
+  uses: actions/upload-artifact@v4
+  with:
+    name: profile-${{ github.sha }}
+    path: /tmp/profile
+    retention-days: 30
+```
+
+**Sharing with teammates:**
+```bash
+# Traces are typically <100MB - create signed URL for sharing
+gsutil signurl -d 7d /path/to/service-account.json gs://YOUR_BUCKET/profiles/trace.json.gz
+# Or just Slack/email the file directly
+```
+
+**That's it for getting started.** The long-term solution below is for when you need repeatability and historical comparison.
+
+---
+
+### Long-Term Solution (Repeatable)
+
+For production use, CI integration, and historical regression detection.
+
+#### GCS Bucket Structure
+
+```
+gs://YOUR_BUCKET/sglang-profiles/
+│
+├── nightly/                          # Automated CI runs
+│   └── {YYYY-MM-DD}/
+│       └── {commit_short}/
+│           ├── traces/
+│           │   └── *.trace.json.gz
+│           ├── memory/
+│           │   └── *.prof
+│           ├── benchmark_results.json
+│           └── metadata.json
+│
+├── manual/                           # Ad-hoc profiling sessions
+│   └── {YYYY-MM-DD}-{description}/
+│       └── ...
+│
+├── baselines/                        # Reference baselines for comparison
+│   ├── v1.0.0-baseline.json
+│   └── {YYYY-MM-DD}-baseline.json
+│
+└── reports/                          # Generated analysis reports
+    └── {YYYY-MM-DD}/
+        ├── regression_report.html
+        └── comparison_charts.png
+```
+
+#### Naming Convention
+
+| Component | Format | Example |
+|-----------|--------|---------|
+| Date | `YYYY-MM-DD` | `2026-02-05` |
+| Commit | First 7 chars | `abc1234` |
+| Run ID | Timestamp or UUID | `1707123456` |
+| Description | Kebab-case | `fix-attention-perf` |
+
+#### Metadata Schema
+
+Every profiling run should save `metadata.json`:
+
+```json
+{
+  "timestamp": "2026-02-05T14:30:00Z",
+  "commit": "abc1234def5678",
+  "branch": "main",
+  "trigger": "nightly",
+  "config": {
+    "profile": "standard",
+    "model": "meta-llama/Llama-3.2-1B-Instruct",
+    "batch_sizes": [1, 4, 8, 16],
+    "num_runs": 20
+  },
+  "hardware": {
+    "device": "TPU v6e-1",
+    "device_count": 1,
+    "zone": "us-east5-b"
+  },
+  "artifacts": {
+    "traces": ["traces/profile.trace.json.gz"],
+    "memory": ["memory/step_10.prof"],
+    "benchmark": "benchmark_results.json"
+  }
+}
+```
+
+#### Automated Upload (bench_score.py addition)
+
+```python
+def upload_to_gcs(output_dir: str, bucket: str, commit: str, run_type: str = "manual"):
+    """Upload profiling artifacts to GCS with proper structure."""
+    import subprocess
+    from datetime import datetime
+
+    date = datetime.now().strftime("%Y-%m-%d")
+    commit_short = commit[:7] if commit else "unknown"
+
+    if run_type == "nightly":
+        gcs_path = f"gs://{bucket}/sglang-profiles/nightly/{date}/{commit_short}/"
+    else:
+        gcs_path = f"gs://{bucket}/sglang-profiles/manual/{date}-{commit_short}/"
+
+    # Upload all artifacts
+    subprocess.run(["gsutil", "-m", "cp", "-r", output_dir, gcs_path], check=True)
+
+    # Save metadata
+    metadata = {
+        "timestamp": datetime.now().isoformat(),
+        "commit": commit,
+        "gcs_path": gcs_path,
+        # ... add more as needed
+    }
+    with open(f"{output_dir}/metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+    subprocess.run(["gsutil", "cp", f"{output_dir}/metadata.json", gcs_path], check=True)
+
+    print(f"Artifacts uploaded to: {gcs_path}")
+    return gcs_path
+
+
+# In main():
+if args.upload:
+    upload_to_gcs(
+        args.output_dir,
+        bucket=os.environ.get("SGLANG_PROFILE_BUCKET", "your-bucket"),
+        commit=os.environ.get("GITHUB_SHA", subprocess.getoutput("git rev-parse HEAD")),
+        run_type="nightly" if os.environ.get("CI") else "manual",
+    )
+```
+
+#### CI Workflow Integration
+
+```yaml
+# .github/workflows/nightly-profiling.yaml
+name: Nightly Profiling
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:
+
+env:
+  BUCKET: your-project-sglang-profiles
+  COMMIT: ${{ github.sha }}
+
+jobs:
+  profile:
+    runs-on: [self-hosted, tpu-v6e]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run profiling benchmark
+        run: |
+          python test/srt/bench_score.py \
+            --profile standard \
+            --enable-trace \
+            --output-dir /tmp/profile \
+            --output-json /tmp/profile/benchmark_results.json
+
+      - name: Upload to GCS (persistent)
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          COMMIT_SHORT=${COMMIT:0:7}
+          GCS_PATH="gs://$BUCKET/sglang-profiles/nightly/$DATE/$COMMIT_SHORT/"
+
+          gsutil -m cp -r /tmp/profile/* $GCS_PATH
+
+          echo "Uploaded to: $GCS_PATH"
+          echo "gcs_path=$GCS_PATH" >> $GITHUB_OUTPUT
+
+      - name: Upload to GitHub (backup, 30-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: profile-${{ github.sha }}
+          path: /tmp/profile
+          retention-days: 30
+
+      - name: Compare to baseline (optional)
+        run: |
+          # Download latest baseline
+          gsutil cp gs://$BUCKET/sglang-profiles/baselines/latest.json /tmp/baseline.json
+
+          # Compare (implement comparison logic)
+          python scripts/compare_benchmarks.py \
+            --current /tmp/profile/benchmark_results.json \
+            --baseline /tmp/baseline.json \
+            --threshold 10
+```
+
+#### Retention Policy
+
+| Tier | Location | Retention | Use Case |
+|------|----------|-----------|----------|
+| **Hot** | `nightly/` | 7 days | Recent debugging |
+| **Warm** | `nightly/` (older) | 30 days | Weekly comparison |
+| **Cold** | Archive bucket | 1 year | Release validation |
+| **Baselines** | `baselines/` | Forever | Regression reference |
+
+**GCS Lifecycle Rule (apply via `gsutil` or Console):**
+
+```json
+{
+  "rule": [
+    {
+      "action": {"type": "Delete"},
+      "condition": {
+        "age": 30,
+        "matchesPrefix": ["sglang-profiles/nightly/"]
+      }
+    },
+    {
+      "action": {"type": "SetStorageClass", "storageClass": "COLDLINE"},
+      "condition": {
+        "age": 7,
+        "matchesPrefix": ["sglang-profiles/nightly/"]
+      }
+    }
+  ]
+}
+```
+
+#### Retrieving Past Runs
+
+```bash
+# List recent runs
+gsutil ls gs://YOUR_BUCKET/sglang-profiles/nightly/
+
+# Download specific run
+gsutil -m cp -r gs://YOUR_BUCKET/sglang-profiles/nightly/2026-02-05/abc1234/ ./local_profile/
+
+# Find runs for a commit
+gsutil ls "gs://YOUR_BUCKET/sglang-profiles/**/abc1234/**"
+
+# Compare two runs
+python scripts/compare_benchmarks.py \
+  --run1 gs://YOUR_BUCKET/sglang-profiles/nightly/2026-02-04/def5678/benchmark_results.json \
+  --run2 gs://YOUR_BUCKET/sglang-profiles/nightly/2026-02-05/abc1234/benchmark_results.json
+```
+
+---
+
 ## Advanced Options
 
 ### Dummy Weights for Rapid Prototyping
@@ -2675,7 +2937,7 @@ See [Implementation Plan](#implementation-plan) for planned named_scope instrume
 - [How to Scale Your Model - Profiling](https://jax-ml.github.io/scaling-book/profiling/)
 - [RFC-004: Performance Benchmarks](004-score-api-performance-benchmarks.md)
 - [RFC-010: Cross-Backend Benchmarking](010-cross-backend-benchmarking.md)
-- [ADR-001: Pure Python Softmax](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax](../decisions/001-pure-python-softmax.md)
 - [sglang-jax Benchmark Docs](../../sglang-jax/docs/developer_guide/benchmark_and_profiling.md)
 
 ---
@@ -2819,7 +3081,7 @@ export JAX_COMPILATION_CACHE_DIR=/tmp/jax_cache
 - [RFC-010: Cross-Backend Benchmarking](010-cross-backend-benchmarking.md)
 
 ### Architecture Decisions
-- [ADR-001: Pure Python Softmax](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax](../decisions/001-pure-python-softmax.md)
 
 ### External Documentation
 - [JAX Profiling Guide](https://jax.readthedocs.io/en/latest/profiling.html)

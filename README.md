@@ -73,7 +73,7 @@ Update RFC status as you progress:
 ### ADRs (Architecture Decision Records)
 **What:** Record of a specific decision and its rationale
 **When:** After making an important architectural choice
-**Example:** "ADR-001: Use Pure Python Softmax in tokenizer_manager"
+**Example:** "ADR-001: Use SciPy Softmax in tokenizer_manager"
 
 ### Investigations
 **What:** Deep analysis, comparisons, or research
@@ -117,7 +117,7 @@ The main sglang-jax repository references these docs:
 See existing documents for examples:
 - **[RFC-001](rfcs/001-score-api-comprehensive-tests.md):** Score API comprehensive tests
 - **[RFC-002](rfcs/002-cicd-tpu-testing.md):** CI/CD for TPU testing
-- **[ADR-001](decisions/001-pure-python-softmax.md):** Pure Python softmax decision
+- **[ADR-001](decisions/001-pure-python-softmax.md):** SciPy softmax decision
 
 ---
 

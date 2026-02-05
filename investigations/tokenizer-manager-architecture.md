@@ -139,7 +139,7 @@ Both versions:
 ### 1. Respect Process Boundaries
 
 **Problem:** Tried to use JAX in main process
-**Solution:** Use pure Python for device-agnostic operations
+**Solution:** Use SciPy for device-agnostic operations
 
 ### 2. Framework Initialization is Global
 
@@ -160,7 +160,7 @@ Both versions:
 # Test runs in main process
 # Launches server (which starts Scheduler subprocess)
 # Makes requests to TokenizerManager
-# TokenizerManager uses pure Python utils
+# TokenizerManager uses SciPy utils
 ```
 
 **Incorrect:**
@@ -197,4 +197,4 @@ def tearDownClass(cls):
 1. **Document architecture clearly** in main repo README
 2. **Add architecture diagram** to docs
 3. **Lint rule:** Prevent JAX imports in tokenizer_manager.py
-4. **Code comments:** Explain why pure Python is used
+4. **Code comments:** Explain why SciPy is used

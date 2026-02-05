@@ -169,7 +169,7 @@ class TestOpenAIV1Score(CustomTestCase):
 if apply_softmax:
     score_list = jax.nn.softmax(jnp.asarray(score_list), axis=0).tolist()
 
-# AFTER: Pure Python softmax (device-agnostic)
+# AFTER: SciPy softmax (device-agnostic)
 if apply_softmax:
     max_logprob = max(score_list)
     exp_scores = [math.exp(x - max_logprob) if x != float("-inf") else 0.0
@@ -290,7 +290,7 @@ See RFC-002 for automated testing infrastructure.
 - Comprehensive docstrings explaining purpose, validation, and failure modes
 
 **Bugs Found:**
-1. JAX device conflict → Pure Python softmax
+1. JAX device conflict → SciPy softmax
 2. Performance regression → max_new_tokens 1→0
 3. Missing error handling → Added validation
 
@@ -306,5 +306,5 @@ See RFC-002 for automated testing infrastructure.
 - PyTorch HTTP tests: `sglang/test/registered/openai_server/basic/test_openai_server.py`
 - [Investigation: TokenizerManager Architecture](../investigations/tokenizer-manager-architecture.md)
 - [Investigation: Score API PyTorch vs JAX](../investigations/score-api-pytorch-vs-jax.md)
-- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax Decision](../decisions/001-pure-python-softmax.md)
 - [RFC-002: CI/CD for TPU Testing](002-cicd-tpu-testing.md)

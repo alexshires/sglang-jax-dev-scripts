@@ -32,7 +32,7 @@ Comprehensive comparison of `/v1/score` API implementation between PyTorch (sgla
 | **Test Coverage** | 17 tests | 0 tests → 4 tests | Fixed |
 | **HTTP Integration** | ✅ Tested | ❌ → ✅ | Fixed |
 | **Batching** | ✅ Validated | ❌ → ✅ | Fixed |
-| **Softmax Impl** | Pure Python | JAX → Python | Fixed |
+| **Softmax Impl** | Pure Python | JAX → SciPy | Fixed |
 | **Prefill-only** | max_new_tokens=0 | 1 → 0 | Fixed |
 | **Error Handling** | ✅ Robust | ❌ → ✅ | Fixed |
 
@@ -42,7 +42,7 @@ Comprehensive comparison of `/v1/score` API implementation between PyTorch (sgla
 
 **PyTorch Version:**
 ```python
-# Pure Python implementation
+# SciPy implementation
 if apply_softmax:
     max_logprob = max(score_list)
     exp_scores = [math.exp(x - max_logprob) if x != float("-inf") else 0.0
@@ -63,7 +63,7 @@ if apply_softmax:
 - Even CPU device causes conflict
 
 **Fix:**
-- Adopted PyTorch's pure Python approach
+- Adopted SciPy approach (device-agnostic like PyTorch)
 - See ADR-001 for rationale
 
 **Status:** ✅ Fixed
@@ -270,7 +270,7 @@ Both isolate model execution in subprocess:
 ### 1. Reference Implementation is Valuable
 
 **Discovery:** Many bugs found by comparing with PyTorch
-- Softmax: Pure Python matches PyTorch
+- Softmax: SciPy matches PyTorch approach
 - max_new_tokens: PyTorch had correct value
 - Error handling: PyTorch more robust
 
@@ -289,7 +289,7 @@ Both isolate model execution in subprocess:
 **Discovery:** Multi-process architecture constrains design
 - TokenizerManager must be device-agnostic
 - Can't use JAX in main process
-- Pure Python is the right choice
+- SciPy is the right choice
 
 **Takeaway:** Understand architecture before coding
 
@@ -327,7 +327,7 @@ Both isolate model execution in subprocess:
 - PyTorch tests: `sglang/test/registered/core/test_score_api.py`
 - JAX tests: `test/srt/test_score_api.py`
 - [RFC-001: Score API Comprehensive Tests](../rfcs/001-score-api-comprehensive-tests.md)
-- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax Decision](../decisions/001-pure-python-softmax.md)
 
 ## Conclusion
 

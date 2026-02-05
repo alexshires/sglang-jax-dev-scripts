@@ -1139,10 +1139,10 @@ def compute_multi_item_positions(
 Per ADR-001, softmax must remain in TokenizerManager and be device-agnostic (not JAX):
 
 ```python
-# CORRECT: Device-agnostic in TokenizerManager
+# CORRECT: Device-agnostic in TokenizerManager (using SciPy)
 def _convert_logprobs_to_scores(self, ...):
-    import math  # Pure Python
-    exp_scores = [math.exp(x) for x in logprobs]
+    from scipy.special import softmax  # SciPy is device-agnostic
+    scores = softmax(logprobs)
     ...
 
 # WRONG: JAX in TokenizerManager (would cause device conflicts)
@@ -1153,9 +1153,9 @@ def _convert_logprobs_to_scores(self, ...):
 
 > **Current JAX Implementation Note:**
 >
-> The JAX TokenizerManager currently uses `scipy.special.softmax` (see `tokenizer_manager.py:1294-1301`), not pure Python `math`. SciPy is device-agnostic (CPU-only, NumPy-based), so it satisfies ADR-001's intent of avoiding JAX device conflicts.
+> The JAX TokenizerManager uses `scipy.special.softmax` (see `tokenizer_manager.py`). SciPy is device-agnostic (CPU-only, NumPy-based), satisfying ADR-001's requirement of avoiding JAX device conflicts.
 >
-> **Decision:** Accept SciPy as compliant with ADR-001 (it's device-agnostic). For multi-item scoring, either SciPy or pure Python works as long as no JAX ops are used in TokenizerManager.
+> **Decision:** SciPy is the standard implementation per ADR-001. For multi-item scoring, continue using SciPy - no JAX ops should be used in TokenizerManager.
 
 > **Underflow Warning for `apply_softmax=False`:**
 >
@@ -1295,7 +1295,7 @@ def validate_multi_item_request(
 
 - [ ] Implement `_convert_logprobs_to_scores()` with PyTorch-matching semantics
 - [ ] Handle `apply_softmax=True/False` correctly
-- [ ] Ensure pure Python (no JAX) in TokenizerManager
+- [ ] Ensure SciPy/pure Python (no JAX) in TokenizerManager
 
 ### Phase 5: Testing
 
@@ -1647,7 +1647,7 @@ if len(items) > threshold and delimiter_configured:
 ## References
 
 - [RFC-000: Score API Design and Architecture](000-score-api-design.md)
-- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax Decision](../decisions/001-pure-python-softmax.md)
 - **PyTorch PR #10979:** [sgl-project/sglang#10979](https://github.com/sgl-project/sglang/pull/10979)
 - PyTorch implementation files:
   - `sglang/python/sglang/srt/layers/attention/flashinfer_backend.py`
@@ -1665,6 +1665,6 @@ if len(items) > threshold and delimiter_configured:
 | 2026-02-01 | Initial draft |
 | 2026-02-05 | Major update based on PR #10979 analysis: added attention mask section, runtime constraints, corrected logprob dataflow, resolved apply_softmax semantics, added JAX considerations, expanded testing |
 | 2026-02-05 | Second review pass: added FlashInfer backend requirement, corrected logprob_start_len explanation, added extend_logprob_pruned_lens_cpu metadata adjustment, documented all logprob array shape changes, strengthened speculative decoding warning, added delimiter collision as hard requirement, added empty query edge case, scoped sliding window to FlashInfer |
-| 2026-02-05 | Third review pass: added `skip_special_tokens=False` to delimiter decode, clarified delimiter validation must be token-ID based, acknowledged JAX scipy.softmax vs pure Python, added GLOBAL_SERVER_ARGS_KEYS propagation requirement, documented specific JAX changes for `next_token_logits=None`, marked JAX-only validations as divergence from PyTorch |
+| 2026-02-05 | Third review pass: added `skip_special_tokens=False` to delimiter decode, clarified delimiter validation must be token-ID based, confirmed SciPy softmax as ADR-001 standard, added GLOBAL_SERVER_ARGS_KEYS propagation requirement, documented specific JAX changes for `next_token_logits=None`, marked JAX-only validations as divergence from PyTorch |
 | 2026-02-05 | Fourth review pass (JAX/XLA specialist feedback): rewrote JAX section as "JAX/XLA Compilation Constraints" with mandatory static shape handling, added bucket-based compilation strategy, made concrete decision on Block Diagonal attention masking (Segment-based MVP, Pallas production), added JAX-compatible LogitsProcessor implementation, made delimiter validation mandatory 400 error, added underflow warning for apply_softmax=False, schema-level empty query validation |
 | 2026-02-05 | Fifth review pass (final fixes): fixed off-by-one delimiter count (max_delimiters = max_items + 1), added delimiter visibility rules for attention parity, fixed position manipulation -1 index bug, made delimiter retokenization a hard error, defined empty item behavior (400 error), fixed test item count (100 not 1000), moved max items limit to resolved (128), updated compatibility section for behavioral/shape changes, marked segment mask example as conceptual only, changed tests to use tolerances (assert_allclose), added warning when item_first=True ignored |

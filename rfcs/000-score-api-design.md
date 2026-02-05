@@ -306,7 +306,7 @@ scores = [
 │     - return_logprob=True                                       │
 │  4. Send to Scheduler via IPC                                   │
 │  5. Receive logprobs from Scheduler                             │
-│  6. Apply softmax if requested (pure Python)                    │
+│  6. Apply softmax if requested (SciPy)                          │
 │  7. Return scores                                               │
 └─────────────────────────────────────────────────────────────────┘
                                 │
@@ -332,7 +332,7 @@ The TokenizerManager runs in the main process and must be **device-agnostic**:
 2. **No device conflicts:** Main process can't use JAX operations (see [ADR-001](../decisions/001-pure-python-softmax.md))
 3. **Clean separation:** Tokenization/formatting separate from inference
 
-This is why softmax is implemented in pure Python, not JAX.
+This is why softmax is implemented using SciPy, not JAX.
 
 ## API Parameters
 
@@ -421,16 +421,16 @@ scores = [
 
 **Trade-off:** Requires special handling in scheduler to not fail on zero tokens.
 
-### Decision 2: Pure Python Softmax
+### Decision 2: SciPy Softmax
 
-**Choice:** Implement softmax in Python, not JAX.
+**Choice:** Implement softmax using SciPy, not JAX.
 
 **Rationale:**
 - TokenizerManager runs in main process
 - Main process cannot access TPU/GPU (subprocess has exclusive access)
 - JAX operations in main process cause device conflicts
 
-**Trade-off:** Slightly slower than JAX softmax, but negligible for small label sets.
+**Trade-off:** Uses CPU via SciPy, but negligible for small label sets.
 
 **See:** [ADR-001](../decisions/001-pure-python-softmax.md) for detailed analysis.
 
@@ -461,7 +461,7 @@ scores = [
 | Aspect | PyTorch | JAX |
 |--------|---------|-----|
 | Implementation location | `tokenizer_manager.py` | `tokenizer_manager.py` |
-| Softmax implementation | JAX (in process) | Pure Python (device-agnostic) |
+| Softmax implementation | Pure Python | SciPy (device-agnostic) |
 | Test coverage | 17 tests | 4+ tests (expanding) |
 | HTTP endpoint | `/v1/score` | `/v1/score` |
 | Request format | Identical | Identical |
@@ -518,7 +518,7 @@ Request 4 (seq_len=75):  ~12ms         (cached)
 TPU natively uses bfloat16 (bf16), which has less precision than float32:
 
 - **Model inference:** bf16 (TPU-optimized)
-- **Softmax computation:** float32 via pure Python (see [ADR-001](../decisions/001-pure-python-softmax.md))
+- **Softmax computation:** float32 via SciPy (see [ADR-001](../decisions/001-pure-python-softmax.md))
 - **Expected variance:** Scores may differ by ~0.01 vs float32 reference
 
 For most scoring tasks, bf16 precision is sufficient. If exact reproducibility with CPU/GPU float32 is required, this is a known limitation.
@@ -690,7 +690,7 @@ See [RFC-006](006-error-handling-api-contract.md) for complete error handling sp
 
 ## References
 
-- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax Decision](../decisions/001-pure-python-softmax.md)
 - [RFC-001: Comprehensive Testing for Score API](001-score-api-comprehensive-tests.md)
 - [RFC-003: Comprehensive Score API Test Suite](003-score-api-comprehensive-test-suite.md)
 - [RFC-005: OpenAI Client Compatibility](005-openai-client-compatibility.md)
