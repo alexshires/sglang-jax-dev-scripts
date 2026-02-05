@@ -1,5 +1,5 @@
 runnerScaleSetName: "arc-runner-cpu"
-maxRunners: 3
+maxRunners: 20
 template:
   spec:
     serviceAccountName: sglang-gh-runner

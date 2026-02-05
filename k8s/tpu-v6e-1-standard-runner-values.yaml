@@ -1,5 +1,5 @@
 runnerScaleSetName: "arc-runner-v6e-1-standard"
-maxRunners: 3
+maxRunners: 20
 template:
   metadata:
     annotations:
