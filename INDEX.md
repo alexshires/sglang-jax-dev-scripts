@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-04
+**Last Updated:** 2026-02-05
 
 ---
 
@@ -101,6 +101,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Memory profiling, kernel analysis, CI integration
   - Step-by-step guides for all profiling scenarios
   - Tools: JAX profiler, XProf, TensorBoard, Perfetto
+
+- **[RFC-012: CI/CD Pipeline Optimization](rfcs/012-ci-optimization.md)**
+  - Status: Draft
+  - Reduce CI execution time for utility/docs PRs
+  - Path-based filtering, draft PR workflow, dependency caching
+  - Infrastructure optimizations: model pre-caching, warm runner pools
+  - 4-tier implementation plan with cost analysis
 
 ### Templates
 
@@ -239,13 +246,15 @@ Runbook: Running Performance Benchmarks
 ```
 RFC-002 (Fork CI/CD Strategy)
     ↓
+RFC-012 (CI Optimization)  ← NEW: Speed up PR validation
+    ↓
 RFC-009 (ARC Runner Setup)  ← Self-hosted TPU runners
     ↓
 RFC-004 (Performance Benchmarks)
     ↓
 RFC-010 (Cross-Backend Benchmarking)  ← PyTorch GPU vs JAX TPU
     ↓
-RFC-011 (Profiling Framework)  ← NEW: Comprehensive profiling
+RFC-011 (Profiling Framework)  ← Comprehensive profiling
     ↓
 Investigation: v1 Infrastructure Assessment  ← Gap analysis
     ↓
@@ -329,6 +338,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-05:** RFC-012: CI/CD Pipeline Optimization
+  - Reduce CI execution time for utility/docs PRs (14 TPU jobs → lint only)
+  - 4-tier implementation: draft PR workflow, run-ci label, path filtering, infra
+  - Immediate actions require no workflow changes (draft PR, labels)
+  - Infrastructure optimizations: dependency caching, model pre-caching, warm runners
+  - Path-based filters to skip TPU tests for test utilities and documentation
 
 - **2026-02-05:** RFC-011: Comprehensive Profiling Framework for sglang-jax
   - End-to-end profiling framework for JAX/TPU workloads with Score API focus
