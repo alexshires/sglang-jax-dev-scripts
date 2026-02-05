@@ -159,6 +159,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - CI/CD specific debugging
   - Useful commands and diagnostics
 
+- **[Profiling Infrastructure Setup](runbooks/profiling-infrastructure-setup.md)** ← **NEW**
+  - 4 infrastructure options: TPU VM, GKE+TPU, GKE+GPU, Local CPU
+  - Step-by-step setup for each option
+  - Cost comparison and trade-offs
+  - Trace viewing with Perfetto and TensorBoard
+
 - **[Running Score API Tests](runbooks/running-score-api-tests.md)**
   - How to run tests in CI (automatic)
   - How to run tests on TPU (gcloud-based script)
@@ -298,6 +304,7 @@ Runbook: Debugging
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 
 ### Operations
+- [Profiling Infrastructure Setup](runbooks/profiling-infrastructure-setup.md) ← **NEW**
 - [Debugging TPU Tests](runbooks/debugging-tpu-test-failures.md)
 - [RFC-002: Fork CI/CD Strategy](rfcs/002-cicd-tpu-testing.md)
 - [Running Score API Tests](runbooks/running-score-api-tests.md)
