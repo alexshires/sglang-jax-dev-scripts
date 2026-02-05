@@ -114,8 +114,11 @@ class SchedulerProfilerMixin:
 **Capabilities:**
 - JAX `start_trace`/`stop_trace` integration
 - Configurable tracer levels (host, Python)
-- Output directory control via `profile_id`
+- Output directory control via `output_dir` parameter
 - Forward step counting (`forward_ct`) for targeted profiling
+
+> **Note:** The `profile_id` parameter is stored and logged but **NOT currently used** for file naming.
+> Traces are saved with JAX's default naming: `{output_dir}/plugins/profile/{timestamp}/*.trace.json.gz`
 
 > **⚠️ Important:** JAX profiling is **step-based**, not per-request. The `num_steps` parameter
 > refers to forward passes (batches), not individual HTTP requests. Multiple score requests
@@ -157,12 +160,12 @@ def profile_attention(stage, layer_id):
 ```bash
 export ENABLE_MEMORY_PROFILING=1
 export SGL_MEMORY_OUTPUT_DIR=/tmp/memory_profiles
-export MEMORY_PROFILING_LAYERS=4  # Profile every 4th layer
+export MEMORY_PROFILING_LAYERS=4  # Profile every 4th layer (or "all", or "0,1,2,3")
 
-# Additional toggles (undocumented):
-export SGL_MEMORY_DISABLE_REPORT=1     # Disable text reports
-export SGL_MEMORY_DISABLE_PROF=1       # Disable .prof files
-export SGL_MEMORY_CONSOLE_LOG=1        # Enable console logging
+# Disable specific outputs:
+export DISABLE_MEMORY_REPORTS=1       # Disable .txt/.json reports
+export DISABLE_PROF_GENERATION=1      # Disable .prof files (jax memory snapshots)
+export DISABLE_MEMORY_CONSOLE_LOG=1   # Disable console logging
 ```
 
 #### 4. Kernel Performance Utilities (`python/sgl_jax/srt/kernels/utils/perf.py`)
@@ -462,43 +465,51 @@ jax.profiler.start_trace("/tmp/trace", profiler_options=options)
 
 ## Proposed Enhancements
 
-### Enhancement 1: Score API Profiling Module
+### Enhancement 1: Score API Profiling Data Structures
 
-Create a dedicated profiling module for Score API workloads.
+> **⚠️ Architecture Note:** Due to the two-process architecture (see [Enhancement 3](#enhancement-3-two-process-profiling-architecture)),
+> Score API profiling requires **two separate mechanisms**:
+> 1. **Main process (TokenizerManager):** Use `time.perf_counter()` or OpenTelemetry (CPU timing)
+> 2. **Scheduler subprocess:** Use `/start_profile` HTTP API (JAX/TPU traces)
+>
+> There is NO single profiler class that captures both. The data structures below are for
+> **aggregating results** from both sources, not for direct profiling.
 
-**File:** `sglang-jax/python/sgl_jax/srt/score_profiler.py`
+**File:** `sglang-jax/python/sgl_jax/srt/score_profile_result.py` (PLANNED)
 
 ```python
-"""Score API Profiling Module
+"""Score API Profiling Result Data Structures
 
-Provides comprehensive profiling for /v1/score requests including:
-- End-to-end latency breakdown
-- Layer-by-layer performance
-- Memory usage per request
-- Kernel-level timing
+These data classes aggregate profiling results from multiple sources:
+- Main process timing (time.perf_counter)
+- Scheduler traces (jax.profiler via /start_profile API)
+- Memory snapshots (jax.profiler.save_device_memory_profile)
+
+NOTE: This module does NOT perform profiling directly. It only stores results.
 """
 
-import jax
-import jax.profiler
-import time
-from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, List
-import json
+from typing import Optional, List
 
 
 @dataclass
 class ScoreProfileResult:
-    """Profiling result for a Score API request."""
+    """Aggregated profiling result for a Score API request.
+
+    Timing sources:
+    - tokenization_ms, softmax_ms, logprob_extraction_ms: Main process (CPU)
+    - model_forward_ms, device_to_host_ms: Scheduler process (from traces)
+    - queue_wait_ms: IPC overhead (main process timing)
+    """
 
     # Timing breakdown (milliseconds)
     total_latency_ms: float
-    tokenization_ms: float           # CPU (main process)
-    queue_wait_ms: float             # IPC overhead
-    model_forward_ms: float          # TPU (scheduler process)
-    device_to_host_ms: float         # Logits transfer from HBM to Host RAM
-    logprob_extraction_ms: float     # CPU (main process)
-    softmax_ms: float                # CPU (scipy, main process)
+    tokenization_ms: float           # CPU (main process) - measured with time.perf_counter
+    queue_wait_ms: float             # IPC overhead - measured with time.perf_counter
+    model_forward_ms: float          # TPU (scheduler process) - extracted from JAX trace
+    device_to_host_ms: float         # Logits transfer - extracted from JAX trace
+    logprob_extraction_ms: float     # CPU (main process) - measured with time.perf_counter
+    softmax_ms: float                # CPU (scipy, main process) - measured with time.perf_counter
 
     # Batch info
     batch_size: int
@@ -506,95 +517,81 @@ class ScoreProfileResult:
     num_label_tokens: int
     sequence_lengths: List[int]
 
-    # Memory info (optional)
+    # Memory info (optional, from jax.profiler.save_device_memory_profile)
     peak_hbm_mb: Optional[float] = None
     activation_memory_mb: Optional[float] = None
 
     # Additional metadata
     model_name: Optional[str] = None
     hardware: Optional[str] = None
+    trace_path: Optional[str] = None  # Path to JAX trace file
 
 
-# NOTE: This profiler would run in the SCHEDULER process, not the main process.
-# For main process (TokenizerManager) timing, use simple time.perf_counter() or OpenTelemetry.
-class ScoreProfiler:
-    """Profiler for Score API requests."""
+def parse_timing_from_trace(trace_path: str) -> dict:
+    """Extract timing metrics from a JAX trace file.
 
-    def __init__(
-        self,
-        output_dir: str = "/tmp/score_profiles",
-        enable_trace: bool = True,
-        enable_memory: bool = True,
-        enable_layer_breakdown: bool = False,
-    ):
-        self.output_dir = output_dir
-        self.enable_trace = enable_trace
-        self.enable_memory = enable_memory
-        self.enable_layer_breakdown = enable_layer_breakdown
-        self._timings: Dict[str, float] = {}
+    Returns dict with keys like 'model_forward_ms', 'device_to_host_ms'.
 
-    @contextmanager
-    def profile_request(self, request_id: str, batch_size: int, num_items: int):
-        """Context manager for profiling a score request."""
-        self._timings = {}
-        start_time = time.perf_counter()
+    NOTE: This parses the trace AFTER profiling is complete.
+    It does NOT perform live profiling.
+    """
+    import gzip
+    import json
+    from pathlib import Path
 
-        trace_path = f"{self.output_dir}/{request_id}"
+    # Find trace file
+    trace_files = list(Path(trace_path).glob("**/*.trace.json.gz"))
+    if not trace_files:
+        return {}
 
-        if self.enable_trace:
-            jax.profiler.start_trace(trace_path, create_perfetto_link=False)
+    with gzip.open(trace_files[0], "rb") as f:
+        trace = json.load(f)
 
-        try:
-            with jax.profiler.TraceAnnotation(
-                "score_request",
-                batch_size=batch_size,
-                num_items=num_items
-            ):
-                yield self
-        finally:
-            if self.enable_trace:
-                jax.profiler.stop_trace()
+    timings = {}
+    for event in trace.get("traceEvents", []):
+        name = event.get("name", "")
+        dur_us = event.get("dur", 0)
 
-            total_time = (time.perf_counter() - start_time) * 1000
-            self._timings["total"] = total_time
+        # Look for annotated events
+        if name == "model_forward":
+            timings["model_forward_ms"] = dur_us / 1000
+        elif name == "device_to_host":
+            timings["device_to_host_ms"] = dur_us / 1000
 
-    @contextmanager
-    def time_stage(self, stage_name: str):
-        """Time a specific stage of processing."""
-        start = time.perf_counter()
-        with jax.named_scope(stage_name):
-            yield
-        self._timings[stage_name] = (time.perf_counter() - start) * 1000
-
-    def get_result(self, **kwargs) -> ScoreProfileResult:
-        """Get the profiling result."""
-        return ScoreProfileResult(
-            total_latency_ms=self._timings.get("total", 0),
-            tokenization_ms=self._timings.get("tokenization", 0),
-            queue_wait_ms=self._timings.get("queue_wait", 0),
-            model_forward_ms=self._timings.get("model_forward", 0),
-            logprob_extraction_ms=self._timings.get("logprob_extraction", 0),
-            softmax_ms=self._timings.get("softmax", 0),
-            **kwargs
-        )
-
-
-# Singleton instance for easy access
-_score_profiler: Optional[ScoreProfiler] = None
-
-def get_score_profiler() -> ScoreProfiler:
-    """Get or create the global score profiler."""
-    global _score_profiler
-    if _score_profiler is None:
-        _score_profiler = ScoreProfiler()
-    return _score_profiler
+    return timings
 ```
 
-### Enhancement 2: Score API Benchmark with Profiling
+**How to use these structures:**
+
+```python
+# In analysis script (NOT in hot path)
+from sgl_jax.srt.score_profile_result import ScoreProfileResult, parse_timing_from_trace
+
+# 1. Main process timings were logged to file during benchmark
+main_process_timings = load_timing_logs("/tmp/benchmark_timings.json")
+
+# 2. Scheduler timings extracted from trace
+scheduler_timings = parse_timing_from_trace("/tmp/profile/")
+
+# 3. Aggregate into result
+result = ScoreProfileResult(
+    total_latency_ms=main_process_timings["total"],
+    tokenization_ms=main_process_timings["tokenization"],
+    softmax_ms=main_process_timings["softmax"],
+    model_forward_ms=scheduler_timings.get("model_forward_ms", 0),
+    device_to_host_ms=scheduler_timings.get("device_to_host_ms", 0),
+    # ... etc
+)
+```
+
+### Enhancement 2: Score API Benchmark with Profiling (PLANNED)
 
 Create a dedicated benchmark script that combines benchmarking with profiling.
 
-**File:** `sglang-jax/test/srt/bench_score.py`
+> **⚠️ PLANNED:** This file does NOT exist yet. It is proposed for implementation.
+> See [Implementation Plan](#implementation-plan) for timeline.
+
+**File:** `sglang-jax/test/srt/bench_score.py` (PLANNED)
 
 ```python
 #!/usr/bin/env python3
@@ -995,8 +992,11 @@ open https://ui.perfetto.dev  # Upload /tmp/score_profile/*.trace.json.gz
 
 **Goal:** Understand scaling behavior with batch size
 
+> **Note:** The `bench_score.py` script below is PLANNED but not yet implemented.
+> See [Enhancement 2](#enhancement-2-score-api-benchmark-with-profiling-planned).
+
 ```bash
-# Run benchmark with increasing batch sizes
+# Run benchmark with increasing batch sizes (PLANNED)
 python test/srt/bench_score.py \
     --profile standard \
     --enable-trace \
@@ -1162,9 +1162,11 @@ curl -X POST 'http://localhost:30000/stop_profile'
 ls -la /tmp/score_profile/plugins/profile/*/
 
 # Files you'll see:
-# - *.trace.json.gz  (main trace file)
-# - *.memory_profile.json.gz (memory profile if enabled)
-# - metadata.json (run metadata)
+# - *.trace.json.gz  (main trace file - timing/kernel data)
+#
+# NOTE: Memory profiles (*.prof) are NOT generated by /start_profile.
+# They require explicit ENABLE_MEMORY_PROFILING=1 env var and the memory
+# profiler integration points in the model forward path.
 ```
 
 #### Step 5: Analyze Traces
@@ -1385,13 +1387,16 @@ print(f"Std: {(sum((d - sum(durations)/len(durations))**2 for d in durations)/le
 
 ### Guide 4: Comparative Profiling (Before/After)
 
+> **Note:** This guide uses the PLANNED `bench_score.py` script.
+> See [Enhancement 2](#enhancement-2-score-api-benchmark-with-profiling-planned) for implementation status.
+
 #### Step 1: Establish Baseline
 
 ```bash
 # Checkout baseline commit
 git checkout main
 
-# Run benchmark
+# Run benchmark (PLANNED - bench_score.py not yet implemented)
 python test/srt/bench_score.py \
     --profile standard \
     --enable-trace \
@@ -1408,7 +1413,7 @@ cp /tmp/baseline_results.json baselines/score-api-baseline.json
 # Checkout feature branch
 git checkout feature/score-optimization
 
-# Run benchmark
+# Run benchmark (PLANNED)
 python test/srt/bench_score.py \
     --profile standard \
     --enable-trace \
@@ -1641,9 +1646,30 @@ Score requests are submitted as `GenerateReqInput` with `max_new_tokens=0`. In t
 
 ### Proposed Solution
 
-Add a `request_type` or `is_score` flag that propagates through the system:
+Add a `request_type` flag that propagates through the entire request pipeline:
 
-**1. Extend `GenerateReqInput` in `io_struct.py`:**
+```
+TokenizerManager.score_request()
+       │
+       ▼ Sets request_type="score"
+GenerateReqInput(request_type="score")
+       │
+       ▼ IPC to scheduler
+Scheduler receives GenerateReqInput
+       │
+       ▼ Creates batch
+ScheduleBatch (needs new field: request_type)
+       │
+       ▼ Forward pass
+TraceAnnotation("run_batch", request_type=batch.request_type)
+       │
+       ▼ Output
+Trace file contains request_type in event args
+```
+
+### Implementation Steps
+
+**Step 1: Extend `GenerateReqInput` in `io_struct.py`:**
 
 ```python
 @dataclass
@@ -1652,9 +1678,10 @@ class GenerateReqInput:
     request_type: Optional[str] = None  # "score", "generate", "embed", etc.
 ```
 
-**2. Set flag in `TokenizerManager.score_request()`:**
+**Step 2: Set flag in `TokenizerManager.score_request()`:**
 
 ```python
+# In tokenizer_manager.py, score_request() method
 batch_request = GenerateReqInput(
     text=prompts,
     return_logprob=True,
@@ -1664,25 +1691,53 @@ batch_request = GenerateReqInput(
 )
 ```
 
-**3. Include in scheduler TraceAnnotation:**
+**Step 3: Propagate to `ScheduleBatch` in `schedule_batch.py`:**
 
 ```python
+# In ScheduleBatch class
+@dataclass
+class ScheduleBatch:
+    # ... existing fields ...
+    request_type: Optional[str] = None  # Propagated from GenerateReqInput
+
+# When creating batch from GenerateReqInput:
+def from_req(cls, req: GenerateReqInput, ...):
+    return cls(
+        # ... existing fields ...
+        request_type=req.request_type,
+    )
+```
+
+**Step 4: Include in scheduler TraceAnnotation (`scheduler.py`):**
+
+```python
+# In run_batch() or equivalent
 with jax.profiler.TraceAnnotation(
     "run_batch",
     batch_size=batch.batch_size(),
-    request_type=batch.request_type,  # Include in trace metadata
+    request_type=batch.request_type or "unknown",  # Include in trace metadata
 ):
     output = self.tp_worker.forward_batch_generation(...)
 ```
 
-**4. Filter traces for score requests:**
+**Step 5: Filter traces for score requests (analysis script):**
 
 ```python
-# In trace analysis
-for event in trace["traceEvents"]:
-    if event.get("args", {}).get("request_type") == "score":
-        # This is a score request
-        analyze_score_performance(event)
+# In trace analysis script
+import gzip
+import json
+
+def analyze_score_requests(trace_path: str):
+    with gzip.open(trace_path, 'rb') as f:
+        trace = json.load(f)
+
+    score_events = []
+    for event in trace.get("traceEvents", []):
+        args = event.get("args", {})
+        if args.get("request_type") == "score":
+            score_events.append(event)
+
+    return score_events
 ```
 
 ### Benefits
@@ -1690,6 +1745,7 @@ for event in trace["traceEvents"]:
 - Filter profiling data for score-specific analysis
 - Compare score vs generate performance in same trace
 - Track score request latency separately in dashboards
+- Debug score-specific performance issues in mixed workloads
 
 ---
 
@@ -1909,16 +1965,18 @@ The `/start_profile` endpoint accepts these parameters:
 
 ```json
 {
-    "output_dir": "/tmp/profile",       // Trace output directory
+    "output_dir": "/tmp/profile",       // Trace output directory (default: $SGLANG_JAX_PROFILER_DIR or /tmp)
     "num_steps": 10,                    // Number of forward steps to profile (optional)
     "start_step": 5,                    // Skip warmup steps before profiling (optional)
     "host_tracer_level": 2,             // 0=off, 1=minimal, 2=medium, 3=verbose
     "python_tracer_level": 1,           // 0=off, 1=enabled
-    "profile_id": "my_profile"          // Custom identifier for trace files
+    "profile_id": "my_profile"          // Logged for debugging, NOT used in file naming
 }
 ```
 
-**Note:** If `num_steps` is not specified, profiling continues until `/stop_profile` is called.
+**Notes:**
+- If `num_steps` is not specified, profiling continues until `/stop_profile` is called
+- `profile_id` is stored and logged but does NOT affect output file names (see Parity Plan for planned enhancement)
 
 ### Multi-Device Profiling
 
@@ -2026,12 +2084,31 @@ For multi-host setups, traces must be collected to shared storage:
 # Ensure shared storage (e.g., NFS, GCS FUSE)
 export SGLANG_JAX_PROFILER_DIR=/shared/profiles
 
-# After profiling, merge traces
+# After profiling, merge traces (TODO: module not yet implemented)
+# See Implementation Plan Phase 1 for trace_merger.py
+#
+# Workaround: Load each rank's trace separately in Perfetto
+# or manually merge traceEvents arrays:
 python -c "
-from sgl_jax.srt.utils.trace_merger import merge_traces
-merge_traces('/shared/profiles', output='/shared/profiles/merged.trace.json.gz')
+import gzip, json, glob
+
+traces = []
+for f in glob.glob('/shared/profiles/**/*.trace.json.gz', recursive=True):
+    with gzip.open(f, 'rb') as fh:
+        traces.append(json.load(fh))
+
+# Manual merge (basic)
+merged = {'traceEvents': []}
+for t in traces:
+    merged['traceEvents'].extend(t.get('traceEvents', []))
+
+with gzip.open('/shared/profiles/merged.trace.json.gz', 'wt') as f:
+    json.dump(merged, f)
 "
 ```
+
+> **⚠️ TODO:** The `sgl_jax.srt.utils.trace_merger` module is **planned but not yet implemented**.
+> See [Implementation Plan Phase 1](#phase-1-core-infrastructure-priority-high) for the `trace_merger.py` task.
 
 ### Analyzing TP Communication Overhead
 
@@ -2176,9 +2253,22 @@ curl -X POST 'http://localhost:30000/start_profile' -d '...'
 
 **Symptom:** Trace shows flat kernel list without hierarchy.
 
-**Cause:** Named scopes require proper JAX profiler configuration.
+**Cause:** Named scopes (`jax.named_scope()`) require:
+1. **Code instrumentation** - Scopes must be added to the code first
+2. **Proper tracer levels** - `host_tracer_level` >= 2
 
-**Solution:** Ensure `host_tracer_level` >= 2:
+**Current status:** sglang-jax uses `jax.profiler.TraceAnnotation()` for event markers
+but does NOT yet have `jax.named_scope()` instrumentation for hierarchical traces.
+
+**What you'll see today:**
+- `TraceAnnotation` events like `run_batch`, `forward_batch_generation`
+- Flat kernel list from XLA
+
+**What you WON'T see (not yet implemented):**
+- Hierarchical `layer_0/attention/qkv_proj` structure
+- Per-layer breakdowns
+
+**If you have added `jax.named_scope()` to the code**, ensure tracer levels are set:
 ```json
 {
     "output_dir": "/tmp/profile",
@@ -2187,6 +2277,8 @@ curl -X POST 'http://localhost:30000/start_profile' -d '...'
     "python_tracer_level": 1
 }
 ```
+
+See [Implementation Plan](#implementation-plan) for planned named_scope instrumentation.
 
 ### Issue 6: OOM During Profiling
 
@@ -2265,15 +2357,29 @@ curl -X POST 'http://localhost:30000/stop_profile'
 
 ### Benchmark Commands
 
+> **Note:** `bench_score.py` is PLANNED but not yet implemented.
+> See [Enhancement 2](#enhancement-2-score-api-benchmark-with-profiling-planned).
+
 ```bash
-# Quick smoke test
+# Quick smoke test (PLANNED)
 python test/srt/bench_score.py --profile smoke
 
-# Standard with tracing
+# Standard with tracing (PLANNED)
 python test/srt/bench_score.py --profile standard --enable-trace
 
-# Full with memory profiling
+# Full with memory profiling (PLANNED)
 python test/srt/bench_score.py --profile full --enable-memory --output-json results.json
+```
+
+**Currently available:** Use `bench_serving.py` with the `/v1/score` endpoint:
+
+```bash
+# Existing benchmark with profiling
+python -m sgl_jax.bench_serving \
+    --backend sgl-jax \
+    --num-prompts 50 \
+    --profile \
+    --num-steps 10
 ```
 
 ### Analysis Commands
