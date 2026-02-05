@@ -72,10 +72,9 @@ Design a comprehensive profiling framework for sglang-jax that enables deep perf
 # Location: sglang-jax/python/sgl_jax/profiler.py
 # Purpose: HTTP-based profiling orchestration
 
-def run_profile(url, num_steps, activities, output_dir, profile_name, profile_by_stage):
+def run_profile(url, num_steps, output_dir, profile_name):
     """
     Sends POST to /start_profile endpoint.
-    Supports activities: CPU, GPU, MEM, RPD
     """
 ```
 
@@ -85,10 +84,18 @@ def run_profile(url, num_steps, activities, output_dir, profile_name, profile_by
 - Output directory management
 - Server info retrieval
 
+> **⚠️ Note:** The JAX client currently sends `activities` and `profile_by_stage` parameters
+> that are silently ignored by the server. These are **PyTorch-only features** not yet
+> implemented in JAX. See [Parity Plan](#parity-plan-pytorch-features-missing-in-jax).
+
 **Usage:**
 ```bash
 python -m sgl_jax.profiler --url http://localhost:30000 --num-steps 5 --output-dir /tmp/profile
 ```
+
+**Default output directories:**
+- Server-side: `SGLANG_JAX_PROFILER_DIR` env var (default: `/tmp`)
+- Client-side: `/tmp/sgl-jax-profile`
 
 #### 2. Scheduler Profiler Mixin (`python/sgl_jax/srt/managers/scheduler_profiler_mixing.py`)
 
@@ -107,8 +114,12 @@ class SchedulerProfilerMixin:
 **Capabilities:**
 - JAX `start_trace`/`stop_trace` integration
 - Configurable tracer levels (host, Python)
-- Per-request profiling
-- Forward step counting for targeted profiling
+- Output directory control via `profile_id`
+- Forward step counting (`forward_ct`) for targeted profiling
+
+> **⚠️ Important:** JAX profiling is **step-based**, not per-request. The `num_steps` parameter
+> refers to forward passes (batches), not individual HTTP requests. Multiple score requests
+> may be batched into one forward step, or one request may span multiple steps.
 
 #### 3. Memory Profiler (`python/sgl_jax/srt/memory_profiler.py`)
 
@@ -127,17 +138,27 @@ def profile_attention(stage, layer_id):
 ```
 
 **Capabilities:**
-- Uses `jax.profiler.save_device_memory_profile()`
+- Uses `jax.profiler.save_device_memory_profile()` for HBM snapshots
 - Layer-by-layer memory analysis
 - JSON/text report generation
 - Tensor memory calculation
 - Environment variable configuration
+
+> **⚠️ Current Status:** The memory profiler module exists but is **not currently wired into
+> the model forward path**. Memory profiles are only generated when explicitly called via
+> `jax.profiler.save_device_memory_profile()`, NOT automatically by `/start_profile`.
+> Integration points (attention, MLP, forward) need to be added.
 
 **Configuration:**
 ```bash
 export ENABLE_MEMORY_PROFILING=1
 export SGL_MEMORY_OUTPUT_DIR=/tmp/memory_profiles
 export MEMORY_PROFILING_LAYERS=4  # Profile every 4th layer
+
+# Additional toggles (undocumented):
+export SGL_MEMORY_DISABLE_REPORT=1     # Disable text reports
+export SGL_MEMORY_DISABLE_PROF=1       # Disable .prof files
+export SGL_MEMORY_CONSOLE_LOG=1        # Enable console logging
 ```
 
 #### 4. Kernel Performance Utilities (`python/sgl_jax/srt/kernels/utils/perf.py`)
@@ -169,10 +190,13 @@ def named_scope(name_or_obj):
     """Decorator for wrapping functions with jax.named_scope()"""
 ```
 
-**Usage in codebase:**
-- `jax.named_scope("forward_batch")` in scheduler
-- `jax.profiler.TraceAnnotation("run_batch")` in model_runner
-- Named scopes throughout attention, MLP layers
+**Actual usage in codebase:**
+- `jax.profiler.TraceAnnotation("run_batch")` in `scheduler.py:568`
+- `jax.profiler.TraceAnnotation("process_batch_result")` in `scheduler.py:580`
+- `jax.profiler.TraceAnnotation("forward_batch_generation {bid}")` in `tp_worker_overlap_thread.py:111`
+
+> **Note:** There is currently no `jax.named_scope()` usage in the scheduler or model_runner.
+> TraceAnnotation is used for event markers, but hierarchical named scopes are not yet implemented.
 
 ### Existing Benchmarks
 
@@ -268,13 +292,13 @@ PyTorch SGLang has more mature profiling infrastructure we can learn from:
 
 ### Profiling Levels
 
-| Level | Scope | Tool | Output | Use Case |
-|-------|-------|------|--------|----------|
-| **L1: End-to-End** | Full request | `bench_serving.py --profile` | Trace file | Overall latency |
-| **L2: Stage** | Prefill/Decode | Scheduler profiler mixin | Stage traces | Identify slow stage |
-| **L3: Layer** | Individual layers | Memory profiler | Per-layer report | Layer optimization |
-| **L4: Kernel** | Individual ops | `perf.py` utilities | Kernel durations | Kernel optimization |
-| **L5: Memory** | HBM usage | `memory_profiler.py` | Memory snapshots | Memory optimization |
+| Level | Scope | Tool | Output | Use Case | JAX Status |
+|-------|-------|------|--------|----------|------------|
+| **L1: End-to-End** | Full request | `bench_serving.py --profile` | Trace file | Overall latency | ✅ Available |
+| **L2: Stage** | Prefill/Decode | Scheduler profiler mixin | Stage traces | Identify slow stage | ❌ PyTorch only |
+| **L3: Layer** | Individual layers | Memory profiler | Per-layer report | Layer optimization | ⚠️ Not wired in |
+| **L4: Kernel** | Individual ops | `perf.py` utilities | Kernel durations | Kernel optimization | ✅ Available |
+| **L5: Memory** | HBM usage | `memory_profiler.py` | Memory snapshots | Memory optimization | ⚠️ Manual only |
 
 ---
 
@@ -631,6 +655,29 @@ PROFILES = {
 }
 
 
+async def start_server_profiling(base_url: str, output_dir: str, num_steps: int, profile_id: str):
+    """Start profiling on the server via HTTP API."""
+    import aiohttp
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"{base_url}/start_profile",
+            json={
+                "output_dir": output_dir,
+                "num_steps": num_steps,
+                "profile_id": profile_id,
+            },
+        ) as response:
+            return await response.json()
+
+
+async def stop_server_profiling(base_url: str):
+    """Stop profiling on the server via HTTP API."""
+    import aiohttp
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"{base_url}/stop_profile") as response:
+            return await response.json()
+
+
 async def run_benchmark(
     config: BenchmarkConfig,
     base_url: str,
@@ -638,7 +685,12 @@ async def run_benchmark(
     enable_memory: bool = False,
     output_dir: str = "/tmp/score_benchmark",
 ) -> Dict[str, Any]:
-    """Run the benchmark with optional profiling."""
+    """Run the benchmark with optional server-side profiling.
+
+    NOTE: Profiling is done SERVER-SIDE via /start_profile API.
+    Client-side jax.profiler.start_trace() would only profile
+    the client process, not the model inference on the server.
+    """
     results = []
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -651,11 +703,13 @@ async def run_benchmark(
 
             # Measurement
             latencies = []
+            profile_id = f"score_b{batch_size}_l{label_count}"
 
-            trace_path = None
+            # Start SERVER-SIDE profiling (not client-side!)
             if enable_trace:
-                trace_path = f"{output_dir}/trace_b{batch_size}_l{label_count}"
-                jax.profiler.start_trace(trace_path)
+                await start_server_profiling(
+                    base_url, output_dir, num_steps=config.num_runs, profile_id=profile_id
+                )
 
             for run in range(config.num_runs):
                 start = time.perf_counter()
@@ -663,8 +717,9 @@ async def run_benchmark(
                 latency_ms = (time.perf_counter() - start) * 1000
                 latencies.append(latency_ms)
 
+            # Stop SERVER-SIDE profiling
             if enable_trace:
-                jax.profiler.stop_trace()
+                await stop_server_profiling(base_url)
 
             # Calculate statistics
             latencies.sort()
@@ -768,42 +823,77 @@ if __name__ == "__main__":
     main()
 ```
 
-### Enhancement 3: Layer-by-Layer Profiling Integration
+### Enhancement 3: Two-Process Profiling Architecture
 
-Add named scopes to the scoring path for fine-grained profiling.
+> **⚠️ Critical Architecture Note:** sglang-jax uses a multi-process architecture:
+> - **TokenizerManager** runs in the main process (device-agnostic, per ADR-001)
+> - **Scheduler** runs in a subprocess (JAX/TPU operations)
+>
+> JAX profiling (`jax.profiler.start_trace`) only captures the scheduler subprocess.
+> TokenizerManager operations (tokenization, softmax) require separate CPU profiling.
 
-**Integration points in `tokenizer_manager.py`:**
+**Correct profiling approach:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Main Process (TokenizerManager)                                              │
+│                                                                              │
+│  score_request() ─────────────────────────────────────────────────────────  │
+│    ├── Tokenization        ← Profile with cProfile/py-spy (CPU)             │
+│    ├── Batch creation      ← Profile with cProfile/py-spy (CPU)             │
+│    ├── IPC to scheduler ───────────────────────────────────────────────────┤│
+│    ├── Wait for result                                                      ││
+│    ├── Logprob extraction  ← Profile with cProfile/py-spy (CPU)             │
+│    └── Softmax (scipy)     ← Profile with cProfile/py-spy (CPU)             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼ IPC
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Scheduler Subprocess                                                         │
+│                                                                              │
+│  forward_batch() ───────────────────────────────────────────────────────────│
+│    ├── Embedding lookup    ← Profile with jax.profiler (TPU trace)          │
+│    ├── Transformer layers  ← Profile with jax.profiler (TPU trace)          │
+│    └── Logits computation  ← Profile with jax.profiler (TPU trace)          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**For TokenizerManager profiling (CPU):**
 
 ```python
-# In score_request() method around line 1210
+# Use cProfile for CPU profiling of the main process
+import cProfile
+import pstats
 
-async def score_request(self, query, items, label_token_ids, apply_softmax, item_first, request):
-    with jax.named_scope("score_request"):
-        # Tokenization
-        with jax.named_scope("tokenization"):
-            if isinstance(query, str):
-                # Text processing...
-                pass
+profiler = cProfile.Profile()
+profiler.enable()
 
-        # Batch creation
-        with jax.named_scope("batch_creation"):
-            batch_request = GenerateReqInput(...)
+# ... run score requests ...
 
-        # Model forward (handled by scheduler)
-        with jax.named_scope("model_inference"):
-            results = await self.generate_request(batch_request, request).__anext__()
+profiler.disable()
+stats = pstats.Stats(profiler)
+stats.sort_stats('cumulative')
+stats.print_stats(20)
+```
 
-        # Post-processing
-        with jax.named_scope("post_processing"):
-            with jax.named_scope("logprob_extraction"):
-                # Extract logprobs...
-                pass
+**Or use py-spy for live profiling:**
 
-            with jax.named_scope("softmax"):
-                if apply_softmax:
-                    score_list = softmax(score_list).tolist()
+```bash
+# Attach to running server process
+py-spy top --pid <tokenizer_manager_pid>
 
-        return scores
+# Generate flamegraph
+py-spy record -o profile.svg --pid <tokenizer_manager_pid>
+```
+
+**For Scheduler profiling (JAX/TPU):**
+
+Add `jax.profiler.TraceAnnotation` in scheduler code, NOT TokenizerManager:
+
+```python
+# In scheduler.py, NOT tokenizer_manager.py
+with jax.profiler.TraceAnnotation("run_batch", batch_size=batch.batch_size()):
+    output = self.tp_worker.forward_batch_generation(...)
 ```
 
 ---
@@ -1431,23 +1521,124 @@ xprof --logdir /path/to/profile --port 6006
 
 ---
 
+## Parity Plan: PyTorch Features Missing in JAX
+
+This section explicitly lists PyTorch profiling features that are NOT yet implemented in JAX, to avoid confusion and guide future development.
+
+### Feature Gap Summary
+
+| Feature | PyTorch | JAX | Priority | Notes |
+|---------|---------|-----|----------|-------|
+| `activities` parameter | ✅ CPU/GPU/MEM/RPD | ❌ Ignored | P1 | Client sends, server ignores |
+| `profile_by_stage` | ✅ prefill/decode | ❌ Not implemented | P1 | Requires stage trigger in scheduler |
+| `profile_stages` | ✅ Array of stages | ❌ Not implemented | P1 | Depends on profile_by_stage |
+| `record_shapes` | ✅ Tensor shapes | ❌ Not implemented | P2 | JAX traces include shapes differently |
+| `with_stack` | ✅ Python stack | ❌ Not implemented | P2 | Use `python_tracer_level` instead |
+| Multi-rank merging | ✅ `ProfileMerger` | ❌ Not implemented | P1 | Need JAX trace merger |
+| NVTX annotations | ✅ Layer-wise | N/A | - | Use `jax.named_scope` instead |
+| Nsight Systems | ✅ Integration | N/A | - | Use XProf instead |
+
+### Implementation Roadmap for Parity
+
+**Phase A: API Schema Alignment**
+- [ ] Update `ProfileReq` in `io_struct.py` to match PyTorch schema
+- [ ] Add `activities` handling (map GPU→TPU semantically)
+- [ ] Add `profile_by_stage` and `profile_stages` parameters
+
+**Phase B: Stage-Based Profiling**
+- [ ] Port stage trigger logic from `scheduler_profiler_mixin.py` (PyTorch)
+- [ ] Add `profiler_prefill_ct` / `profiler_decode_ct` counters
+- [ ] Generate separate trace files per stage
+
+**Phase C: Multi-Rank Trace Merging**
+- [ ] Implement `ProfileMerger` equivalent for JAX traces
+- [ ] Handle rank extraction from filenames
+- [ ] Merge into single Perfetto-compatible trace
+
+---
+
+## Score API Tagging Proposal
+
+Currently, Score API requests are indistinguishable from other prefill-only workloads in traces. This makes it difficult to filter profiling data for score-specific analysis.
+
+### Problem
+
+Score requests are submitted as `GenerateReqInput` with `max_new_tokens=0`. In the scheduler trace, they appear identical to:
+- Embedding requests
+- Other prefill-only workloads
+- Chunked prefill segments
+
+### Proposed Solution
+
+Add a `request_type` or `is_score` flag that propagates through the system:
+
+**1. Extend `GenerateReqInput` in `io_struct.py`:**
+
+```python
+@dataclass
+class GenerateReqInput:
+    # ... existing fields ...
+    request_type: Optional[str] = None  # "score", "generate", "embed", etc.
+```
+
+**2. Set flag in `TokenizerManager.score_request()`:**
+
+```python
+batch_request = GenerateReqInput(
+    text=prompts,
+    return_logprob=True,
+    token_ids_logprob=label_token_ids,
+    sampling_params={"max_new_tokens": 0},
+    request_type="score",  # NEW: Tag as score request
+)
+```
+
+**3. Include in scheduler TraceAnnotation:**
+
+```python
+with jax.profiler.TraceAnnotation(
+    "run_batch",
+    batch_size=batch.batch_size(),
+    request_type=batch.request_type,  # Include in trace metadata
+):
+    output = self.tp_worker.forward_batch_generation(...)
+```
+
+**4. Filter traces for score requests:**
+
+```python
+# In trace analysis
+for event in trace["traceEvents"]:
+    if event.get("args", {}).get("request_type") == "score":
+        # This is a score request
+        analyze_score_performance(event)
+```
+
+### Benefits
+
+- Filter profiling data for score-specific analysis
+- Compare score vs generate performance in same trace
+- Track score request latency separately in dashboards
+
+---
+
 ## Implementation Plan
 
-### Phase 1: Core Infrastructure (Week 1-2)
+### Phase 1: Core Infrastructure
 
 - [ ] Create `sgl_jax/srt/score_profiler.py` module
-- [ ] Add named scopes to `score_request()` in tokenizer_manager.py
-- [ ] Create `test/srt/bench_score.py` with profiling support
-- [ ] Document environment variables and configuration
+- [ ] Add TraceAnnotation to scheduler for Score API tagging
+- [ ] Create `test/srt/bench_score.py` with server-side profiling
+- [ ] Document environment variables and output directory precedence
 
-### Phase 2: Memory Profiling (Week 2-3)
+### Phase 2: Memory Profiling
 
-- [ ] Integrate memory profiler into Score API path
+- [ ] Wire memory profiler into model forward path (attention, MLP)
 - [ ] Add automatic peak HBM tracking
 - [ ] Create memory regression tests
 - [ ] Document memory profiling workflow
 
-### Phase 3: CI Integration (Week 3-4)
+### Phase 3: CI Integration
 
 - [ ] Create nightly profiling workflow
 - [ ] Set up artifact storage and retention
@@ -1678,9 +1869,12 @@ curl -X POST 'http://localhost:30000/start_profile' \
 │   ├── tp4_test-TP-0-EP-0.trace.json.gz
 │   ├── tp4_test-TP-1-EP-0.trace.json.gz
 │   ├── tp4_test-TP-2-EP-0.trace.json.gz
-│   ├── tp4_test-TP-3-EP-0.trace.json.gz
-│   └── merged-tp4_test.trace.json.gz    # Auto-merged if supported
+│   └── tp4_test-TP-3-EP-0.trace.json.gz
 ```
+
+> **⚠️ Note:** Unlike PyTorch SGLang, JAX does **NOT** have automatic trace merging.
+> Each rank produces a separate trace file. You must manually load them into Perfetto
+> or implement a custom merger. See [Parity Plan](#parity-plan-pytorch-features-missing-in-jax).
 
 **File naming format:** `{profile_id}-TP-{tp_rank}-EP-{ep_rank}.trace.json.gz`
 
@@ -1695,11 +1889,14 @@ For setups with expert parallelism (MoE models):
 
 ### Stage-Based Profiling (Prefill vs Decode)
 
+> **⚠️ PyTorch-Only Feature:** Stage-based profiling (`profile_by_stage`, `profile_stages`)
+> is implemented in PyTorch SGLang but **NOT in JAX**. See [Parity Plan](#parity-plan-pytorch-features-missing-in-jax).
+
 PyTorch SGLang supports profiling prefill and decode stages separately via `profile_by_stage` parameter. This is useful for identifying stage-specific bottlenecks.
 
 **PyTorch approach (for reference):**
 ```bash
-# Profile prefill and decode separately
+# Profile prefill and decode separately (PyTorch only!)
 curl -X POST 'http://localhost:30000/start_profile' \
     -d '{
         "output_dir": "/tmp/profile",
@@ -1711,10 +1908,10 @@ curl -X POST 'http://localhost:30000/start_profile' \
 
 **JAX current status:**
 
-The sglang-jax scheduler profiler mixin (`scheduler_profiler_mixing.py`) supports basic step-based profiling but does not yet have explicit prefill/decode stage separation like PyTorch. However, you can achieve similar analysis by:
+The sglang-jax scheduler profiler mixin (`scheduler_profiler_mixing.py`) supports basic step-based profiling but **does NOT have prefill/decode stage separation**. Workarounds:
 
-1. **Using named scopes in traces** - Look for `forward_batch` scopes and analyze batch types
-2. **Filtering by batch size** - Prefill typically has larger batch token counts
+1. **Analyze TraceAnnotation events** - Look for `run_batch` annotations and infer batch type from context
+2. **Filter by sequence length** - Prefill batches typically have longer input sequences
 3. **Manual separation** - Run separate profiling sessions for prefill-heavy vs decode-heavy workloads
 
 **Score API note:** For Score API workloads, this distinction is less relevant since scoring is **prefill-only** (no token generation). All Score API requests use `max_new_tokens=0`.
