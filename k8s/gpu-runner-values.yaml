@@ -1,4 +1,5 @@
 runnerScaleSetName: "gpu-runner"
+maxRunners: 3
 template:
   metadata:
     annotations:
