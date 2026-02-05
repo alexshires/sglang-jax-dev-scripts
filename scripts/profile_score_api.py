@@ -29,48 +29,63 @@ def wait_for_server(base_url, timeout=600):
     logger.error("Server failed to start within timeout.")
     return False
 
-def run_workload(base_url, model_name):
-    """Send a variety of score requests."""
-    logger.info("Starting workload...")
+def run_workload(base_url, model_name, duration=60):
+    """Send a variety of score requests for a fixed duration."""
+    logger.info(f"Starting workload for {duration} seconds...")
     
     url = f"{base_url}/v1/score"
     headers = {"Content-Type": "application/json"}
     
-    # 1. Single Item Requests
-    logger.info("Running single-item requests...")
-    for i in range(10):
+    # We need some valid label_token_ids for the Qwen tokenizer.
+    label_token_ids = [1284, 1342] # " Yes", " No" approx
+    
+    start_time = time.time()
+    count = 0
+    
+    while time.time() - start_time < duration:
+        count += 1
+        
+        # 1. Single Item Request
         data = {
             "model": model_name,
-            "text": "The capital of France is",
-            "score_text": [" Paris", " London"]
+            "query": "The capital of France is",
+            "items": [" Paris", " London"],
+            "label_token_ids": label_token_ids
         }
         try:
             requests.post(url, json=data, headers=headers)
-        except Exception as e:
-            logger.error(f"Request failed: {e}")
+        except Exception:
+            pass
 
-    # 2. Multi-item Batch (Small)
-    logger.info("Running small batch requests (4 items)...")
-    for i in range(5):
+        # 2. Multi-item Batch (Small)
         data = {
             "model": model_name,
-            "text": "Which is a fruit?",
-            "score_text": [" Apple", " Car", " Bus", " Dog"]
+            "query": "Which is a fruit?",
+            "items": [" Apple", " Car", " Bus", " Dog"],
+            "label_token_ids": label_token_ids
         }
-        requests.post(url, json=data, headers=headers)
+        try:
+            requests.post(url, json=data, headers=headers)
+        except Exception:
+            pass
 
-    # 3. Multi-item Batch (Large)
-    logger.info("Running large batch requests (32 items)...")
-    large_batch = [f" Item {i}" for i in range(32)]
-    for i in range(3):
+        # 3. Multi-item Batch (Large)
+        large_batch = [f" Item {i}" for i in range(32)]
         data = {
             "model": model_name,
-            "text": "Pick the best item.",
-            "score_text": large_batch
+            "query": "Pick the best item.",
+            "items": large_batch,
+            "label_token_ids": label_token_ids
         }
-        requests.post(url, json=data, headers=headers)
-        
-    logger.info("Workload completed.")
+        try:
+            requests.post(url, json=data, headers=headers)
+        except Exception:
+            pass
+            
+        if count % 10 == 0:
+            logger.info(f"Completed {count} workload iterations...")
+            
+    logger.info(f"Workload completed. Total iterations: {count}")
 
 def main():
     parser = argparse.ArgumentParser(description="Profile SGLang Score API")
@@ -79,73 +94,79 @@ def main():
     parser.add_argument("--port", type=str, default="30000")
     parser.add_argument("--output-dir", type=str, default="/outputs", help="Directory to save profile")
     parser.add_argument("--duration", type=int, default=60, help="Duration to run py-spy")
+    parser.add_argument("--profiler", type=str, default="pyspy", choices=["pyspy", "cprofile"], help="Profiler to use")
     args = parser.parse_args()
 
     base_url = f"http://{args.host}:{args.port}"
     
     # Launch Server
     logger.info(f"Launching server with model: {args.model_path}")
-    server_cmd = [
-        "python", "-m", "sgl_jax.launch_server",
+    
+    server_cmd = ["python"]
+    if args.profiler == "cprofile":
+        profile_file = os.path.join(args.output_dir, "server.prof")
+        server_cmd.extend(["-m", "cProfile", "-o", profile_file])
+    
+    server_cmd.extend([
+        "-m", "sgl_jax.launch_server",
         "--model-path", args.model_path,
         "--host", args.host,
         "--port", args.port,
         "--trust-remote-code",
         "--mem-fraction-static", "0.8",
         "--dtype", "bfloat16"
-    ]
+    ])
     
     # Check for TPU
-    if os.getenv("TPU_NAME"):
+    if os.getenv("TPU_NAME") or "tpu" in os.getenv("JAX_PLATFORMS", "").lower():
         server_cmd.extend(["--device", "tpu"])
     
     server_process = subprocess.Popen(server_cmd, stdout=sys.stdout, stderr=sys.stderr)
+    
+    profiler_process = None
     
     try:
         if not wait_for_server(base_url):
             raise RuntimeError("Server start failed")
 
-        # Start Profiler (py-spy)
-        # We attach to the main server process. Note: sglang-jax uses multiprocessing.
-        # py-spy's --subprocess flag is crucial here to capture child processes.
-        profile_file = os.path.join(args.output_dir, "score_api_profile.svg")
-        logger.info(f"Starting py-spy on PID {server_process.pid}...")
-        
-        profiler_cmd = [
-            "py-spy", "record",
-            "--pid", str(server_process.pid),
-            "--output", profile_file,
-            "--subprocesses",  # Profile child processes too
-            "--rate", "100",   # Sampling rate
-            "--format", "speedscope" # compatible format
-        ]
-        
-        # We run py-spy as a background process so we can run workload simultaneously
-        profiler_process = subprocess.Popen(profiler_cmd)
-        
-        # Give profiler a moment to attach
-        time.sleep(2)
+        if args.profiler == "pyspy":
+            # Start Profiler (py-spy)
+            profile_file = os.path.join(args.output_dir, "score_api_profile.svg")
+            logger.info(f"Starting py-spy on PID {server_process.pid}...")
+            
+            # Note: speedscope format is good for multi-process
+            profiler_cmd = [
+                "py-spy", "record",
+                "--pid", str(server_process.pid),
+                "--output", profile_file,
+                "--subprocesses",
+                "--rate", "10",
+                "--format", "speedscope"
+            ]
+            
+            profiler_process = subprocess.Popen(profiler_cmd)
+            # Give profiler a moment to attach
+            time.sleep(5)
         
         # Run Workload
-        run_workload(base_url, args.model_path)
-        
-        # Let it run for a bit more if needed or until profiler is done
-        # Usually py-spy runs until we kill it (Ctrl-C) or for a set duration if --duration is used (not used here)
-        # Here we let it run for the duration of the workload + buffer, then terminate.
+        run_workload(base_url, args.model_path, duration=args.duration)
         
         time.sleep(5) 
-        logger.info("Stopping profiler...")
-        profiler_process.terminate()
-        try:
-            profiler_process.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            profiler_process.kill()
-            
-        logger.info(f"Profile saved to {profile_file}")
+        
+        if profiler_process:
+            logger.info("Stopping profiler...")
+            profiler_process.terminate()
+            try:
+                profiler_process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                profiler_process.kill()
+            logger.info(f"Profile saved to {profile_file}")
 
     finally:
         logger.info("Stopping server...")
         kill_process_tree(server_process.pid)
+        # For cProfile, normal termination should save the file. 
+        # kill_process_tree sends SIGTERM which Python handles gracefully usually.
 
 if __name__ == "__main__":
     main()
