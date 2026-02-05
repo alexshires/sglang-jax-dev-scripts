@@ -455,6 +455,7 @@ The logprobs at position `delimiter - 1` represent the model's prediction for wh
 
 ### LogitsProcessor Implementation
 
+**PyTorch Reference (dynamic shapes):**
 ```python
 def compute_logprobs_for_multi_item_scoring(
     self,
@@ -464,31 +465,81 @@ def compute_logprobs_for_multi_item_scoring(
     logits_metadata: LogitsMetadata,
     delimiter_token: int,
 ) -> LogitsProcessorOutput:
-    """Compute logprobs at delimiter positions for multi-item scoring.
-
-    Instead of computing logprobs for all positions, we:
-    1. Find delimiter positions in input_ids
-    2. Slice hidden_states at (delimiter_pos - 1)
-    3. Compute logits only for those positions
-    4. Return compact logprob arrays
-    """
-    # Find positions right before each delimiter
+    """Compute logprobs at delimiter positions for multi-item scoring."""
+    # PyTorch: dynamic shape based on actual delimiter count
     multi_item_indices = (input_ids == delimiter_token).nonzero(as_tuple=True)[0] - 1
-
-    # Extract hidden states at scoring positions
     sliced_hidden = hidden_states[multi_item_indices]
-
-    # Compute logits only for these positions
     sliced_logits = self._get_logits(sliced_hidden, lm_head, logits_metadata)
     sliced_logprobs = torch.nn.functional.log_softmax(sliced_logits, dim=-1)
 
-    # Return compact output (only delimiter positions)
     return LogitsProcessorOutput(
-        next_token_logits=None,  # Prefill-only, no generation
-        input_token_ids_logprobs_val=...,  # Length = num_delimiters
+        next_token_logits=None,
+        input_token_ids_logprobs_val=...,
         ...
     )
 ```
+
+**JAX Implementation (static shapes required):**
+```python
+@functools.partial(jax.jit, static_argnums=(4, 5))  # max_items, delimiter_token are static
+def compute_logprobs_for_multi_item_scoring_jax(
+    input_ids: jnp.ndarray,
+    hidden_states: jnp.ndarray,
+    lm_head_params: Any,
+    logits_metadata: LogitsMetadata,
+    max_items: int,           # Static: from bucket (8, 16, 32, 64, 128)
+    delimiter_token: int,     # Static: server config
+) -> Tuple[jnp.ndarray, jnp.ndarray, int]:
+    """Compute logprobs at delimiter positions with static shapes.
+
+    Returns:
+        logprobs: [max_items, vocab_size] - padded to static size
+        valid_mask: [max_items] - True for real items, False for padding
+        num_valid: int - actual number of items (for downstream slicing)
+    """
+    # Find delimiter indices with STATIC output size
+    delimiter_indices = jnp.nonzero(
+        input_ids == delimiter_token,
+        size=max_items,      # Static shape!
+        fill_value=-1        # Padding value
+    )[0]
+
+    # Scoring positions are one before each delimiter
+    scoring_indices = delimiter_indices - 1
+
+    # Valid mask: True for real delimiters, False for padding
+    valid_mask = delimiter_indices >= 0
+
+    # Safe indices for gathering (clamp -1 to 0, will be masked anyway)
+    safe_indices = jnp.maximum(scoring_indices, 0)
+
+    # Gather hidden states at scoring positions
+    sliced_hidden = hidden_states[safe_indices]  # [max_items, hidden_dim]
+
+    # Zero out padded positions
+    sliced_hidden = jnp.where(
+        valid_mask[:, None],
+        sliced_hidden,
+        jnp.zeros_like(sliced_hidden)
+    )
+
+    # Compute logits
+    sliced_logits = _apply_lm_head(sliced_hidden, lm_head_params)  # [max_items, vocab]
+    sliced_logprobs = jax.nn.log_softmax(sliced_logits, axis=-1)
+
+    # Count actual items for downstream
+    num_valid = jnp.sum(valid_mask)
+
+    return sliced_logprobs, valid_mask, num_valid
+```
+
+**Key Differences:**
+| Aspect | PyTorch | JAX |
+|--------|---------|-----|
+| Output shape | Dynamic (num_delimiters) | Static (max_items with padding) |
+| Index finding | `nonzero()` | `nonzero(size=K, fill_value=-1)` |
+| Invalid handling | N/A | `valid_mask` for downstream filtering |
+| Compilation | Once | Once per bucket size |
 
 ### Metadata Adjustment: `extend_logprob_pruned_lens_cpu`
 
@@ -716,61 +767,271 @@ def _convert_logprobs_to_scores(self, logprobs, label_token_ids, apply_softmax):
 
 **Trade-off:** Reduced functionality when multi-item is enabled.
 
+### Decision 7: Static Shape Padding with Buckets (JAX-Specific)
+
+**Choice:** Pad item counts to bucket sizes (8, 16, 32, 64, 128) and use `jnp.nonzero(..., size=K)` for static shapes.
+
+**Rationale:**
+- XLA requires static shapes at compile time
+- Dynamic shapes cause recompilation for every different item count
+- Bucket sizes limit recompilations to 5 total
+- `MAX_ITEMS_PER_REQUEST = 128` provides reasonable upper bound
+
+**Trade-off:** Memory overhead for padding; 5 JIT compilations at startup.
+
+### Decision 8: Block Diagonal Attention Masking (JAX-Specific)
+
+**Choice:** Use segment-based block diagonal masking (MVP), with Pallas kernel for production.
+
+**Rationale:**
+- Explicit `[seq, seq]` mask tensor exceeds memory budget (256MB at seq_len=8192)
+- Block diagonal pattern matches required attention: "query visible to all, items see only themselves"
+- Segment IDs can be computed without materializing full mask
+- Pallas kernel provides optimal performance for production
+
+**Trade-off:** More complex implementation than explicit mask; Pallas requires kernel expertise.
+
+### Decision 9: Mandatory Input Validation (JAX-Specific Divergence)
+
+**Choice:** Return 400 Bad Request for delimiter collision and empty query. This diverges from PyTorch.
+
+**Rationale:**
+- Delimiter collision causes silent incorrect results (items split at wrong boundaries)
+- Empty query causes -1 index bug (scores wrong position)
+- PyTorch doesn't validate, but JAX's static shape handling makes these bugs harder to debug
+- Better to fail fast with clear error than produce wrong results
+
+**Trade-off:** Diverges from PyTorch behavior; slightly stricter API contract.
+
 ---
 
-## JAX-Specific Considerations
+## JAX/XLA Compilation Constraints
 
-### Attention Mask Implementation
+> **CRITICAL:** This section describes JAX/XLA-specific requirements that **will cause failures** if not addressed. These are not optimizations—they are correctness requirements for TPU deployment.
 
-The PyTorch implementation uses FlashInfer's specialized parameters. For JAX/TPU:
+### Constraint 1: Static Shapes (The "Dynamic Shape Trap")
 
-**Option 1: Explicit Mask Tensor**
+XLA (the compiler behind JAX) requires **all tensor shapes to be known at compile time**. The PyTorch code in this RFC uses dynamic shapes that will not work in JAX.
+
+**The Problem:**
 ```python
-# Create attention mask that blocks cross-item attention
-# Shape: [seq_len, seq_len], may be memory-intensive for long sequences
-mask = create_multi_item_attention_mask(
-    query_len=query_len,
-    item_lengths=item_lengths,
-    delimiter_positions=delimiter_positions,
-)
+# PyTorch (works) - dynamic shape based on data
+multi_item_indices = (input_ids == delimiter_token).nonzero(as_tuple=True)[0] - 1
+sliced_hidden = hidden_states[multi_item_indices]  # Shape depends on # of delimiters
 ```
 
-**Option 2: Pallas Custom Kernel**
 ```python
-# Custom Pallas kernel with item-boundary-aware attention
-# More efficient but requires kernel development
-@jax.named_call
-def multi_item_attention_kernel(...):
-    # Implement custom attention with position-based masking
-    pass
+# JAX (FAILS) - recompiles for every different item count, or crashes
+multi_item_indices = jnp.nonzero(input_ids == delimiter_token, ...)[0] - 1  # Dynamic!
 ```
 
-**Option 3: Segment IDs (if supported)**
-```python
-# Some attention implementations support segment-based masking
-segment_ids = [0] * query_len + [1] * item1_len + [2] * item2_len + ...
-# Each segment only attends to itself + segment 0 (query)
-```
-
-### Position Manipulation
-
-PyTorch modifies positions in-place for attention computation:
+**The Solution: Static Padding with Buckets**
 
 ```python
-# In _process_multi_item_scoring
-pos[first_delim:] = diff - 1
-forward_batch.positions[seq_start:seq_end] = pos
+# JAX-compatible: static size with padding and bucket allocation
+MAX_ITEMS_PER_REQUEST = 128  # Define maximum items
+ITEM_COUNT_BUCKETS = [8, 16, 32, 64, 128]  # Compile once per bucket
+
+def find_delimiter_indices_static(input_ids, delimiter_token, max_items):
+    """Find delimiter indices with static output shape."""
+    # Use size parameter for static shape
+    indices = jnp.nonzero(
+        input_ids == delimiter_token,
+        size=max_items,      # Static output size
+        fill_value=-1        # Pad with -1 for unused slots
+    )[0]
+
+    # Scoring positions are one before each delimiter
+    scoring_indices = indices - 1
+
+    # Create validity mask (True for real items, False for padding)
+    valid_mask = indices >= 0
+
+    return scoring_indices, valid_mask
+
+def extract_hidden_states_static(hidden_states, scoring_indices, valid_mask):
+    """Extract hidden states at scoring positions with masking."""
+    # Clamp indices to valid range (handle -1 from padding)
+    safe_indices = jnp.maximum(scoring_indices, 0)
+
+    # Gather hidden states
+    sliced_hidden = hidden_states[safe_indices]
+
+    # Zero out invalid positions
+    sliced_hidden = jnp.where(
+        valid_mask[:, None],  # Broadcast mask
+        sliced_hidden,
+        jnp.zeros_like(sliced_hidden)
+    )
+
+    return sliced_hidden, valid_mask
 ```
 
-JAX equivalent needs to handle immutability:
+**Bucket-Based Compilation:**
+
+To prevent recompilation for every item count, use bucket sizes:
+
+```python
+def get_padded_item_count(num_items: int) -> int:
+    """Round up to nearest bucket to minimize recompilations."""
+    BUCKETS = [8, 16, 32, 64, 128]
+    for bucket in BUCKETS:
+        if num_items <= bucket:
+            return bucket
+    raise ValueError(f"Too many items: {num_items} > {BUCKETS[-1]}")
+
+# Compile once per bucket, reuse for all requests in that bucket
+@functools.partial(jax.jit, static_argnums=(2,))  # max_items is static
+def process_multi_item_logits(hidden_states, input_ids, max_items, delimiter_token):
+    ...
+```
+
+### Constraint 2: Attention Mask Memory (Block Diagonal Required)
+
+**The Problem:**
+
+An explicit `[seq_len, seq_len]` mask tensor is prohibitively expensive:
+
+| Seq Length | Mask Size (float32) | Mask Size (bf16) |
+|------------|---------------------|------------------|
+| 2048 | 16 MB | 8 MB |
+| 4096 | 64 MB | 32 MB |
+| 8192 | 256 MB | 128 MB |
+| 16384 | 1 GB | 512 MB |
+
+For batch_size=8 with seq_len=8192, that's **2 GB just for masks**—unacceptable.
+
+**The Solution: Block Diagonal Masking**
+
+The attention pattern for multi-item scoring is "Shared Prefix + Block Diagonal Suffix":
+
+```
+┌─────────────────────────────────────────┐
+│  Query (Prefix)  │  Items (Block Diag)  │
+├──────────────────┼──────────────────────┤
+│   Full Causal    │  Can attend to query │
+│                  │  Block diagonal only │
+└─────────────────────────────────────────┘
+```
+
+**Implementation Strategy (in priority order):**
+
+**Strategy A: Pallas Kernel (Recommended for Production)**
+```python
+# Custom Pallas kernel with item-boundary-aware masking
+# Modifies causal check: (i >= j) AND (group_id[i] == group_id[j] OR j < prefix_len)
+
+@pl.kernel
+def multi_item_attention_kernel(
+    q_ref, k_ref, v_ref, o_ref,
+    group_ids_ref,  # Item group for each position
+    prefix_len: int,
+):
+    i = pl.program_id(0)  # Query position
+
+    for j in range(k_ref.shape[0]):
+        # Standard causal: i >= j
+        # Multi-item: also require same group OR in prefix
+        is_causal = i >= j
+        is_same_group = group_ids_ref[i] == group_ids_ref[j]
+        is_prefix = j < prefix_len
+
+        mask = is_causal & (is_same_group | is_prefix)
+        # ... rest of attention computation
+```
+
+**Strategy B: Segment-Based Masking (MVP)**
+```python
+# Use segment IDs with JAX attention that supports them
+# Query = segment 0, Item1 = segment 1, Item2 = segment 2, etc.
+# Attention rule: can attend if same segment OR target is segment 0
+
+def create_segment_ids(query_len: int, item_lengths: List[int]) -> jnp.ndarray:
+    """Create segment IDs: 0 for query, 1+ for each item."""
+    segments = [0] * query_len
+    for i, length in enumerate(item_lengths):
+        segments.extend([i + 1] * (length + 1))  # +1 for delimiter
+    return jnp.array(segments)
+
+def segment_attention_mask(segment_ids: jnp.ndarray) -> jnp.ndarray:
+    """Create mask: attend if same segment OR target is segment 0."""
+    # Shape: [seq_len, seq_len], but computed lazily
+    same_segment = segment_ids[:, None] == segment_ids[None, :]
+    target_is_prefix = segment_ids[None, :] == 0
+    causal = jnp.tril(jnp.ones((len(segment_ids), len(segment_ids)), dtype=bool))
+
+    return causal & (same_segment | target_is_prefix)
+```
+
+**Strategy C: Bias-Based Masking (Fallback)**
+```python
+# Use attention bias instead of explicit mask
+# Set bias to -inf for blocked positions
+
+def create_block_diagonal_bias(
+    query_len: int,
+    item_boundaries: jnp.ndarray,  # [num_items], positions where items start
+    seq_len: int,
+) -> jnp.ndarray:
+    """Create attention bias for block diagonal pattern.
+
+    WARNING: Still materializes full [seq, seq] tensor. Use only for debugging.
+    """
+    positions = jnp.arange(seq_len)
+
+    # Determine which "block" each position belongs to
+    # Block 0 = query, Block 1+ = items
+    block_ids = jnp.searchsorted(item_boundaries, positions, side='right')
+
+    # Can attend if: (causal) AND (same block OR target in query block)
+    same_block = block_ids[:, None] == block_ids[None, :]
+    target_is_query = block_ids[None, :] == 0
+    causal = positions[:, None] >= positions[None, :]
+
+    allowed = causal & (same_block | target_is_query)
+
+    # Convert to bias: 0 for allowed, -inf for blocked
+    return jnp.where(allowed, 0.0, -1e9)
+```
+
+**Decision: Use Strategy B (Segment-Based) for MVP, Strategy A (Pallas) for Production.**
+
+### Constraint 3: Position Manipulation
+
+PyTorch modifies positions in-place. JAX requires immutable operations:
 
 ```python
 # JAX: Create new position array (immutable)
-new_positions = jnp.where(
-    positions >= first_delim,
-    compute_relative_positions(positions, delimiter_indices),
-    positions
-)
+def compute_multi_item_positions(
+    positions: jnp.ndarray,
+    delimiter_indices: jnp.ndarray,  # Static size with padding
+    valid_mask: jnp.ndarray,
+    prefix_len: int,
+) -> jnp.ndarray:
+    """Reset positions within each item for attention computation."""
+
+    # Find which item each position belongs to
+    # item_id[i] = number of delimiters before position i
+    delimiter_mask = jnp.zeros_like(positions, dtype=bool)
+    delimiter_mask = delimiter_mask.at[delimiter_indices].set(valid_mask)
+    item_ids = jnp.cumsum(delimiter_mask)
+
+    # Compute position within item (reset at each delimiter)
+    item_start_positions = jnp.zeros_like(positions)
+    item_start_positions = item_start_positions.at[delimiter_indices].set(
+        jnp.where(valid_mask, positions[delimiter_indices], 0)
+    )
+    item_starts = jnp.maximum.accumulate(item_start_positions)
+
+    # New position = original position - item start (within items)
+    # Keep original positions for prefix
+    new_positions = jnp.where(
+        positions < prefix_len,
+        positions,  # Keep prefix positions unchanged
+        positions - item_starts  # Reset within items
+    )
+
+    return new_positions
 ```
 
 ### Softmax Location
@@ -794,45 +1055,88 @@ def _convert_logprobs_to_scores(self, ...):
 >
 > The JAX TokenizerManager currently uses `scipy.special.softmax` (see `tokenizer_manager.py:1294-1301`), not pure Python `math`. SciPy is device-agnostic (CPU-only, NumPy-based), so it satisfies ADR-001's intent of avoiding JAX device conflicts.
 >
-> **Decision needed:** Either:
-> - Accept SciPy as compliant with ADR-001 (it's device-agnostic)
-> - Update to pure Python for stricter compliance
-> - Update ADR-001 to explicitly allow SciPy
+> **Decision:** Accept SciPy as compliant with ADR-001 (it's device-agnostic). For multi-item scoring, either SciPy or pure Python works as long as no JAX ops are used in TokenizerManager.
+
+> **Underflow Warning for `apply_softmax=False`:**
 >
-> For multi-item scoring, either approach works as long as no JAX ops are used in TokenizerManager.
+> When returning `exp(logprob)` (PyTorch parity mode):
+> - `exp(-1000) = 0.0` (underflow)
+> - If user later computes `log(0.0) = -inf`
+>
+> Consider adding a floor: `max(exp(logprob), 1e-45)` or documenting this behavior.
 
-### TPU-Specific Constraints
+### TPU-Specific Constraints Summary
 
-| Aspect | Consideration |
-|--------|---------------|
-| Memory | Explicit mask tensor may exceed HBM for very long sequences |
-| bf16 | Ensure attention mask computation handles bf16 precision |
-| Multi-host | Position manipulation must be consistent across hosts |
-| XLA compilation | Mask creation should be JIT-compatible |
+| Aspect | Requirement |
+|--------|-------------|
+| Static Shapes | **Mandatory.** Use `jnp.nonzero(..., size=K)` with bucket padding |
+| Attention Mask | **Block diagonal required.** Explicit mask tensor is too expensive |
+| Memory | Budget ~128MB for attention overhead at seq_len=8192 |
+| bf16 | Attention bias must use float32 for `-inf` values |
+| Multi-host | Position/segment arrays must be replicated identically |
+| XLA compilation | One compilation per bucket size (8, 16, 32, 64, 128 items) |
 
 ---
 
 ## Implementation Plan
 
-### Phase 0: Investigation
+### Phase 0: Prerequisites (Decisions Made)
 
-- [ ] Determine JAX attention mask approach (explicit tensor vs Pallas vs segment IDs)
-- [ ] Prototype attention isolation on simple test case
-- [ ] Verify JAX scheduler supports necessary logprob extraction
-- [ ] Benchmark mask tensor memory usage for target sequence lengths
+The following decisions are **finalized** based on JAX/XLA constraints:
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Attention mask strategy | **Segment-based (MVP)**, Pallas (Production) | Explicit mask tensor exceeds memory budget |
+| Static shape handling | **Bucket-based padding** (8, 16, 32, 64, 128) | XLA requires static shapes; buckets minimize recompilation |
+| Max items per request | **128** | Balance between flexibility and compilation cost |
+| Delimiter validation | **Mandatory 400 error** | Security requirement, not optional |
+| Empty query handling | **Schema-level validation** | Prevent -1 index before reaching model |
+
+**Prototyping tasks (before full implementation):**
+- [ ] Validate segment-based masking produces correct attention pattern
+- [ ] Benchmark bucket compilation overhead (expect ~5 compilations)
+- [ ] Verify `jnp.nonzero(..., size=K)` behavior with edge cases
 
 ### Phase 1: Infrastructure
 
 - [ ] Add `multi_item_scoring_delimiter` to server args
 - [ ] **Add `multi_item_scoring_delimiter` to `GLOBAL_SERVER_ARGS_KEYS`** (required for LogitsProcessor/attention to see it)
+- [ ] Add `MAX_ITEMS_PER_REQUEST = 128` constant
+- [ ] Add `ITEM_COUNT_BUCKETS = [8, 16, 32, 64, 128]` for static compilation
 - [ ] Add startup validation for required flags (radix cache, chunked prefill)
 - [ ] Add startup validation for incompatible flags (speculative decoding)
 - [ ] Add `multi_item_delimiter_text` derivation from token ID (with `skip_special_tokens=False`)
 - [ ] Implement delimiter text validation (single-token re-encoding)
-- [ ] Add runtime validation: delimiter token not in query/items (**JAX-only guard**, not in PyTorch)
-- [ ] Add runtime validation: query must have at least one token (**JAX-only guard**, not in PyTorch)
 
-> **Note on JAX-Only Guards:** PyTorch does not validate delimiter collision or empty query. These are safety improvements for JAX. If strict parity is required, make them opt-in via a flag or remove them.
+**Mandatory Validation (returns 400 Bad Request):**
+- [ ] Delimiter token collision: scan tokenized query/items for delimiter_token_id
+- [ ] Empty query: require `len(query_tokens) >= 1` at API schema level
+- [ ] Item count limit: require `len(items) <= MAX_ITEMS_PER_REQUEST`
+
+```python
+# Delimiter collision validation (MANDATORY)
+def validate_no_delimiter_collision(
+    query_tokens: List[int],
+    item_tokens: List[List[int]],
+    delimiter_token_id: int,
+) -> None:
+    """Validate delimiter token doesn't appear in content. Raises 400 if found."""
+    if delimiter_token_id in query_tokens:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Delimiter token {delimiter_token_id} found in query. "
+                   "Choose a different delimiter or modify query."
+        )
+    for i, item in enumerate(item_tokens):
+        if delimiter_token_id in item:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Delimiter token {delimiter_token_id} found in item {i}. "
+                       "Choose a different delimiter or modify item."
+            )
+```
+
+> **Note on PyTorch Parity:** PyTorch does not validate delimiter collision or empty query. These validations are **mandatory for JAX** due to the potential for silent incorrect results and the -1 index bug with empty queries. This is a deliberate divergence for safety.
 
 ### Phase 2: Attention Mechanism (Critical Path)
 
@@ -1059,12 +1363,22 @@ def test_memory_usage():
 |--------|--------|-------|
 | Server arg name | ✅ | `--multi-item-scoring-delimiter` |
 | Sequence format | ✅ | `query<d>item1<d>...<d>` |
-| Attention isolation | ⚠️ | Requires JAX implementation |
-| Logprob extraction | ⚠️ | Delimiter-only, pre-sliced |
-| `apply_softmax=False` | ⚠️ | Returns `exp(logprob)`, not raw |
+| Attention isolation | ⚠️ | Segment-based (MVP) or Pallas (prod) |
+| Logprob extraction | ⚠️ | Static shapes with bucket padding |
+| `apply_softmax=False` | ✅ | Returns `exp(logprob)` (matches PyTorch) |
 | `item_first` handling | ✅ | Ignored in multi-item mode |
-| Runtime constraints | ⚠️ | Validate at startup |
+| Runtime constraints | ✅ | Validated at startup |
 | Prefill-only gating | ⚠️ | Only for scoring requests |
+
+### Intentional JAX Divergences
+
+| Aspect | PyTorch | JAX | Rationale |
+|--------|---------|-----|-----------|
+| Delimiter collision | Not validated | **400 error** | Prevent silent incorrect results |
+| Empty query | Not validated | **400 error** | Prevent -1 index bug |
+| Item count limit | Unlimited | **Max 128** | Static shape compilation |
+| Shape handling | Dynamic | **Static with buckets** | XLA requirement |
+| Attention mask | FlashInfer params | **Block diagonal** | Memory efficiency |
 
 ---
 
@@ -1190,3 +1504,4 @@ if len(items) > threshold and delimiter_configured:
 | 2026-02-05 | Major update based on PR #10979 analysis: added attention mask section, runtime constraints, corrected logprob dataflow, resolved apply_softmax semantics, added JAX considerations, expanded testing |
 | 2026-02-05 | Second review pass: added FlashInfer backend requirement, corrected logprob_start_len explanation, added extend_logprob_pruned_lens_cpu metadata adjustment, documented all logprob array shape changes, strengthened speculative decoding warning, added delimiter collision as hard requirement, added empty query edge case, scoped sliding window to FlashInfer |
 | 2026-02-05 | Third review pass: added `skip_special_tokens=False` to delimiter decode, clarified delimiter validation must be token-ID based, acknowledged JAX scipy.softmax vs pure Python, added GLOBAL_SERVER_ARGS_KEYS propagation requirement, documented specific JAX changes for `next_token_logits=None`, marked JAX-only validations as divergence from PyTorch |
+| 2026-02-05 | Fourth review pass (JAX/XLA specialist feedback): rewrote JAX section as "JAX/XLA Compilation Constraints" with mandatory static shape handling, added bucket-based compilation strategy, made concrete decision on Block Diagonal attention masking (Segment-based MVP, Pallas production), added JAX-compatible LogitsProcessor implementation, made delimiter validation mandatory 400 error, added underflow warning for apply_softmax=False, schema-level empty query validation |
