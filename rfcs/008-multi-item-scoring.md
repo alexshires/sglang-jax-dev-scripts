@@ -127,6 +127,25 @@ item3             ✓     ✓    ✗      ✗    ✗      ✗    ✓
 - Items do NOT attend to other items
 - Delimiters mark boundaries
 
+> **Delimiter Visibility and Single-Item Parity**
+>
+> In the attention pattern above, items CAN see the first delimiter `<d>` (the query/item1 boundary marker). This means:
+>
+> | Mode | Item2 sees |
+> |------|------------|
+> | Single-item | `query + item2` (no delimiters) |
+> | Multi-item | `query + <d> + item2` (one extra token) |
+>
+> **Parity Impact:** This is a known semantic difference. The extra delimiter token visible to items may cause minor score differences compared to single-item mode.
+>
+> **Mitigation Options:**
+> 1. **Accept the difference** (recommended): Document that multi-item scores may differ slightly from single-item due to delimiter visibility. Use tolerance in equivalence tests.
+> 2. **Mask delimiters from items**: Modify attention so items cannot see ANY delimiters. This requires more complex masking but achieves exact parity.
+>
+> **PyTorch behavior:** FlashInfer's implementation allows items to see the prefix (including the first delimiter). JAX should match this for consistency.
+>
+> **Test implication:** The `test_multi_item_equals_single_item` test should use `rtol=1e-3` or document expected differences.
+
 ### PyTorch Implementation: FlashInfer Parameters
 
 PR #10979 implements this via FlashInfer's specialized multi-item parameters:
@@ -244,8 +263,27 @@ if server_args.multi_item_scoring_delimiter is not None:
 |------------|----------|
 | Prefill-only | Multi-item only activates for scoring (no generation) |
 | `max_new_tokens` | Must be 0 for multi-item requests |
-| `item_first` | Ignored in multi-item mode |
+| `item_first` | **Ignored** in multi-item mode (see warning) |
 | Speculative decoding | **Incompatible** - see warning below |
+
+> **WARNING: `item_first=True` Ignored**
+>
+> When multi-item scoring is enabled, the `item_first` parameter is **silently ignored**. This can cause unexpected behavior if users expect item-first ordering.
+>
+> ```python
+> # User expectation (item_first=True):  item<d>query<d>
+> # Actual multi-item format:            query<d>item1<d>item2<d>...
+> ```
+>
+> **Recommendation:** Emit a runtime warning when `item_first=True` is passed with multi-item mode enabled:
+>
+> ```python
+> if multi_item_enabled and request.item_first:
+>     logger.warning(
+>         "item_first=True ignored in multi-item scoring mode. "
+>         "Multi-item always uses query-first format."
+>     )
+> ```
 
 > **WARNING: Speculative Decoding Interaction**
 >
@@ -364,17 +402,24 @@ self.multi_item_delimiter_text = tokenizer.decode(
 
 > **Why `skip_special_tokens=False`?** Many tokenizers return empty string for special tokens when `skip_special_tokens=True` (the default in some APIs). Since delimiters are typically special tokens (e.g., `<|eot_id|>`), omitting this flag breaks delimiter insertion.
 
-**Note:** PyTorch does NOT validate that the delimiter text re-tokenizes to a single token. For robustness, JAX implementation SHOULD add this validation:
+**Delimiter Re-tokenization Validation (MANDATORY):**
+
+PyTorch does NOT validate that the delimiter text re-tokenizes correctly. However, this is a **correctness requirement** for JAX—if delimiter_text doesn't re-tokenize to the same ID in context, item boundaries will silently break.
 
 ```python
-# Recommended validation (not in PyTorch)
+# MANDATORY startup validation (JAX divergence from PyTorch)
 delimiter_tokens = tokenizer.encode(delimiter_text, add_special_tokens=False)
 if len(delimiter_tokens) != 1 or delimiter_tokens[0] != delimiter_token_id:
-    logger.warning(
-        f"Delimiter text '{delimiter_text}' tokenizes to {delimiter_tokens}, "
-        f"expected [{delimiter_token_id}]. This may cause incorrect scoring."
+    raise ValueError(
+        f"Delimiter text '{delimiter_text}' re-tokenizes to {delimiter_tokens}, "
+        f"expected [{delimiter_token_id}]. This delimiter token is unsafe for text inputs. "
+        f"Either use a different delimiter token or use token-space input construction."
     )
 ```
+
+> **Why hard error?** If the delimiter text tokenizes differently in context (e.g., due to BPE merges), the sequence will have wrong boundaries. This causes silent incorrect scores that are extremely difficult to debug. Failing fast at startup is strongly preferred.
+>
+> **Alternative for problematic delimiters:** Build prompts in token space (tokenize query and items separately, then insert delimiter token IDs directly) to avoid re-tokenization issues.
 
 **Token inputs:**
 ```
@@ -480,28 +525,39 @@ def compute_logprobs_for_multi_item_scoring(
 ```
 
 **JAX Implementation (static shapes required):**
+
+> **IMPORTANT: Delimiter Count vs Item Count**
+>
+> For N items, the sequence format `query<d>item1<d>item2<d>...<d>itemN<d>` contains **N+1 delimiters**.
+> The first delimiter (after query) marks the query/item1 boundary and is skipped during scoring.
+> Therefore: `max_delimiters = max_items + 1`
+
 ```python
-@functools.partial(jax.jit, static_argnums=(4, 5))  # max_items, delimiter_token are static
+@functools.partial(jax.jit, static_argnums=(4, 5))  # max_delimiters, delimiter_token are static
 def compute_logprobs_for_multi_item_scoring_jax(
     input_ids: jnp.ndarray,
     hidden_states: jnp.ndarray,
     lm_head_params: Any,
     logits_metadata: LogitsMetadata,
-    max_items: int,           # Static: from bucket (8, 16, 32, 64, 128)
+    max_delimiters: int,      # Static: max_items + 1 (e.g., 129 for 128 items)
     delimiter_token: int,     # Static: server config
 ) -> Tuple[jnp.ndarray, jnp.ndarray, int]:
     """Compute logprobs at delimiter positions with static shapes.
 
+    Note: For N items, there are N+1 delimiters. We return logprobs for ALL
+    delimiters; downstream code skips index 0 (query/item1 boundary).
+
     Returns:
-        logprobs: [max_items, vocab_size] - padded to static size
-        valid_mask: [max_items] - True for real items, False for padding
-        num_valid: int - actual number of items (for downstream slicing)
+        logprobs: [max_delimiters, vocab_size] - padded to static size
+        valid_mask: [max_delimiters] - True for real delimiters, False for padding
+        num_delimiters: int - actual delimiter count (num_items + 1)
     """
     # Find delimiter indices with STATIC output size
+    # CRITICAL: size = max_delimiters (not max_items!) because N items have N+1 delimiters
     delimiter_indices = jnp.nonzero(
         input_ids == delimiter_token,
-        size=max_items,      # Static shape!
-        fill_value=-1        # Padding value
+        size=max_delimiters,  # Static shape = max_items + 1
+        fill_value=-1         # Padding value
     )[0]
 
     # Scoring positions are one before each delimiter
@@ -511,10 +567,11 @@ def compute_logprobs_for_multi_item_scoring_jax(
     valid_mask = delimiter_indices >= 0
 
     # Safe indices for gathering (clamp -1 to 0, will be masked anyway)
+    # Also clamp scoring_indices[0] which may be negative if first delimiter is at position 0
     safe_indices = jnp.maximum(scoring_indices, 0)
 
     # Gather hidden states at scoring positions
-    sliced_hidden = hidden_states[safe_indices]  # [max_items, hidden_dim]
+    sliced_hidden = hidden_states[safe_indices]  # [max_delimiters, hidden_dim]
 
     # Zero out padded positions
     sliced_hidden = jnp.where(
@@ -524,22 +581,33 @@ def compute_logprobs_for_multi_item_scoring_jax(
     )
 
     # Compute logits
-    sliced_logits = _apply_lm_head(sliced_hidden, lm_head_params)  # [max_items, vocab]
+    sliced_logits = _apply_lm_head(sliced_hidden, lm_head_params)  # [max_delimiters, vocab]
     sliced_logprobs = jax.nn.log_softmax(sliced_logits, axis=-1)
 
-    # Count actual items for downstream
-    num_valid = jnp.sum(valid_mask)
+    # Count actual delimiters (= num_items + 1)
+    num_delimiters = jnp.sum(valid_mask)
 
-    return sliced_logprobs, valid_mask, num_valid
+    return sliced_logprobs, valid_mask, num_delimiters
+```
+
+**Downstream Usage (TokenizerManager):**
+```python
+# logprobs has shape [max_delimiters], containing num_items + 1 valid entries
+# Skip index 0 (query/item1 boundary), use indices 1..num_items for items
+for i in range(num_items):
+    item_logprobs = logprobs[i + 1]  # Index 1 = item1, index 2 = item2, etc.
+    scores.append(process(item_logprobs))
 ```
 
 **Key Differences:**
 | Aspect | PyTorch | JAX |
 |--------|---------|-----|
-| Output shape | Dynamic (num_delimiters) | Static (max_items with padding) |
-| Index finding | `nonzero()` | `nonzero(size=K, fill_value=-1)` |
+| Output shape | Dynamic (num_delimiters) | Static (max_delimiters = max_items + 1) |
+| Index finding | `nonzero()` | `nonzero(size=max_delimiters, fill_value=-1)` |
 | Invalid handling | N/A | `valid_mask` for downstream filtering |
 | Compilation | Once | Once per bucket size |
+
+> **Bucket Sizes Update:** For max_items buckets [8, 16, 32, 64, 128], the corresponding max_delimiters are [9, 17, 33, 65, 129].
 
 ### Metadata Adjustment: `extend_logprob_pruned_lens_cpu`
 
@@ -953,15 +1021,24 @@ def create_segment_ids(query_len: int, item_lengths: List[int]) -> jnp.ndarray:
         segments.extend([i + 1] * (length + 1))  # +1 for delimiter
     return jnp.array(segments)
 
-def segment_attention_mask(segment_ids: jnp.ndarray) -> jnp.ndarray:
-    """Create mask: attend if same segment OR target is segment 0."""
-    # Shape: [seq_len, seq_len], but computed lazily
+# CONCEPTUAL ONLY - this naive implementation materializes full [seq, seq] mask!
+# For production, use an attention kernel that consumes segment_ids directly.
+def segment_attention_mask_conceptual(segment_ids: jnp.ndarray) -> jnp.ndarray:
+    """Create mask: attend if same segment OR target is segment 0.
+
+    WARNING: This materializes a [seq_len, seq_len] tensor - DO NOT use in production!
+    This is for illustration/testing only. Production must use segment-aware attention
+    kernels that compute the mask on-the-fly during attention computation.
+    """
+    # Shape: [seq_len, seq_len] - EXPENSIVE for large sequences!
     same_segment = segment_ids[:, None] == segment_ids[None, :]
     target_is_prefix = segment_ids[None, :] == 0
     causal = jnp.tril(jnp.ones((len(segment_ids), len(segment_ids)), dtype=bool))
 
     return causal & (same_segment | target_is_prefix)
 ```
+
+> **Production Implementation:** Use a JAX attention library that supports segment IDs natively (e.g., `splash_attention` with segment masks, or custom Pallas kernel). The segment IDs array is O(seq_len), while the naive mask materialization is O(seq_len²).
 
 **Strategy C: Bias-Based Masking (Fallback)**
 ```python
@@ -1004,35 +1081,58 @@ PyTorch modifies positions in-place. JAX requires immutable operations:
 # JAX: Create new position array (immutable)
 def compute_multi_item_positions(
     positions: jnp.ndarray,
-    delimiter_indices: jnp.ndarray,  # Static size with padding
-    valid_mask: jnp.ndarray,
+    delimiter_indices: jnp.ndarray,  # Static size with padding, -1 for invalid
+    valid_mask: jnp.ndarray,         # True for real delimiters, False for padding
     prefix_len: int,
 ) -> jnp.ndarray:
-    """Reset positions within each item for attention computation."""
+    """Reset positions within each item for attention computation.
+
+    IMPORTANT: delimiter_indices may contain -1 for padding. We must mask
+    these before any scatter/indexing operations to avoid corrupting data.
+    """
+    seq_len = positions.shape[0]
+
+    # CRITICAL: Create safe indices that won't corrupt data
+    # Clamp -1 to 0 (will be masked out anyway)
+    safe_delimiter_indices = jnp.maximum(delimiter_indices, 0)
 
     # Find which item each position belongs to
     # item_id[i] = number of delimiters before position i
-    delimiter_mask = jnp.zeros_like(positions, dtype=bool)
-    delimiter_mask = delimiter_mask.at[delimiter_indices].set(valid_mask)
+    delimiter_mask = jnp.zeros(seq_len, dtype=bool)
+    # Only scatter for valid delimiters (where valid_mask is True)
+    delimiter_mask = delimiter_mask.at[safe_delimiter_indices].set(
+        valid_mask  # False for padding indices, so they won't set True
+    )
     item_ids = jnp.cumsum(delimiter_mask)
 
     # Compute position within item (reset at each delimiter)
-    item_start_positions = jnp.zeros_like(positions)
-    item_start_positions = item_start_positions.at[delimiter_indices].set(
-        jnp.where(valid_mask, positions[delimiter_indices], 0)
+    # For RoPE parity: positions within items should be relative to prefix_len,
+    # not reset to 0. This matches single-item where item starts at prefix_len.
+    item_start_positions = jnp.zeros(seq_len, dtype=positions.dtype)
+
+    # Safe gather: clamp indices, then mask results
+    gathered_positions = positions[safe_delimiter_indices]
+    masked_positions = jnp.where(valid_mask, gathered_positions, 0)
+
+    item_start_positions = item_start_positions.at[safe_delimiter_indices].set(
+        jnp.where(valid_mask, masked_positions, 0)
     )
     item_starts = jnp.maximum.accumulate(item_start_positions)
 
-    # New position = original position - item start (within items)
-    # Keep original positions for prefix
+    # New position calculation:
+    # - Prefix positions: unchanged (0 to prefix_len-1)
+    # - Item positions: relative to item start, offset by prefix_len for RoPE parity
+    #   This ensures item tokens get similar positional embeddings as in single-item mode
     new_positions = jnp.where(
         positions < prefix_len,
         positions,  # Keep prefix positions unchanged
-        positions - item_starts  # Reset within items
+        (positions - item_starts) + prefix_len  # Reset within items, offset by prefix_len
     )
 
     return new_positions
 ```
+
+> **RoPE Parity Note:** Item positions are offset by `prefix_len` to match single-item scoring where item tokens start at position `len(query)`. Without this offset, items would have positions starting at 0, causing different positional embeddings.
 
 ### Softmax Location
 
@@ -1107,27 +1207,55 @@ The following decisions are **finalized** based on JAX/XLA constraints:
 - [ ] Add startup validation for incompatible flags (speculative decoding)
 - [ ] Add `multi_item_delimiter_text` derivation from token ID (with `skip_special_tokens=False`)
 - [ ] Implement delimiter text validation (single-token re-encoding)
+- [ ] Add runtime warning when `item_first=True` is passed with multi-item mode
 
 **Mandatory Validation (returns 400 Bad Request):**
 - [ ] Delimiter token collision: scan tokenized query/items for delimiter_token_id
 - [ ] Empty query: require `len(query_tokens) >= 1` at API schema level
+- [ ] Empty items: require `len(item_tokens) >= 1` for each item (see below)
 - [ ] Item count limit: require `len(items) <= MAX_ITEMS_PER_REQUEST`
 
 ```python
 # Delimiter collision validation (MANDATORY)
-def validate_no_delimiter_collision(
+def validate_multi_item_request(
     query_tokens: List[int],
     item_tokens: List[List[int]],
     delimiter_token_id: int,
+    max_items: int = 128,
 ) -> None:
-    """Validate delimiter token doesn't appear in content. Raises 400 if found."""
+    """Validate multi-item request. Raises 400 if invalid."""
+
+    # Empty query check
+    if len(query_tokens) < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Query must have at least one token."
+        )
+
+    # Item count check
+    if len(item_tokens) > max_items:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many items: {len(item_tokens)} > {max_items}."
+        )
+
+    # Delimiter collision check
     if delimiter_token_id in query_tokens:
         raise HTTPException(
             status_code=400,
             detail=f"Delimiter token {delimiter_token_id} found in query. "
                    "Choose a different delimiter or modify query."
         )
+
     for i, item in enumerate(item_tokens):
+        # Empty item check
+        if len(item) < 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Item {i} is empty. Empty items are not supported in multi-item mode."
+            )
+
+        # Delimiter in item check
         if delimiter_token_id in item:
             raise HTTPException(
                 status_code=400,
@@ -1136,7 +1264,16 @@ def validate_no_delimiter_collision(
             )
 ```
 
-> **Note on PyTorch Parity:** PyTorch does not validate delimiter collision or empty query. These validations are **mandatory for JAX** due to the potential for silent incorrect results and the -1 index bug with empty queries. This is a deliberate divergence for safety.
+> **Empty Item Semantics:**
+>
+> Empty items (`""`) are **forbidden** in multi-item mode because:
+> 1. The scoring position for an empty item would be the delimiter token itself, not meaningful content
+> 2. Single-item mode with empty item scores at the query boundary; multi-item would score differently
+> 3. This edge case adds complexity with minimal practical value
+>
+> If users need to score empty strings, they should use single-item mode.
+
+> **Note on PyTorch Parity:** PyTorch does not validate delimiter collision, empty query, or empty items. These validations are **mandatory for JAX** due to the potential for silent incorrect results and index bugs. This is a deliberate divergence for safety.
 
 ### Phase 2: Attention Mechanism (Critical Path)
 
@@ -1224,20 +1361,25 @@ def test_attention_isolation():
     scores_xbc = score_multi_item(query, [" X", " B", " C"], label_ids)
 
     # Items 2 and 3 should have IDENTICAL scores (they can't see item 1)
-    assert scores_abc[1] == scores_xbc[1], "Item 2 score changed when item 1 changed!"
-    assert scores_abc[2] == scores_xbc[2], "Item 3 score changed when item 1 changed!"
+    # Use tolerance for floating point comparison
+    assert_allclose(scores_abc[1], scores_xbc[1], rtol=1e-6,
+        err_msg="Item 2 score changed when item 1 changed!")
+    assert_allclose(scores_abc[2], scores_xbc[2], rtol=1e-6,
+        err_msg="Item 3 score changed when item 1 changed!")
 
-    # Item 1 should be different
-    assert scores_abc[0] != scores_xbc[0], "Item 1 score should differ"
+    # Item 1 should be different (no tolerance - actually different values)
+    assert not np.allclose(scores_abc[0], scores_xbc[0]), "Item 1 score should differ"
 ```
 
 ### Edge Cases (from PyTorch Test Suite)
 
 ```python
-def test_empty_items():
-    """Handle empty item strings."""
-    scores = score_multi_item("Query", ["", " valid", ""], label_ids)
-    assert len(scores) == 3
+def test_empty_items_rejected():
+    """Empty items should return 400 error in multi-item mode."""
+    with pytest.raises(HTTPException) as exc_info:
+        score_multi_item("Query", ["", " valid", ""], label_ids)
+    assert exc_info.value.status_code == 400
+    assert "empty" in exc_info.value.detail.lower()
 
 def test_single_item():
     """Single item should work (degenerate case)."""
@@ -1269,7 +1411,11 @@ def test_deterministic_consistency():
     scores1 = score_multi_item(query, items, label_ids)
     scores2 = score_multi_item(query, items, label_ids)
 
-    assert scores1 == scores2, "Results should be deterministic"
+    # Use strict tolerance - deterministic runs should be bit-identical,
+    # but allow tiny floating point variance from JAX compilation
+    for i, (s1, s2) in enumerate(zip(scores1, scores2)):
+        assert_allclose(s1, s2, rtol=1e-7, atol=1e-10,
+            err_msg=f"Results should be deterministic, item {i} differs")
 
 def test_empty_query_tokens():
     """Handle empty tokenized query (edge case).
@@ -1335,16 +1481,19 @@ def test_multi_item_speedup():
     assert speedup > 5, f"Expected >5x speedup, got {speedup:.1f}x"
 
 def test_memory_usage():
-    """Verify memory doesn't explode with many items."""
+    """Verify memory doesn't explode with many items.
+
+    Note: Uses 100 items (within MAX_ITEMS_PER_REQUEST=128 limit).
+    """
     query = "Query"
-    items = [f" item{i}" for i in range(1000)]
+    items = [f" item{i}" for i in range(100)]
 
     initial_memory = get_memory_usage()
     scores = score_multi_item(query, items, label_ids)
     final_memory = get_memory_usage()
 
     # Memory increase should be bounded
-    assert final_memory - initial_memory < 1_000_000_000  # 1GB
+    assert final_memory - initial_memory < 500_000_000  # 500MB (for 100 items)
 ```
 
 ---
@@ -1353,9 +1502,20 @@ def test_memory_usage():
 
 ### Backward Compatibility
 
-- **API:** No changes - existing requests work unchanged
+- **API:** No endpoint or parameter changes - existing requests work unchanged
 - **Default behavior:** Without `--multi-item-scoring-delimiter`, behavior is identical to current
-- **Response format:** Unchanged
+- **Response format:** Top-level structure unchanged; internal logprob arrays have different lengths in multi-item mode
+
+**Behavioral Change When Multi-Item Enabled:**
+
+| Aspect | Single-Item Mode | Multi-Item Mode |
+|--------|------------------|-----------------|
+| `apply_softmax=False` | Returns `exp(logprob)` | Returns `exp(logprob)` (same) |
+| `input_token_logprobs` length | `seq_len` | `num_delimiters` (N+1) |
+| `input_top_logprobs_*` length | `seq_len` | `num_delimiters` (N+1) |
+| Score computation | At each item's last token | At delimiter positions |
+
+> **Note:** These changes are transparent to typical API consumers who only use `scores` field. Users inspecting `meta_info.input_token_ids_logprobs` directly will see different array lengths.
 
 ### PyTorch Parity Checklist
 
@@ -1395,17 +1555,19 @@ def test_memory_usage():
 3. ~~**Prefix caching interaction:** Does multi-item work with prefix caching?~~
    **Answer:** No - radix cache must be disabled.
 
+4. ~~**Max items limit:** Should we limit items to prevent OOM?~~
+   **Answer:** Yes - `MAX_ITEMS_PER_REQUEST = 128` for static shape compilation. PyTorch doesn't limit, but JAX requires bounded shapes for XLA. This is an intentional divergence.
+
 ### Open
 
 1. **JAX attention mask approach:** Which implementation (explicit tensor, Pallas, segments) is best for TPU?
+   *Partially resolved:* Decision made to use segment-based (MVP) and Pallas (production). Detailed implementation still TBD.
 
-2. **Max items limit:** Should we limit items to prevent OOM? PyTorch doesn't limit.
+2. **Memory budget:** What's the maximum sequence length / item count for TPU v6e?
 
-3. **Memory budget:** What's the maximum sequence length / item count for TPU v6e?
+3. **bf16 precision:** Does attention mask computation need special handling for bf16?
 
-4. **bf16 precision:** Does attention mask computation need special handling for bf16?
-
-5. **Multi-host consistency:** How to ensure position manipulation is consistent across TPU hosts?
+4. **Multi-host consistency:** How to ensure position manipulation is consistent across TPU hosts?
 
 ---
 
@@ -1505,3 +1667,4 @@ if len(items) > threshold and delimiter_configured:
 | 2026-02-05 | Second review pass: added FlashInfer backend requirement, corrected logprob_start_len explanation, added extend_logprob_pruned_lens_cpu metadata adjustment, documented all logprob array shape changes, strengthened speculative decoding warning, added delimiter collision as hard requirement, added empty query edge case, scoped sliding window to FlashInfer |
 | 2026-02-05 | Third review pass: added `skip_special_tokens=False` to delimiter decode, clarified delimiter validation must be token-ID based, acknowledged JAX scipy.softmax vs pure Python, added GLOBAL_SERVER_ARGS_KEYS propagation requirement, documented specific JAX changes for `next_token_logits=None`, marked JAX-only validations as divergence from PyTorch |
 | 2026-02-05 | Fourth review pass (JAX/XLA specialist feedback): rewrote JAX section as "JAX/XLA Compilation Constraints" with mandatory static shape handling, added bucket-based compilation strategy, made concrete decision on Block Diagonal attention masking (Segment-based MVP, Pallas production), added JAX-compatible LogitsProcessor implementation, made delimiter validation mandatory 400 error, added underflow warning for apply_softmax=False, schema-level empty query validation |
+| 2026-02-05 | Fifth review pass (final fixes): fixed off-by-one delimiter count (max_delimiters = max_items + 1), added delimiter visibility rules for attention parity, fixed position manipulation -1 index bug, made delimiter retokenization a hard error, defined empty item behavior (400 error), fixed test item count (100 not 1000), moved max items limit to resolved (128), updated compatibility section for behavioral/shape changes, marked segment mask example as conceptual only, changed tests to use tolerances (assert_allclose), added warning when item_first=True ignored |
