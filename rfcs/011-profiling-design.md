@@ -72,10 +72,11 @@ Design a comprehensive profiling framework for sglang-jax that enables deep perf
 8. [Visualization Tools](#visualization-tools)
 9. [General Benchmarking Tools](#general-benchmarking-tools)
 10. [Distributed Profiling (TP/EP)](#distributed-profiling-tpep)
-11. [Advanced Options](#advanced-options)
-12. [Known Issues and Troubleshooting](#known-issues-and-troubleshooting)
-13. [Implementation Plan](#implementation-plan)
-14. [Cost Analysis](#cost-analysis)
+11. [Artifact Storage Strategy](#artifact-storage-strategy) ← **NEW**
+12. [Advanced Options](#advanced-options)
+13. [Known Issues and Troubleshooting](#known-issues-and-troubleshooting)
+14. [Implementation Plan](#implementation-plan)
+15. [Cost Analysis](#cost-analysis)
 
 ---
 
