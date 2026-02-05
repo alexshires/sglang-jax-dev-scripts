@@ -37,19 +37,21 @@ The upstream sglang-jax runs these on **every PR** via self-hosted TPU runners:
 Jobs that run on every PR:
 ├── unit-test-1-tpu      (arc-runner-v6e-1)
 ├── unit-test-4-tpu      (arc-runner-v6e-4)
-├── e2e-test-1-tpu       (arc-runner-v6e-1)  ← Includes Score API tests
+├── e2e-test-1-tpu       (arc-runner-v6e-1)  ← Includes legacy Score API tests
 ├── e2e-test-4-tpu       (arc-runner-v6e-4)
 ├── accuracy-test-1-tpu  (arc-runner-v6e-1)
 ├── accuracy-test-4-tpu  (arc-runner-v6e-4)
 ├── performance-test-1-tpu (arc-runner-v6e-1)
-└── performance-test-4-tpu (arc-runner-v6e-4)
+├── performance-test-4-tpu (arc-runner-v6e-4)
+└── tpu-score-api-test   (arc-runner-v6e-1)  ← Dedicated Score API test suite (New)
 ```
 
 ### Score API Coverage in Upstream
 
 | Test | Suite | Runs On |
 |------|-------|---------|
-| `test/srt/test_score_api.py` | `e2e-test-tpu-v6e-1` | Every PR |
+| `test/srt/test_score_*.py` | `score-api-test-tpu-v6e-1` | Every PR (Dedicated) |
+| `test/srt/test_score_api.py` | `e2e-test-tpu-v6e-1` | Every PR (Legacy) |
 | `test/srt/openai_server/basic/test_openai_server.py` | `e2e-test-tpu-v6e-1` | Every PR |
 
 ### The Gap: No Score API Performance Benchmark
