@@ -94,6 +94,14 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Common output schema, comparison reporting, GCS result storage
   - Cost analysis: ~$2.12 per comparison run
 
+- **[RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md)**
+  - Status: Draft
+  - End-to-end profiling framework for JAX/TPU workloads
+  - Focus on Score API profiling with layer-by-layer breakdown
+  - Memory profiling, kernel analysis, CI integration
+  - Step-by-step guides for all profiling scenarios
+  - Tools: JAX profiler, XProf, TensorBoard, Perfetto
+
 ### Templates
 
 - **[RFC Template](rfcs/template.md)**
@@ -235,9 +243,11 @@ RFC-009 (ARC Runner Setup)  ← Self-hosted TPU runners
     ↓
 RFC-004 (Performance Benchmarks)
     ↓
-RFC-010 (Cross-Backend Benchmarking)  ← NEW: PyTorch GPU vs JAX TPU
+RFC-010 (Cross-Backend Benchmarking)  ← PyTorch GPU vs JAX TPU
     ↓
-Investigation: v1 Infrastructure Assessment  ← NEW: Gap analysis
+RFC-011 (Profiling Framework)  ← NEW: Comprehensive profiling
+    ↓
+Investigation: v1 Infrastructure Assessment  ← Gap analysis
     ↓
 Runbook: Running Score API Tests
     ↓
@@ -265,6 +275,7 @@ Runbook: Debugging
 ### Performance
 - [RFC-004: Performance Benchmarks](rfcs/004-score-api-performance-benchmarks.md)
 - [RFC-010: Cross-Backend Benchmarking](rfcs/010-cross-backend-benchmarking.md) ← PyTorch GPU vs JAX TPU
+- [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 - [Test Plan 004: Benchmarks and Stress Tests](test-plans/004-performance-benchmarks-and-stress-tests.md)
 - [Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)
@@ -318,6 +329,14 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-05:** RFC-011: Comprehensive Profiling Framework for sglang-jax
+  - End-to-end profiling framework for JAX/TPU workloads with Score API focus
+  - Layer-by-layer performance breakdown using JAX named scopes
+  - Memory profiling integration with `jax.profiler.save_device_memory_profile()`
+  - 5 detailed step-by-step guides: End-to-end, Memory, Kernel-level, Comparative, CI/CD
+  - Visualization tools: Perfetto, TensorBoard, XProf comparison
+  - Analysis of existing profiling infrastructure in both sglang (PyTorch) and sglang-jax
 
 - **2026-02-04:** Investigation: v1 Infrastructure Assessment + RFC-010: Cross-Backend Benchmarking
   - **Investigation:** Audited all 11 files in v1/ directory for cross-backend benchmarking readiness
