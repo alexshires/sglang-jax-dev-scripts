@@ -120,6 +120,10 @@ class SchedulerProfilerMixin:
 > **⚠️ Important:** JAX profiling is **step-based**, not per-request. The `num_steps` parameter
 > refers to forward passes (batches), not individual HTTP requests. Multiple score requests
 > may be batched into one forward step, or one request may span multiple steps.
+>
+> **Chunked Prefill Consideration:** If chunked prefill is active (e.g., `--chunked-prefill-size=512`)
+> and a Score request has 4096 tokens, that's 8 forward passes for ONE request. Ensure your
+> `num_steps` is large enough to capture the entire request, not just the first chunk.
 
 #### 3. Memory Profiler (`python/sgl_jax/srt/memory_profiler.py`)
 
@@ -489,11 +493,12 @@ class ScoreProfileResult:
 
     # Timing breakdown (milliseconds)
     total_latency_ms: float
-    tokenization_ms: float
-    queue_wait_ms: float
-    model_forward_ms: float
-    logprob_extraction_ms: float
-    softmax_ms: float
+    tokenization_ms: float           # CPU (main process)
+    queue_wait_ms: float             # IPC overhead
+    model_forward_ms: float          # TPU (scheduler process)
+    device_to_host_ms: float         # Logits transfer from HBM to Host RAM
+    logprob_extraction_ms: float     # CPU (main process)
+    softmax_ms: float                # CPU (scipy, main process)
 
     # Batch info
     batch_size: int
@@ -510,6 +515,8 @@ class ScoreProfileResult:
     hardware: Optional[str] = None
 
 
+# NOTE: This profiler would run in the SCHEDULER process, not the main process.
+# For main process (TokenizerManager) timing, use simple time.perf_counter() or OpenTelemetry.
 class ScoreProfiler:
     """Profiler for Score API requests."""
 
@@ -858,22 +865,57 @@ if __name__ == "__main__":
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**For TokenizerManager profiling (CPU):**
+**For TokenizerManager profiling (CPU) - Recommended: Lightweight Timing**
+
+For production profiling, use simple `time.perf_counter` logs that can be enabled via environment variable. This has minimal overhead and is easy to correlate with JAX traces:
 
 ```python
-# Use cProfile for CPU profiling of the main process
-import cProfile
-import pstats
+# In tokenizer_manager.py
+import os
+import time
 
+_LOG_TIMING = os.environ.get("SGL_LOG_L1_TIMING", "0") == "1"
+
+async def score_request(self, ...):
+    if _LOG_TIMING:
+        t0 = time.perf_counter()
+
+    # Tokenization
+    prompts = [f"{query}{item}" for item in items_list]
+    if _LOG_TIMING:
+        t1 = time.perf_counter()
+        logger.info(f"[TIMING] tokenization: {(t1-t0)*1000:.2f}ms")
+
+    # ... rest of method ...
+
+    if _LOG_TIMING:
+        t_softmax = time.perf_counter()
+        logger.info(f"[TIMING] softmax: {(t_softmax-t_prev)*1000:.2f}ms")
+```
+
+**Alternative: OpenTelemetry for distributed tracing**
+
+```python
+from opentelemetry import trace
+tracer = trace.get_tracer(__name__)
+
+async def score_request(self, ...):
+    with tracer.start_as_current_span("score_request") as span:
+        with tracer.start_as_current_span("tokenization"):
+            # tokenization code
+        with tracer.start_as_current_span("softmax"):
+            # softmax code
+```
+
+**For deep analysis only: cProfile (adds significant overhead)**
+
+```python
+# Only use for detailed analysis, NOT production benchmarking
+import cProfile
 profiler = cProfile.Profile()
 profiler.enable()
-
 # ... run score requests ...
-
 profiler.disable()
-stats = pstats.Stats(profiler)
-stats.sort_stats('cumulative')
-stats.print_stats(20)
 ```
 
 **Or use py-spy for live profiling:**
@@ -894,6 +936,20 @@ Add `jax.profiler.TraceAnnotation` in scheduler code, NOT TokenizerManager:
 # In scheduler.py, NOT tokenizer_manager.py
 with jax.profiler.TraceAnnotation("run_batch", batch_size=batch.batch_size()):
     output = self.tp_worker.forward_batch_generation(...)
+```
+
+**For Device-to-Host transfer timing:**
+
+The logits transfer from TPU HBM to Host RAM is a hidden cost, especially for large batch sizes or vocabularies:
+
+```python
+# In scheduler or model_runner
+import time
+
+t0 = time.perf_counter()
+logits_host = jax.device_get(logits_device)  # Blocks until transfer complete
+t1 = time.perf_counter()
+logger.info(f"[TIMING] device_to_host: {(t1-t0)*1000:.2f}ms, shape={logits_device.shape}")
 ```
 
 ---
@@ -1419,7 +1475,14 @@ jobs:
             --model-path meta-llama/Llama-3.2-1B-Instruct \
             --device tpu &
 
-          sleep 60  # Wait for server
+          # Wait for server with health check (TPU init can take variable time)
+          for i in {1..120}; do
+            if curl -s http://localhost:30000/health > /dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
 
           # Run benchmark with profiling
           python test/srt/bench_score.py \
@@ -1494,6 +1557,14 @@ SELECT ts, value FROM counter WHERE name = 'hbm_usage';
 ```
 
 ### TensorBoard Quick Reference
+
+> **⚠️ Plugin Required:** Standard TensorBoard often fails to render TPU traces correctly.
+> You need `tensorboard-plugin-profile` that matches your TPU software version:
+> ```bash
+> pip install tensorboard tensorboard-plugin-profile
+> ```
+> **Recommendation:** Perfetto is generally more robust for JAX/TPU traces and doesn't
+> require version matching.
 
 ```bash
 # Launch
@@ -1624,11 +1695,15 @@ for event in trace["traceEvents"]:
 
 ## Implementation Plan
 
-### Phase 1: Core Infrastructure
+### Phase 1: Core Infrastructure (Priority: High)
 
 - [ ] Create `sgl_jax/srt/score_profiler.py` module
 - [ ] Add TraceAnnotation to scheduler for Score API tagging
 - [ ] Create `test/srt/bench_score.py` with server-side profiling
+- [ ] **Implement `sgl_jax/srt/utils/trace_merger.py`** for multi-rank trace merging
+  - JAX traces are gzip-compressed JSON; merge `traceEvents` lists
+  - Essential for debugging TP communication overhead (`all_gather`/`reduce_scatter`)
+- [ ] Add **Device-to-Host transfer timing** for logits (hidden cost in Score API)
 - [ ] Document environment variables and output directory precedence
 
 ### Phase 2: Memory Profiling
@@ -1637,15 +1712,19 @@ for event in trace["traceEvents"]:
 - [ ] Add automatic peak HBM tracking
 - [ ] Create memory regression tests
 - [ ] Document memory profiling workflow
+- [ ] **Enforce mutual exclusivity** between `--enable-trace` and `--enable-memory`
+  - Memory profiling (`save_device_memory_profile`) forces sync and skews latency metrics
+  - Or add clear warning: "Latency numbers are invalid when memory profiling is active"
 
 ### Phase 3: CI Integration
 
 - [ ] Create nightly profiling workflow
+- [ ] Use **health-check loop** (not `sleep 60`) for server readiness
 - [ ] Set up artifact storage and retention
 - [ ] Implement regression comparison script
 - [ ] Add Slack/PR notifications for regressions
 
-### Phase 4: Documentation and Tooling (Week 4)
+### Phase 4: Documentation and Tooling
 
 - [ ] Create runbook for profiling operations
 - [ ] Add CLI tools for trace analysis
@@ -2014,8 +2093,17 @@ python -m sgl_jax.launch_server \
 | `ENABLE_MEMORY_PROFILING` | Enable memory profiling | `0` |
 | `SGL_MEMORY_OUTPUT_DIR` | Memory profile output directory | `memory_profiles` |
 | `MEMORY_PROFILING_LAYERS` | Layers to profile (`all`, `4`, `0,1,2`) | `4` |
-| `JAX_COMPILATION_CACHE_DIR` | XLA compilation cache | None |
+| `JAX_COMPILATION_CACHE_DIR` | XLA compilation cache (see note below) | None |
 | `XLA_FLAGS` | XLA compiler flags | None |
+| `SGL_LOG_L1_TIMING` | Enable lightweight timing logs | `0` |
+
+> **XLA Cache Recommendation:** Set `JAX_COMPILATION_CACHE_DIR` to a persistent location
+> *outside* `/tmp` if you want the cache to survive reboots. For Docker containers, ensure
+> the path is mapped to a host volume:
+> ```bash
+> export JAX_COMPILATION_CACHE_DIR=/persistent/jax_cache
+> # Or in Docker: -v /host/jax_cache:/persistent/jax_cache
+> ```
 
 ---
 
