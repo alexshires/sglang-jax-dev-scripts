@@ -269,6 +269,22 @@ class LogitsProcessorOutput:
 
 This affects worker behavior - workers must handle `None` logits gracefully.
 
+> **JAX Implementation Required Changes:**
+>
+> The current JAX codebase treats `next_token_logits` as a required tensor:
+>
+> | File | Issue |
+> |------|-------|
+> | `logits_processor.py:27-33` | Type annotation assumes non-None |
+> | `tp_worker.py:529-571` | Uses logits unconditionally for sampling and debug logging |
+>
+> **Changes needed for multi-item support:**
+> 1. Update `LogitsProcessorOutput` to allow `Optional[Tensor]`
+> 2. Add prefill-only detection in `tp_worker.py`
+> 3. Gate sampling logic: skip when `next_token_logits is None`
+> 4. Gate debug log dumping that accesses logits
+> 5. Consider adding `is_prefill_only` flag to `LogitsMetadata` (as PyTorch does)
+
 ---
 
 ## Proposed Design
@@ -316,7 +332,18 @@ When set:
 > **This is a HARD REQUIREMENT, not a suggestion:**
 > - Choose a delimiter token that cannot appear in user content
 > - Recommended: Use model-specific special tokens (e.g., `<|eot_id|>` for Llama-3)
-> - Consider adding validation that scans query/items for delimiter token before processing
+> - Validation must check **tokenized IDs**, not substring matching (BPE may encode delimiter text differently in context)
+>
+> ```python
+> # Correct: Token-ID based validation
+> query_ids = tokenizer.encode(query)
+> if delimiter_token_id in query_ids:
+>     raise ValueError("Delimiter token found in query")
+>
+> # Wrong: Substring check (misses BPE edge cases)
+> if delimiter_text in query:  # Don't do this!
+>     ...
+> ```
 
 ### Internal Sequence Format
 
@@ -328,9 +355,14 @@ When set:
 **Delimiter text derivation:** The server decodes the delimiter token ID to get the delimiter text:
 
 ```python
-# During initialization
-self.multi_item_delimiter_text = tokenizer.decode([delimiter_token_id])
+# During initialization - MUST use skip_special_tokens=False
+self.multi_item_delimiter_text = tokenizer.decode(
+    [delimiter_token_id],
+    skip_special_tokens=False  # Critical! Otherwise special tokens return empty string
+)
 ```
+
+> **Why `skip_special_tokens=False`?** Many tokenizers return empty string for special tokens when `skip_special_tokens=True` (the default in some APIs). Since delimiters are typically special tokens (e.g., `<|eot_id|>`), omitting this flag breaks delimiter insertion.
 
 **Note:** PyTorch does NOT validate that the delimiter text re-tokenizes to a single token. For robustness, JAX implementation SHOULD add this validation:
 
@@ -743,10 +775,10 @@ new_positions = jnp.where(
 
 ### Softmax Location
 
-Per ADR-001, softmax must remain in TokenizerManager (pure Python, not JAX):
+Per ADR-001, softmax must remain in TokenizerManager and be device-agnostic (not JAX):
 
 ```python
-# CORRECT: Pure Python in TokenizerManager
+# CORRECT: Device-agnostic in TokenizerManager
 def _convert_logprobs_to_scores(self, ...):
     import math  # Pure Python
     exp_scores = [math.exp(x) for x in logprobs]
@@ -757,6 +789,17 @@ def _convert_logprobs_to_scores(self, ...):
     import jax.numpy as jnp  # NO! Device conflict
     exp_scores = jnp.exp(logprobs)
 ```
+
+> **Current JAX Implementation Note:**
+>
+> The JAX TokenizerManager currently uses `scipy.special.softmax` (see `tokenizer_manager.py:1294-1301`), not pure Python `math`. SciPy is device-agnostic (CPU-only, NumPy-based), so it satisfies ADR-001's intent of avoiding JAX device conflicts.
+>
+> **Decision needed:** Either:
+> - Accept SciPy as compliant with ADR-001 (it's device-agnostic)
+> - Update to pure Python for stricter compliance
+> - Update ADR-001 to explicitly allow SciPy
+>
+> For multi-item scoring, either approach works as long as no JAX ops are used in TokenizerManager.
 
 ### TPU-Specific Constraints
 
@@ -781,12 +824,15 @@ def _convert_logprobs_to_scores(self, ...):
 ### Phase 1: Infrastructure
 
 - [ ] Add `multi_item_scoring_delimiter` to server args
+- [ ] **Add `multi_item_scoring_delimiter` to `GLOBAL_SERVER_ARGS_KEYS`** (required for LogitsProcessor/attention to see it)
 - [ ] Add startup validation for required flags (radix cache, chunked prefill)
 - [ ] Add startup validation for incompatible flags (speculative decoding)
-- [ ] Add `multi_item_delimiter_text` derivation from token ID
+- [ ] Add `multi_item_delimiter_text` derivation from token ID (with `skip_special_tokens=False`)
 - [ ] Implement delimiter text validation (single-token re-encoding)
-- [ ] Add runtime validation: delimiter token not in query/items
-- [ ] Add runtime validation: query must have at least one token
+- [ ] Add runtime validation: delimiter token not in query/items (**JAX-only guard**, not in PyTorch)
+- [ ] Add runtime validation: query must have at least one token (**JAX-only guard**, not in PyTorch)
+
+> **Note on JAX-Only Guards:** PyTorch does not validate delimiter collision or empty query. These are safety improvements for JAX. If strict parity is required, make them opt-in via a flag or remove them.
 
 ### Phase 2: Attention Mechanism (Critical Path)
 
@@ -1143,3 +1189,4 @@ if len(items) > threshold and delimiter_configured:
 | 2026-02-01 | Initial draft |
 | 2026-02-05 | Major update based on PR #10979 analysis: added attention mask section, runtime constraints, corrected logprob dataflow, resolved apply_softmax semantics, added JAX considerations, expanded testing |
 | 2026-02-05 | Second review pass: added FlashInfer backend requirement, corrected logprob_start_len explanation, added extend_logprob_pruned_lens_cpu metadata adjustment, documented all logprob array shape changes, strengthened speculative decoding warning, added delimiter collision as hard requirement, added empty query edge case, scoped sliding window to FlashInfer |
+| 2026-02-05 | Third review pass: added `skip_special_tokens=False` to delimiter decode, clarified delimiter validation must be token-ID based, acknowledged JAX scipy.softmax vs pure Python, added GLOBAL_SERVER_ARGS_KEYS propagation requirement, documented specific JAX changes for `next_token_logits=None`, marked JAX-only validations as divergence from PyTorch |
