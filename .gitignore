@@ -1,0 +1,6 @@
+# Profiling trace files (large, stored in GCS)
+profiling/*/traces/
+profiling/*/server.log
+
+# OS files
+.DS_Store

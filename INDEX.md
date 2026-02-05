@@ -177,6 +177,14 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Baseline management and regression detection
   - CI/CD integration and cost management
 
+## Reports
+
+- **[Profiling Session 2026-02-05](reports/profiling-session-2026-02-05.md)** ← **NEW**
+  - End-to-end profiling of sglang-jax on TPU v6e
+  - TinyLlama 1.1B model, 15 generate requests
+  - Trace analysis with 283K events, 27s total traced time
+  - Artifacts in GCS: `gs://sglang-jax-profiling-results/2026-02-05-tinyllama-tpu-v6e/`
+
 ## Test Plans
 
 - **[Test Plan 001: Shared Fixtures and Core Tests](test-plans/001-shared-fixtures-and-core-tests.md)**
