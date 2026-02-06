@@ -195,7 +195,7 @@ label_token_ids = [PARIS_TOKEN]  # Score probability of " Paris" after each
 # France context should score highest for Paris
 ```
 
-**Important:** For Patterns 1-3, use `apply_softmax=False` (raw logprobs) to compare across items. Softmax normalizes per-item, which is only meaningful when comparing labels within a single item.
+**Important:** For Patterns 1-3, use `apply_softmax=False` (unnormalized probabilities — `exp(logprob)`) to compare across items. Softmax normalizes per-item, which is only meaningful when comparing labels within a single item.
 
 ## Design Principles
 
@@ -637,9 +637,9 @@ scores = engine.score(
     query="The capital of France is",
     items=[""],  # Empty - score next token after query
     label_token_ids=[PARIS_ID, LONDON_ID, BERLIN_ID],
-    apply_softmax=False  # Raw logprobs for ranking
+    apply_softmax=False  # Unnormalized probabilities (exp of logprob) for ranking
 )
-# Returns: [[-0.5, -3.2, -4.1]]  # Paris has highest logprob
+# Returns: [[0.607, 0.041, 0.017]]  # Paris has highest probability
 # Rank by scores[0]: Paris > London > Berlin
 ```
 
@@ -654,9 +654,9 @@ scores = engine.score(
     query="The capital of",
     items=[" France is", " Germany is", " Italy is"],  # Different contexts
     label_token_ids=[TARGET_ID],  # Same target for all
-    apply_softmax=False  # Raw logprobs for comparison
+    apply_softmax=False  # Unnormalized probabilities (exp of logprob) for comparison
 )
-# Returns: [[-0.5], [-5.2], [-4.8]]
+# Returns: [[0.607], [0.006], [0.008]]
 # "The capital of France is" → " Paris" has highest probability
 ```
 

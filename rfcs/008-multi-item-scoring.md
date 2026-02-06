@@ -255,6 +255,18 @@ if server_args.multi_item_scoring_delimiter is not None:
             "Multi-item scoring requires --chunked-prefill-size -1. "
             "Chunked prefill could split sequences at item boundaries."
         )
+    # JAX: Verify attention backend supports custom_mask
+    # (FlashAttention backend required; native backend does not support custom_mask)
+    if server_args.attention_backend == "native":
+        raise ValueError(
+            "Multi-item scoring requires FlashAttention backend (default). "
+            "Native backend does not support custom attention masks."
+        )
+    if server_args.speculative_algorithm is not None:
+        raise ValueError(
+            "Multi-item scoring is incompatible with speculative decoding. "
+            "Disable --speculative-algorithm when using --multi-item-scoring-delimiter."
+        )
 ```
 
 ### Request-Level Constraints
@@ -877,7 +889,7 @@ multi_item_indices = jnp.nonzero(input_ids == delimiter_token, ...)[0] - 1  # Dy
 ```python
 # JAX-compatible: static size with padding and bucket allocation
 MAX_ITEMS_PER_REQUEST = 128  # Define maximum items
-ITEM_COUNT_BUCKETS = [8, 16, 32, 64, 128]  # Compile once per bucket
+ITEM_COUNT_BUCKETS = [8, 16, 32, 64, 128]  # Pad output arrays to static size (does NOT affect JIT compilation)
 
 def find_delimiter_indices_static(input_ids, delimiter_token, max_items):
     """Find delimiter indices with static output shape."""
@@ -1001,6 +1013,37 @@ def build_multi_item_attention_mask(
 ```
 
 **Integration point:** Construct the mask in the scheduler or batch preparation code, set `forward_batch.attn_backend.forward_metadata.custom_mask = jnp.array(mask)`, and the existing kernel handles the rest. The kernel DMA's mask tiles to VMEM in blocks — no full materialization in VMEM.
+
+**Batched format (multiple scoring requests in one batch):**
+
+For `batch_size > 1`, each scoring request gets its own mask segment. Masks are concatenated and indexed via `cu_seq_mask_lens` (same pattern as EAGLE in `eagle_util.py:273-292`):
+
+```python
+def build_batched_multi_item_masks(
+    requests: list[tuple[int, list[int]]],  # [(prefix_len, item_lens), ...]
+    padded_kv_lens: list[int],              # Per-request padded KV lengths
+    real_q_lens: list[int],                 # Per-request real Q lengths
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build concatenated masks for a batch of multi-item scoring requests.
+
+    Returns:
+        masks: Flattened int32 array [sum(q_lens[i] * kv_lens[i])]
+        cu_seq_mask_lens: Cumulative mask lengths [batch_size + 1]
+    """
+    segments = []
+    for (prefix_len, item_lens), kv_len, q_len in zip(requests, padded_kv_lens, real_q_lens):
+        mask = build_multi_item_attention_mask(prefix_len, item_lens, kv_len)
+        # Reshape to [kv_len, kv_len], take first q_len rows, flatten
+        mask_2d = mask.reshape(kv_len, kv_len)[:q_len, :]
+        segments.append(mask_2d.flatten())
+
+    concatenated = np.concatenate(segments) if segments else np.array([], dtype=np.int32)
+    lens = [len(s) for s in segments]
+    cu_lens = np.concatenate([np.array([0], dtype=np.int32), np.cumsum(lens)])
+    return concatenated, cu_lens
+```
+
+**MVP scope:** Each multi-item scoring request is processed as a single sequence (`bs=1` effective). Batched multi-item requests (multiple independent scoring requests in one forward pass) are a future optimization. The concatenation contract above is documented for completeness and to match the kernel's `cu_seq_mask_lens` API.
 
 **Memory guard:** Add `max_multi_item_seq_len` server arg (default 8192) to reject requests that would create >256MB masks (O(seq²) HBM).
 
@@ -1147,7 +1190,7 @@ def _convert_logprobs_to_scores(self, ...):
 - [ ] Add `MAX_ITEMS_PER_REQUEST = 128` constant
 - [ ] Add `ITEM_COUNT_BUCKETS = [8, 16, 32, 64, 128]` for static shape padding (note: these affect padding only, NOT compilation — compilation is driven by token buckets)
 - [ ] Add startup validation for required flags (radix cache, chunked prefill)
-- [ ] Add startup validation for incompatible flags (speculative decoding)
+- [ ] Add startup validation for incompatible flags (speculative decoding, native attention backend)
 - [ ] Add `multi_item_delimiter_text` derivation from token ID (with `skip_special_tokens=False`)
 - [ ] Implement delimiter text validation (single-token re-encoding)
 - [ ] Add runtime warning when `item_first=True` is passed with multi-item mode
@@ -1159,7 +1202,8 @@ def _convert_logprobs_to_scores(self, ...):
 
 **Accepted inputs (match PyTorch):**
 - Empty item strings (`""` in items): accepted — produces a score at the delimiter position
-- Empty items list (`items=[]`): returns `[]` (empty scores)
+
+**Note:** Empty items list (`items=[]`) is rejected at the validation layer (RFC-006: "items cannot be empty") before reaching multi-item logic. PyTorch's multi-item path is likely broken for this case (builds `query<d><d>`, expects 1 logprob but gets 2). The test only passes because the engine is not configured with `multi_item_scoring_delimiter`.
 
 ```python
 # Delimiter collision validation (MANDATORY)
@@ -1367,9 +1411,9 @@ def test_delimiter_not_in_content():
 
 > **JAX-specific divergences from PyTorch:**
 >
-> - **Empty items list** (`items=[]`): Both JAX and PyTorch return `[]`. No divergence.
+> - **Empty items list** (`items=[]`): JAX rejects at validation layer (RFC-006: "items cannot be empty"). PyTorch's multi-item path is likely broken for this case (test only passes because engine has no delimiter configured). Intentional divergence.
 > - **Empty item strings** (`""` in items): Both JAX and PyTorch accept them. No divergence.
-> - **Empty query tokens**: JAX rejects with 400 error. PyTorch accepts (text inputs get BOS prepended; token inputs have a latent `-1` index bug). This is an intentional JAX safety divergence.
+> - **Empty query** (text `""` or token `[]`): JAX rejects with 400 error in all cases. Already implemented in `score_validation.py:127` and specified in RFC-006. PyTorch accepts text inputs (BOS prepended masks the issue); token inputs have a latent `-1` index bug. Intentional divergence.
 
 ```python
 def test_empty_item_strings_accepted():
@@ -1488,13 +1532,13 @@ def test_memory_usage():
 
 ### Compatibility Matrix: PyTorch Actual vs JAX Intended
 
-> **How to read this table:** "PyTorch Actual" is verified against the codebase and test suite (PR #10979), not documentation claims. "JAX Intended" is the proposed behavior for this RFC. Divergences are intentional and explained.
+> **How to read this table:** "PyTorch Actual" is verified against source code (PR #10979). Note: the core test suite (`test_score_api.py`) does NOT set `multi_item_scoring_delimiter`, so those tests exercise single-item mode only — multi-item path behavior is inferred from code, not proven by tests. "JAX Intended" is the proposed behavior for this RFC. Divergences are intentional and explained.
 
-| Aspect | PyTorch Actual (verified) | JAX Intended | Divergence? | Rationale |
+| Aspect | PyTorch Actual (code review) | JAX Intended | Divergence? | Rationale |
 |--------|--------------------------|--------------|-------------|-----------|
-| **Input: empty items list** (`items=[]`) | Returns `[]` (empty scores). Test: `test_multi_item_scoring_empty_items` line 408 | Returns `[]` (same) | No | Parity |
+| **Input: empty items list** (`items=[]`) | **Likely broken in multi-item path.** Single-item path returns `[]` (test passes). Multi-item path builds `query<d><d>`, gets 2 delimiter logprobs, but expects `num_items+1=1` — length mismatch would raise RuntimeError. Test only passes because engine is not configured with delimiter. | **400 error** (rejected at validation layer per RFC-006) | **Yes** | JAX rejects empty items list at validation before reaching multi-item path. PyTorch's multi-item path is untested and likely broken for this case. |
 | **Input: empty item string** (`""` in items) | Accepted silently. No test enforces rejection | Accepted (same) | No | Parity. Scoring position falls on delimiter token — valid but not particularly meaningful |
-| **Input: empty query** (`query=""` text) | Accepted (BOS prepended). Test: `test_multi_item_scoring_different_queries` line 452 | **400 error** (token inputs); text inputs get BOS so may work | **Yes** | Token inputs: `delimiter_index - 1 = -1` causes incorrect slicing |
+| **Input: empty query** (`query=""` text) | Accepted in single-item mode (BOS prepended). Test does not exercise multi-item path | **400 error** (both text and token inputs) | **Yes** | Already implemented in JAX validation (`score_validation.py:127`) and specified in RFC-006. Canonical rule: always reject empty query regardless of input mode |
 | **Input: delimiter in content** | Not validated. `logits_processor.py` scans all delimiter occurrences without checking source | **400 error** | **Yes** | Prevents silent incorrect item boundaries |
 | **Input: item count limit** | Unlimited (dynamic shapes) | **Max 128** | **Yes** | XLA requires static shapes; buckets bound compilation |
 | **`apply_softmax=False`** | Returns `exp(logprob)` (probabilities, not raw logprobs). Code: `math.exp(x)` in `_convert_logprobs_to_scores` | Returns `exp(logprob)` (same) | No | Parity. RFC-000 corrected (2026-02-06) to document this correctly |
@@ -1550,7 +1594,7 @@ def test_memory_usage():
     **Answer:** Use the same `device_array()` + `NamedSharding(mesh, P())` pattern as other metadata arrays (see `flashattention_backend.py:161-164`). When `jax.process_count() == 1`, use `NamedSharding`; otherwise `None` (JAX handles replication). The mask is constructed deterministically from the same input data on all hosts.
 
 11. ~~**`apply_softmax=False` cross-RFC synchronization:** RFC-000 documented `exp(logprob)` behavior?~~
-    **Answer:** RFC-000 was corrected (2026-02-06) to document `exp(logprob)` behavior. One stale reference found: `sglang-jax/test/srt/test_score_openai_client.py` has a comment referencing "raw logprobs" that should say "unnormalized probabilities." Update during implementation.
+    **Answer:** Corrected (2026-02-06). RFC-000 updated: "raw logprobs" → "unnormalized probabilities (`exp(logprob)`)" at lines 198, 640, 657. JAX tests updated: `test_score_openai_client.py:127` and `test_score_api_core.py:250` corrected to say "unnormalized probabilities" instead of "raw logprobs".
 
 12. ~~**`custom_mask` + static shape interaction:** Does the mask work with padded sequence lengths?~~
     **Answer:** Yes. The mask construction function accepts `padded_seq_len` (the token padding bucket) and creates a `[padded_seq_len²]` array. Real content positions get the shared-prefix + block-diagonal pattern; padding positions are set to 0 (blocked). `cu_seq_mask_lens` is computed from real (not padded) `kv_lens × q_lens` at `ragged_paged_attention.py:1500-1502`, so the kernel correctly indexes into the mask for real content only.
@@ -1656,3 +1700,4 @@ if len(items) > threshold and delimiter_configured:
 | 2026-02-05 | Comprehensive update (5 review passes): Added attention mask architecture, runtime constraints, corrected logprob dataflow (delimiter-only extraction), resolved apply_softmax semantics (match PyTorch: `exp(logprob)`), added JAX/XLA compilation constraints, bucket-based static shapes, delimiter validation, compatibility matrix, expanded testing |
 | 2026-02-06 | Factual accuracy audit + investigation spikes: Verified all PyTorch claims against codebase. Investigated attention mechanism (6 candidates evaluated, `custom_mask` in `ragged_paged_attention` selected — zero kernel changes). Measured compilation overhead (+8 EXTEND compilations, additive not multiplicative, item count invisible to JIT). Added investigation docs for [attention mechanism](../investigations/multi-item-attention-mechanism.md) and [compilation overhead](../investigations/multi-item-compilation-overhead.md). Resolved Decisions 7 and 8. |
 | 2026-02-06 | Final review resolution: Resolved all remaining open questions (memory budget, bf16, multi-host, cross-RFC sync, mask+padding interaction). Changed empty item policy from "400 error" to "accept" (match PyTorch). Verified `jnp.nonzero` edge cases and `custom_mask`+padding interaction. Removed historical amendment framing (Original/Incorrect patterns, Strategy A/B/C alternatives). Replaced stale attention mask code blocks with decided `custom_mask` approach + concrete mask construction function. All Phase 0 prerequisites complete. Status → Ready for Implementation. |
+| 2026-02-06 | Third review pass fixes: (1) P0: Marked `items=[]` as likely broken in PyTorch multi-item path (test passes only because engine has no delimiter) — JAX rejects at validation layer per RFC-006. (2) P1: Downgraded "verified against test suite" claim — PyTorch tests don't exercise multi-item path. (3) P1: Unified empty query rule — always 400, matching existing JAX validation and RFC-006. (4) P1: Added batched mask format contract (`cu_seq_mask_lens` + concatenation pattern from EAGLE). (5) P2: Fixed `ITEM_COUNT_BUCKETS` comment contradiction (buckets affect padding, not compilation). (6) P2: Cross-RFC sync completed — fixed 3 "raw logprobs" remnants in RFC-000 and 2 in JAX tests. (7) P2: Added backend + speculative decoding validation to startup checks. |
