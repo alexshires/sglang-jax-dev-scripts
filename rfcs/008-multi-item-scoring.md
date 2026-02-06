@@ -848,26 +848,40 @@ def _convert_logprobs_to_scores(self, logprobs, label_token_ids, apply_softmax):
 
 **Trade-off:** Memory overhead for padding; compilation count depends on interaction with existing padding axes (needs benchmarking).
 
-### Decision 8: Block Diagonal Attention Masking (JAX-Specific) — REQUIRES INVESTIGATION
+### Decision 8: Block Diagonal Attention Masking (JAX-Specific) — RESOLVED
 
-**Status:** Direction chosen (block diagonal), **specific implementation path unresolved.**
+**Status:** Investigation complete. See [Investigation: Multi-Item Attention Mechanism](../investigations/multi-item-attention-mechanism.md).
 
-**What IS decided:**
-- Explicit `[seq, seq]` mask tensor exceeds memory budget (256MB at seq_len=8192) — ruled out for production
-- Block diagonal pattern is the correct attention shape: "query visible to all, items see only themselves"
+**Decision: Reuse existing `custom_mask` in `ragged_paged_attention` for MVP.**
 
-**What is NOT decided:**
-- Which JAX API implements segment-aware attention without materializing O(seq²) masks? Candidates: `splash_attention` with segment masks, custom Pallas kernel, `jax.nn.dot_product_attention` with bias. None have been validated for this specific masking pattern.
-- The "segment-based MVP" code in this RFC (Strategy B) explicitly materializes a full `[seq_len, seq_len]` mask and is marked "DO NOT use in production." It is suitable only for correctness testing, not deployment.
+**Key finding:** The existing Pallas kernel (`ragged_paged_attention`) already supports arbitrary attention masks via a `custom_mask` parameter (flattened 1D int32 array, shape `[q_len * kv_len]`). This is used today for speculative decoding (EAGLE). Zero kernel changes needed.
 
-**Investigation needed before implementation:**
-1. Validate `splash_attention` segment ID support for shared-prefix + block-diagonal pattern
-2. Validate `jax.nn.dot_product_attention` bias approach for memory and correctness
-3. Prototype Pallas kernel and measure development effort
-4. Produce a decision matrix: correctness, memory, latency, development cost
-5. Pick one MVP path and one fallback
+**How it works:**
+1. Construct the shared-prefix + block-diagonal mask as a flattened int32 array on the host
+2. Set `FlashAttentionMetadata.custom_mask = jnp.array(mask)`
+3. The kernel automatically sets `causal=0` and uses the custom mask
+4. Mask tiles are DMA'd to VMEM in blocks — no full materialization in VMEM
 
-**Trade-off:** More complex implementation than explicit mask; Pallas requires kernel expertise.
+**Memory cost (HBM):** O(seq_len²) for the mask. Acceptable for typical scoring workloads:
+
+| Total seq_len | Mask size |
+|---------------|-----------|
+| 410 (10 items × 10 tok) | 672 KB |
+| 1,310 (100 items × 10 tok) | 6.9 MB |
+| 6,700 (128 items × 50 tok) | 180 MB |
+
+**Guard rail:** Add `max_multi_item_seq_len` server arg (default 8192) to reject requests that would create >256MB masks.
+
+**Production optimization (if needed later):**
+- Splash Attention with `NumpyMask`: O(seq) device memory, O(seq²) host only. Requires new integration path.
+- Procedural Pallas kernel: compute mask on-the-fly from `prefix_len` + `item_boundaries`. O(seq) everywhere. Higher dev effort.
+
+**Candidates ruled out:**
+- `segment_ids` (Pallas flash attention, splash attention, Kvax): Cannot express shared-prefix pattern — strict block-diagonal only, no cross-segment visibility
+- `jax.nn.dot_product_attention`: O(seq²) on device with no flash optimization for custom masks
+- `jax.experimental.pallas.ops.tpu.flash_attention` `ab` parameter: O(seq²) on device
+
+**Trade-off:** O(seq²) HBM for mask, but existing infrastructure means zero kernel development.
 
 ### Decision 9: Mandatory Input Validation (JAX-Specific Divergence)
 
@@ -1081,7 +1095,7 @@ def create_block_diagonal_bias(
     return jnp.where(allowed, 0.0, -1e9)
 ```
 
-**Direction: Block diagonal masking required. Specific implementation path (segment-based, Pallas, or bias-based) requires investigation — see Decision 8 above.**
+**Decision: Reuse existing `custom_mask` in `ragged_paged_attention` kernel. See Decision 8 and [investigation](../investigations/multi-item-attention-mechanism.md).**
 
 ### Constraint 3: Position Manipulation
 
@@ -1180,7 +1194,7 @@ def _convert_logprobs_to_scores(self, ...):
 | Aspect | Requirement |
 |--------|-------------|
 | Static Shapes | **Mandatory.** Use `jnp.nonzero(..., size=K)` with bucket padding |
-| Attention Mask | **Block diagonal required.** Explicit mask tensor is too expensive. Specific API TBD (see Decision 8) |
+| Attention Mask | **Existing `custom_mask` in `ragged_paged_attention`.** O(seq²) HBM for mask, guard with `max_multi_item_seq_len`. See Decision 8 |
 | Memory | Budget ~128MB for attention overhead at seq_len=8192 |
 | bf16 | Attention bias must use float32 for `-inf` values |
 | Multi-host | Position/segment arrays must be replicated identically |
@@ -1201,19 +1215,25 @@ def _convert_logprobs_to_scores(self, ...):
 | Delimiter validation | **Mandatory 400 error** | Correctness requirement, not optional |
 | Empty query handling | **Schema-level validation** | Prevent -1 index before reaching model |
 
-**Decisions requiring investigation (blockers for Phase 2):**
+**Resolved decisions (previously blockers):**
+
+| Decision | Choice | Resolution |
+|----------|--------|------------|
+| Attention mask implementation | **Reuse existing `custom_mask` in `ragged_paged_attention`** | [Investigation](../investigations/multi-item-attention-mechanism.md): existing Pallas kernel supports arbitrary masks via flattened int32 array, used today for EAGLE. Zero kernel changes. O(seq²) HBM for mask, acceptable for seq_len < 8K. |
+
+**Remaining open decisions:**
 
 | Decision | Direction | What's Missing |
 |----------|-----------|----------------|
-| Attention mask implementation | Block diagonal required; explicit O(seq²) mask ruled out | No production-ready JAX API validated. Need to test `splash_attention`, `dot_product_attention` bias, and/or Pallas kernel. See Decision 8. |
 | Compilation overhead | Item-count buckets add 5 variants | Total count = item × token × batch buckets. Needs measurement against existing `--precompile-*-paddings` config. |
 | Empty item string behavior | Proposed: 400 error | This diverges from PyTorch (which accepts them). Need explicit decision: parity or safety? See Compatibility Matrix. |
 
 **Prototyping tasks (before full implementation):**
-- [ ] **[BLOCKER]** Validate at least one JAX attention API for shared-prefix + block-diagonal masking without O(seq²) materialization
+- [x] ~~**[BLOCKER]** Validate JAX attention API for shared-prefix + block-diagonal masking~~ → Resolved: use existing `custom_mask`. See [investigation](../investigations/multi-item-attention-mechanism.md).
 - [ ] Benchmark compilation overhead across all shape axes (item × token × batch)
 - [ ] Verify `jnp.nonzero(..., size=K)` behavior with edge cases
 - [ ] Decide empty-item-string policy: parity (accept) or safety (reject)
+- [ ] Verify `custom_mask` interacts correctly with padded sequence lengths (static shapes)
 
 ### Phase 1: Infrastructure
 
@@ -1560,7 +1580,7 @@ def test_memory_usage():
 |--------|--------|-------|
 | Server arg name | ✅ | `--multi-item-scoring-delimiter` |
 | Sequence format | ✅ | `query<d>item1<d>...<d>` |
-| Attention isolation | ❌ | Direction chosen (block diagonal); **no production JAX API validated** — see Decision 8 |
+| Attention isolation | ✅ | Reuse existing `custom_mask` in `ragged_paged_attention` — zero kernel changes. See [investigation](../investigations/multi-item-attention-mechanism.md) |
 | Logprob extraction | ⚠️ | Static shapes with bucket padding |
 | `apply_softmax=False` | ✅ | Returns `exp(logprob)` (matches PyTorch) |
 | `item_first` handling | ✅ | Ignored in multi-item mode |
@@ -1580,7 +1600,7 @@ def test_memory_usage():
 | **Input: item count limit** | Unlimited (dynamic shapes) | **Max 128** | **Yes** | XLA requires static shapes; buckets bound compilation |
 | **`apply_softmax=False`** | Returns `exp(logprob)` (probabilities, not raw logprobs). Code: `math.exp(x)` in `_convert_logprobs_to_scores` | Returns `exp(logprob)` (same) | No | Parity. **Note:** RFC-000 incorrectly describes this as "raw logprobs" — see cross-reference below |
 | **`item_first=True`** | Silently ignored in multi-item mode | Silently ignored + warning log | **Minor** | Warning helps users notice the override |
-| **Attention isolation** | FlashInfer `MultiItemScoringParams` | Segment-based or Pallas (TBD — see Open Questions) | Implementation differs | FlashInfer not available on TPU; equivalent isolation required |
+| **Attention isolation** | FlashInfer `MultiItemScoringParams` | Existing `custom_mask` in `ragged_paged_attention` Pallas kernel | Implementation differs | FlashInfer not available on TPU; reuse existing arbitrary-mask infrastructure. See [investigation](../investigations/multi-item-attention-mechanism.md) |
 | **Shape handling** | Dynamic (`nonzero()` returns variable-length) | Static with bucket padding | Implementation differs | XLA requirement |
 | **Backend validation** | Radix cache + chunked prefill checked; **attention backend NOT checked** (code: `server_args.py:5103`) | All three checked at startup | **Yes** | PyTorch has a latent bug: non-FlashInfer backends silently produce wrong results |
 | **Delimiter token ID `0`** | Truthiness bug: `_is_multi_item_scoring` uses `and self.server_args.multi_item_scoring_delimiter` which is falsy for ID 0 (`scheduler_output_processor_mixin.py:735`) | Use `is not None` check | **Yes** | Fixes PyTorch bug |
@@ -1604,21 +1624,28 @@ def test_memory_usage():
 4. ~~**Max items limit:** Should we limit items to prevent OOM?~~
    **Answer:** Yes - `MAX_ITEMS_PER_REQUEST = 128` for static shape compilation. PyTorch doesn't limit, but JAX requires bounded shapes for XLA. This is an intentional divergence.
 
+### Resolved (2026-02-06)
+
+5. ~~**JAX attention mask implementation:** Which JAX API supports shared-prefix + block-diagonal masking?~~
+   **Answer:** Reuse existing `custom_mask` in `ragged_paged_attention`. The Pallas kernel already supports arbitrary attention masks via a flattened int32 array, used today for speculative decoding (EAGLE). Zero kernel changes needed. O(seq²) HBM for the mask, acceptable for seq_len < 8K. Add `max_multi_item_seq_len` guard. See [investigation](../investigations/multi-item-attention-mechanism.md).
+
+   **Candidates ruled out:** `segment_ids` (all APIs) — cannot express shared-prefix pattern; `splash_attention` — viable but requires new integration path, deferred to optimization phase; `jax.nn.dot_product_attention` — O(seq²) on device with no flash optimization.
+
 ### Open
 
-1. **[BLOCKER] JAX attention mask implementation:** Which JAX API supports shared-prefix + block-diagonal masking without O(seq²) materialization? Explicit mask is ruled out for memory reasons. Candidates to investigate: `splash_attention` with segment IDs, `jax.nn.dot_product_attention` with bias tensor, custom Pallas kernel. **No candidate has been validated.** This blocks Phase 2 implementation.
+1. **Compilation overhead measurement:** Item-count buckets (5) interact multiplicatively with existing token-length and batch-size padding buckets. Actual total compilation count and warmup time are unknown. Needs benchmarking before committing to bucket sizes.
 
-2. **[BLOCKER] Compilation overhead measurement:** Item-count buckets (5) interact multiplicatively with existing token-length and batch-size padding buckets. Actual total compilation count and warmup time are unknown. Needs benchmarking before committing to bucket sizes.
+2. **Empty item string policy:** PyTorch accepts empty item strings; this RFC proposes rejecting them with 400. This is a behavioral divergence that could break existing workloads. Decision needed: match PyTorch (accept) or diverge for safety (reject)?
 
-3. **Empty item string policy:** PyTorch accepts empty item strings; this RFC proposes rejecting them with 400. This is a behavioral divergence that could break existing workloads. Decision needed: match PyTorch (accept) or diverge for safety (reject)?
+3. **Memory budget:** What's the maximum sequence length / item count for TPU v6e? The `custom_mask` approach uses O(seq²) HBM. Need to determine practical `max_multi_item_seq_len` default.
 
-4. **Memory budget:** What's the maximum sequence length / item count for TPU v6e?
+4. **bf16 precision:** Does attention mask computation need special handling for bf16? The custom_mask is int32, so this mainly affects the attention logits themselves.
 
-5. **bf16 precision:** Does attention mask computation need special handling for bf16?
+5. **Multi-host consistency:** How to ensure the custom_mask array is replicated identically across TPU hosts?
 
-6. **Multi-host consistency:** How to ensure position manipulation is consistent across TPU hosts?
+6. **`apply_softmax=False` cross-RFC synchronization:** RFC-000 has been corrected (2026-02-06) to document `exp(logprob)` behavior. Existing JAX tests and user docs may still reference "raw logprobs." Need audit and synchronized update.
 
-7. **`apply_softmax=False` cross-RFC synchronization:** RFC-000 has been corrected (2026-02-06) to document `exp(logprob)` behavior. Existing JAX tests and user docs may still reference "raw logprobs." Need audit and synchronized update.
+7. **`custom_mask` + static shape interaction:** The mask shape is `seq_len²`, and `seq_len` varies per request. Need to verify that mask construction uses the padded seq_len (matching the JIT-compiled kernel's static shape) and that padding positions are correctly masked.
 
 ---
 
@@ -1720,3 +1747,4 @@ if len(items) > threshold and delimiter_configured:
 | 2026-02-05 | Fourth review pass (JAX/XLA specialist feedback): rewrote JAX section as "JAX/XLA Compilation Constraints" with mandatory static shape handling, added bucket-based compilation strategy, made concrete decision on Block Diagonal attention masking (Segment-based MVP, Pallas production), added JAX-compatible LogitsProcessor implementation, made delimiter validation mandatory 400 error, added underflow warning for apply_softmax=False, schema-level empty query validation |
 | 2026-02-05 | Fifth review pass (final fixes): fixed off-by-one delimiter count (max_delimiters = max_items + 1), added delimiter visibility rules for attention parity, fixed position manipulation -1 index bug, made delimiter retokenization a hard error, defined empty item behavior (400 error), fixed test item count (100 not 1000), moved max items limit to resolved (128), updated compatibility section for behavioral/shape changes, marked segment mask example as conceptual only, changed tests to use tolerances (assert_allclose), added warning when item_first=True ignored |
 | 2026-02-06 | Sixth review pass (factual accuracy audit): Fixed "from PyTorch Test Suite" mislabeling — PyTorch accepts empty items/queries, tests do not enforce rejection; split edge cases into "Shared with PyTorch" and "JAX-Specific Safety Validations" with citations. Added comprehensive Compatibility Matrix (PyTorch actual vs JAX intended, verified against codebase). Fixed apply_softmax=False contradiction with RFC-000 (was "raw logprobs", actual is `exp(logprob)`; RFC-000 updated). Standardized numerical tolerances to rtol=1e-3 for multi-item vs single-item (accounts for delimiter visibility). Downgraded attention mechanism from "decided" to "requires investigation" — no production JAX API validated. Corrected compilation count claim (item buckets interact with token/batch buckets, not "5 total"). Added delimiter token ID 0 truthiness bug and backend validation gap to compatibility matrix. Marked 3 open blockers. |
+| 2026-02-06 | Attention mechanism spike (resolved blocker): Investigated 6 candidates for shared-prefix + block-diagonal masking. Key finding: existing `custom_mask` in `ragged_paged_attention` Pallas kernel already supports arbitrary masks (used for EAGLE speculative decoding). Zero kernel changes needed. `segment_ids` across all APIs (Pallas flash attention, splash attention, Kvax) cannot express the shared-prefix pattern. Splash Attention `NumpyMask` is viable but deferred to optimization phase. Decision 8 resolved. Added [investigation doc](../investigations/multi-item-attention-mechanism.md). Updated Phase 0 prerequisites, parity checklist, compatibility matrix, and open questions. |

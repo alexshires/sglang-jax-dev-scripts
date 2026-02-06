@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-06
 
 ---
 
@@ -150,6 +150,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Audited all 11 files, cross-referenced with actual code in both repos
   - 7 critical gaps identified (hardcoded values, no GPU support, missing bench_score.py)
   - Benchmark script comparison: PyTorch vs JAX tooling
+
+- **[Multi-Item Attention Mechanism](investigations/multi-item-attention-mechanism.md)**
+  - Investigation for RFC-008 Decision 8: which JAX API for shared-prefix + block-diagonal masking
+  - Evaluated 6 candidates: existing custom_mask, splash attention, Pallas flash attention, jax.nn.dot_product_attention, Kvax, custom Pallas kernel
+  - Key finding: `segment_ids` across ALL APIs cannot express the shared-prefix pattern
+  - Recommendation: reuse existing `custom_mask` in `ragged_paged_attention` (zero kernel changes)
+  - Decision matrix with correctness, memory, dev effort, TPU optimization criteria
 
 ## Runbooks
 
