@@ -159,6 +159,32 @@ The implementation of this test suite on TPU v6e-1 infrastructure revealed sever
 **Observation:** The `OpenAIServingBase` catch-all exception handler maps unhandled validation exceptions to 500.
 **Action:** Updated tests to temporarily accept 500 while adding a TODO for server-side fix.
 
+### 6. Debug Workflow Strategy
+**Problem:** The standard CI/CD pipeline (Cloud Build / GitHub Actions) has a slow feedback loop (~15-20 minutes per iteration) and lacks interactive shell access for inspecting process states or logs.
+**Solution:** Adopted a **persistent debug pod strategy**:
+1.  **Deploy Debug Runner:** Created a `sglang-jax-debug-runner` pod (using the same image as the CI job) in the GKE cluster.
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: sglang-jax-debug-runner
+    spec:
+      containers:
+      - name: test-runner
+        image: gcr.io/ashires-e7aaot/sglang-jax-runner:latest
+        command: ["sleep", "infinity"]  # Keep pod alive
+        resources:
+          limits:
+            google.com/tpu: 1  # Exclusive TPU access
+    ```
+2.  **Iterative Development:**
+    - Modified test files locally.
+    - Synced to pod: `kubectl cp test_file.py sglang-jax-debug-runner:/path/to/test.py`.
+    - Executed tests interactively: `kubectl exec -it sglang-jax-debug-runner -- bash`.
+3.  **Targeted Execution:**
+    - Used `pytest -v -k test_name` to run single failing test cases (e.g., `test_score_with_openai_client_post`).
+    - This reduced the feedback loop from 20 minutes to < 2 minutes, allowing rapid validation of timeouts, environment variables, and client parameters.
+
 ## References
 
 - [RFC-001: Score API Comprehensive Tests](001-score-api-comprehensive-tests.md)
