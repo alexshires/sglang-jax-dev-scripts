@@ -244,12 +244,14 @@ The `item_first` parameter controls whether the model sees `query + item` or `it
 
 ### 4. Softmax as Post-Processing
 
-The `apply_softmax` parameter controls whether raw logprobs or normalized probabilities are returned:
+The `apply_softmax` parameter controls post-processing of model logprobs:
 
 ```python
-# apply_softmax=False: Returns raw logprobs [-2.3, -4.5, -6.7]
-# apply_softmax=True:  Returns probabilities [0.85, 0.10, 0.05] (sum to 1.0)
+# apply_softmax=False: Returns exp(logprob) — unnormalized probabilities [0.10, 0.01, 0.001]
+# apply_softmax=True:  Returns normalized probabilities [0.85, 0.10, 0.05] (sum to 1.0)
 ```
+
+> **Correction (2026-02-06):** This section previously stated that `apply_softmax=False` returns "raw logprobs". The actual implementation (both PyTorch and JAX) returns `exp(logprob)` — unnormalized probabilities, not log-space values. All scores are non-negative. To get raw logprobs, access `input_token_ids_logprobs` from `meta_info` directly. See [RFC-008](008-multi-item-scoring.md) for the full semantics analysis.
 
 **Softmax Axis:** Softmax is applied **per-item, across the provided labels only**. Each item's scores are normalized independently:
 
@@ -262,16 +264,16 @@ scores = [
 ```
 
 **Important distinction:**
-- `apply_softmax=False`: Returns true model logprobs (log P(token | context) from full vocabulary)
+- `apply_softmax=False`: Returns `exp(logprob)` — unnormalized probabilities. Values are non-negative but do NOT sum to 1.0 (they are not normalized across labels). Underflow to `0.0` is possible for very unlikely tokens.
 - `apply_softmax=True`: Returns **relative probabilities within the label set**, not true model probabilities. Useful for comparing labels, but the values only sum to 1.0 over your provided labels.
 
 **When to use each:**
-- Use `apply_softmax=False` when comparing scores across different items (e.g., ranking)
+- Use `apply_softmax=False` when comparing scores across different items (e.g., ranking). Note: values are `exp(logprob)`, not raw logprobs.
 - Use `apply_softmax=True` when comparing labels within a single item (e.g., classification)
 
 **Why this matters:**
-- Raw logprobs useful for custom normalization
-- Probabilities easier to interpret and use directly
+- Unnormalized probabilities useful for custom normalization
+- Normalized probabilities easier to interpret and use directly
 - Softmax done in Python to avoid device conflicts (see [ADR-001](../decisions/001-pure-python-softmax.md))
 
 ## Architecture

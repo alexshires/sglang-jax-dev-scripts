@@ -842,20 +842,30 @@ def _convert_logprobs_to_scores(self, logprobs, label_token_ids, apply_softmax):
 **Rationale:**
 - XLA requires static shapes at compile time
 - Dynamic shapes cause recompilation for every different item count
-- Bucket sizes limit recompilations to 5 total
 - `MAX_ITEMS_PER_REQUEST = 128` provides reasonable upper bound
 
-**Trade-off:** Memory overhead for padding; 5 JIT compilations at startup.
+> **Compilation count caveat:** Item-count buckets introduce 5 compilation variants on the item-count axis alone. However, JAX's existing JIT compilation is also driven by token-length padding buckets (`--precompile-token-paddings`) and batch-size padding buckets (`--precompile-bs-paddings`). See `global_jit_compile.md`. The actual total compilation count is `|item_buckets| × |token_buckets| × |batch_buckets|`, which may be significantly more than 5. **This needs measurement before the compilation overhead can be accurately assessed.**
 
-### Decision 8: Block Diagonal Attention Masking (JAX-Specific)
+**Trade-off:** Memory overhead for padding; compilation count depends on interaction with existing padding axes (needs benchmarking).
 
-**Choice:** Use segment-based block diagonal masking (MVP), with Pallas kernel for production.
+### Decision 8: Block Diagonal Attention Masking (JAX-Specific) — REQUIRES INVESTIGATION
 
-**Rationale:**
-- Explicit `[seq, seq]` mask tensor exceeds memory budget (256MB at seq_len=8192)
-- Block diagonal pattern matches required attention: "query visible to all, items see only themselves"
-- Segment IDs can be computed without materializing full mask
-- Pallas kernel provides optimal performance for production
+**Status:** Direction chosen (block diagonal), **specific implementation path unresolved.**
+
+**What IS decided:**
+- Explicit `[seq, seq]` mask tensor exceeds memory budget (256MB at seq_len=8192) — ruled out for production
+- Block diagonal pattern is the correct attention shape: "query visible to all, items see only themselves"
+
+**What is NOT decided:**
+- Which JAX API implements segment-aware attention without materializing O(seq²) masks? Candidates: `splash_attention` with segment masks, custom Pallas kernel, `jax.nn.dot_product_attention` with bias. None have been validated for this specific masking pattern.
+- The "segment-based MVP" code in this RFC (Strategy B) explicitly materializes a full `[seq_len, seq_len]` mask and is marked "DO NOT use in production." It is suitable only for correctness testing, not deployment.
+
+**Investigation needed before implementation:**
+1. Validate `splash_attention` segment ID support for shared-prefix + block-diagonal pattern
+2. Validate `jax.nn.dot_product_attention` bias approach for memory and correctness
+3. Prototype Pallas kernel and measure development effort
+4. Produce a decision matrix: correctness, memory, latency, development cost
+5. Pick one MVP path and one fallback
 
 **Trade-off:** More complex implementation than explicit mask; Pallas requires kernel expertise.
 
@@ -1071,7 +1081,7 @@ def create_block_diagonal_bias(
     return jnp.where(allowed, 0.0, -1e9)
 ```
 
-**Decision: Use Strategy B (Segment-Based) for MVP, Strategy A (Pallas) for Production.**
+**Direction: Block diagonal masking required. Specific implementation path (segment-based, Pallas, or bias-based) requires investigation — see Decision 8 above.**
 
 ### Constraint 3: Position Manipulation
 
@@ -1170,32 +1180,40 @@ def _convert_logprobs_to_scores(self, ...):
 | Aspect | Requirement |
 |--------|-------------|
 | Static Shapes | **Mandatory.** Use `jnp.nonzero(..., size=K)` with bucket padding |
-| Attention Mask | **Block diagonal required.** Explicit mask tensor is too expensive |
+| Attention Mask | **Block diagonal required.** Explicit mask tensor is too expensive. Specific API TBD (see Decision 8) |
 | Memory | Budget ~128MB for attention overhead at seq_len=8192 |
 | bf16 | Attention bias must use float32 for `-inf` values |
 | Multi-host | Position/segment arrays must be replicated identically |
-| XLA compilation | One compilation per bucket size (8, 16, 32, 64, 128 items) |
+| XLA compilation | Item-count buckets (5) interact multiplicatively with token-length and batch-size padding buckets. Total compilation count needs measurement |
 
 ---
 
 ## Implementation Plan
 
-### Phase 0: Prerequisites (Decisions Made)
+### Phase 0: Prerequisites
 
-The following decisions are **finalized** based on JAX/XLA constraints:
+**Finalized decisions:**
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Attention mask strategy | **Segment-based (MVP)**, Pallas (Production) | Explicit mask tensor exceeds memory budget |
 | Static shape handling | **Bucket-based padding** (8, 16, 32, 64, 128) | XLA requires static shapes; buckets minimize recompilation |
 | Max items per request | **128** | Balance between flexibility and compilation cost |
-| Delimiter validation | **Mandatory 400 error** | Security requirement, not optional |
+| Delimiter validation | **Mandatory 400 error** | Correctness requirement, not optional |
 | Empty query handling | **Schema-level validation** | Prevent -1 index before reaching model |
 
+**Decisions requiring investigation (blockers for Phase 2):**
+
+| Decision | Direction | What's Missing |
+|----------|-----------|----------------|
+| Attention mask implementation | Block diagonal required; explicit O(seq²) mask ruled out | No production-ready JAX API validated. Need to test `splash_attention`, `dot_product_attention` bias, and/or Pallas kernel. See Decision 8. |
+| Compilation overhead | Item-count buckets add 5 variants | Total count = item × token × batch buckets. Needs measurement against existing `--precompile-*-paddings` config. |
+| Empty item string behavior | Proposed: 400 error | This diverges from PyTorch (which accepts them). Need explicit decision: parity or safety? See Compatibility Matrix. |
+
 **Prototyping tasks (before full implementation):**
-- [ ] Validate segment-based masking produces correct attention pattern
-- [ ] Benchmark bucket compilation overhead (expect ~5 compilations)
+- [ ] **[BLOCKER]** Validate at least one JAX attention API for shared-prefix + block-diagonal masking without O(seq²) materialization
+- [ ] Benchmark compilation overhead across all shape axes (item × token × batch)
 - [ ] Verify `jnp.nonzero(..., size=K)` behavior with edge cases
+- [ ] Decide empty-item-string policy: parity (accept) or safety (reject)
 
 ### Phase 1: Infrastructure
 
@@ -1338,9 +1356,12 @@ def test_multi_item_equals_single_item():
     # Multi-item mode
     multi_scores = score_multi_item(query, items, label_token_ids)
 
-    # Should match within tolerance
+    # Should match within tolerance.
+    # rtol=1e-3 because delimiter visibility causes a known semantic
+    # difference: multi-item items see one extra <d> token in the prefix.
+    # See "Delimiter Visibility and Single-Item Parity" section above.
     for i, (single, multi) in enumerate(zip(single_scores, multi_scores)):
-        assert_allclose(single, multi, rtol=1e-4,
+        assert_allclose(single, multi, rtol=1e-3,
             err_msg=f"Item {i} mismatch: single={single}, multi={multi}")
 ```
 
@@ -1371,16 +1392,11 @@ def test_attention_isolation():
     assert not np.allclose(scores_abc[0], scores_xbc[0]), "Item 1 score should differ"
 ```
 
-### Edge Cases (from PyTorch Test Suite)
+### Edge Cases (Shared with PyTorch)
+
+These tests validate behavior that matches the PyTorch implementation:
 
 ```python
-def test_empty_items_rejected():
-    """Empty items should return 400 error in multi-item mode."""
-    with pytest.raises(HTTPException) as exc_info:
-        score_multi_item("Query", ["", " valid", ""], label_ids)
-    assert exc_info.value.status_code == 400
-    assert "empty" in exc_info.value.detail.lower()
-
 def test_single_item():
     """Single item should work (degenerate case)."""
     scores = score_multi_item("Query", [" item"], label_ids)
@@ -1417,26 +1433,6 @@ def test_deterministic_consistency():
         assert_allclose(s1, s2, rtol=1e-7, atol=1e-10,
             err_msg=f"Results should be deterministic, item {i} differs")
 
-def test_empty_query_tokens():
-    """Handle empty tokenized query (edge case).
-
-    WARNING: If query tokenizes to empty list, the first delimiter
-    is at position 0, and (delimiter_index - 1) = -1, causing
-    incorrect slicing.
-
-    Text inputs usually inject BOS token, masking this issue.
-    Token inputs are vulnerable.
-    """
-    # This should either:
-    # 1. Raise a clear error for empty query
-    # 2. Handle gracefully by ensuring minimum query length
-    with pytest.raises(ValueError, match="Query must not be empty"):
-        score_multi_item_tokens(
-            query_tokens=[],  # Empty!
-            item_tokens=[[1, 2], [3, 4]],
-            label_token_ids=[1, 2, 3],
-        )
-
 def test_delimiter_not_in_content():
     """Verify delimiter doesn't appear in query or items."""
     delimiter_token = 128009
@@ -1444,6 +1440,47 @@ def test_delimiter_not_in_content():
     # This should fail validation or produce a warning
     query_with_delimiter = f"Query with delimiter token {delimiter_token}"
     # If delimiter appears in tokenized query, results will be wrong
+```
+
+### Edge Cases (JAX-Specific Safety Validations)
+
+> **These are intentional JAX divergences from PyTorch behavior.** PyTorch does NOT enforce these constraints:
+>
+> - PyTorch `test_multi_item_scoring_empty_items` (line 408) tests `items = []` (empty list) and expects `len(scores) == 0` — it succeeds without error.
+> - PyTorch `test_multi_item_scoring_different_queries` (line 452) tests `query = ""` (empty string) and expects it to work.
+>
+> JAX rejects these inputs because they interact badly with static-shape compilation and delimiter-based index arithmetic. See the Compatibility Matrix below for the full divergence rationale.
+
+```python
+def test_empty_items_rejected():
+    """Empty item strings should return 400 error in multi-item mode.
+
+    JAX DIVERGENCE: PyTorch accepts empty item strings without error.
+    JAX rejects them because the scoring position for an empty item
+    would be the delimiter token itself (not meaningful content), and
+    static-shape padding makes this edge case harder to debug silently.
+    """
+    with pytest.raises(HTTPException) as exc_info:
+        score_multi_item("Query", ["", " valid", ""], label_ids)
+    assert exc_info.value.status_code == 400
+    assert "empty" in exc_info.value.detail.lower()
+
+def test_empty_query_tokens():
+    """Empty tokenized query should return clear error.
+
+    JAX DIVERGENCE: PyTorch accepts empty queries (text inputs get BOS
+    token prepended, masking the issue; token inputs are vulnerable to
+    delimiter_index - 1 = -1 indexing bug).
+
+    JAX rejects empty queries at the validation layer to prevent silent
+    incorrect slicing in the static-shape LogitsProcessor.
+    """
+    with pytest.raises(ValueError, match="Query must not be empty"):
+        score_multi_item_tokens(
+            query_tokens=[],  # Empty!
+            item_tokens=[[1, 2], [3, 4]],
+            label_token_ids=[1, 2, 3],
+        )
 ```
 
 ### Edge Case: Empty Query with Token Inputs
@@ -1523,22 +1560,31 @@ def test_memory_usage():
 |--------|--------|-------|
 | Server arg name | ✅ | `--multi-item-scoring-delimiter` |
 | Sequence format | ✅ | `query<d>item1<d>...<d>` |
-| Attention isolation | ⚠️ | Segment-based (MVP) or Pallas (prod) |
+| Attention isolation | ❌ | Direction chosen (block diagonal); **no production JAX API validated** — see Decision 8 |
 | Logprob extraction | ⚠️ | Static shapes with bucket padding |
 | `apply_softmax=False` | ✅ | Returns `exp(logprob)` (matches PyTorch) |
 | `item_first` handling | ✅ | Ignored in multi-item mode |
 | Runtime constraints | ✅ | Validated at startup |
 | Prefill-only gating | ⚠️ | Only for scoring requests |
 
-### Intentional JAX Divergences
+### Compatibility Matrix: PyTorch Actual vs JAX Intended
 
-| Aspect | PyTorch | JAX | Rationale |
-|--------|---------|-----|-----------|
-| Delimiter collision | Not validated | **400 error** | Prevent silent incorrect results |
-| Empty query | Not validated | **400 error** | Prevent -1 index bug |
-| Item count limit | Unlimited | **Max 128** | Static shape compilation |
-| Shape handling | Dynamic | **Static with buckets** | XLA requirement |
-| Attention mask | FlashInfer params | **Block diagonal** | Memory efficiency |
+> **How to read this table:** "PyTorch Actual" is verified against the codebase and test suite (PR #10979), not documentation claims. "JAX Intended" is the proposed behavior for this RFC. Divergences are intentional and explained.
+
+| Aspect | PyTorch Actual (verified) | JAX Intended | Divergence? | Rationale |
+|--------|--------------------------|--------------|-------------|-----------|
+| **Input: empty items list** (`items=[]`) | Returns `[]` (empty scores). Test: `test_multi_item_scoring_empty_items` line 408 | Returns `[]` (same) | No | Parity |
+| **Input: empty item string** (`""` in items) | Accepted silently. No test enforces rejection | **400 error** | **Yes** | Scoring position for empty item is the delimiter itself; static-shape padding makes silent failure harder to debug |
+| **Input: empty query** (`query=""` text) | Accepted (BOS prepended). Test: `test_multi_item_scoring_different_queries` line 452 | **400 error** (token inputs); text inputs get BOS so may work | **Yes** | Token inputs: `delimiter_index - 1 = -1` causes incorrect slicing |
+| **Input: delimiter in content** | Not validated. `logits_processor.py` scans all delimiter occurrences without checking source | **400 error** | **Yes** | Prevents silent incorrect item boundaries |
+| **Input: item count limit** | Unlimited (dynamic shapes) | **Max 128** | **Yes** | XLA requires static shapes; buckets bound compilation |
+| **`apply_softmax=False`** | Returns `exp(logprob)` (probabilities, not raw logprobs). Code: `math.exp(x)` in `_convert_logprobs_to_scores` | Returns `exp(logprob)` (same) | No | Parity. **Note:** RFC-000 incorrectly describes this as "raw logprobs" — see cross-reference below |
+| **`item_first=True`** | Silently ignored in multi-item mode | Silently ignored + warning log | **Minor** | Warning helps users notice the override |
+| **Attention isolation** | FlashInfer `MultiItemScoringParams` | Segment-based or Pallas (TBD — see Open Questions) | Implementation differs | FlashInfer not available on TPU; equivalent isolation required |
+| **Shape handling** | Dynamic (`nonzero()` returns variable-length) | Static with bucket padding | Implementation differs | XLA requirement |
+| **Backend validation** | Radix cache + chunked prefill checked; **attention backend NOT checked** (code: `server_args.py:5103`) | All three checked at startup | **Yes** | PyTorch has a latent bug: non-FlashInfer backends silently produce wrong results |
+| **Delimiter token ID `0`** | Truthiness bug: `_is_multi_item_scoring` uses `and self.server_args.multi_item_scoring_delimiter` which is falsy for ID 0 (`scheduler_output_processor_mixin.py:735`) | Use `is not None` check | **Yes** | Fixes PyTorch bug |
+| **Speculative decoding** | Implicitly disabled in scheduler path, but TokenizerManager may still build multi-item format (no startup check) | **Startup error** if both configured | **Yes** | Prevent shape mismatch and silent failures |
 
 ---
 
@@ -1560,14 +1606,19 @@ def test_memory_usage():
 
 ### Open
 
-1. **JAX attention mask approach:** Which implementation (explicit tensor, Pallas, segments) is best for TPU?
-   *Partially resolved:* Decision made to use segment-based (MVP) and Pallas (production). Detailed implementation still TBD.
+1. **[BLOCKER] JAX attention mask implementation:** Which JAX API supports shared-prefix + block-diagonal masking without O(seq²) materialization? Explicit mask is ruled out for memory reasons. Candidates to investigate: `splash_attention` with segment IDs, `jax.nn.dot_product_attention` with bias tensor, custom Pallas kernel. **No candidate has been validated.** This blocks Phase 2 implementation.
 
-2. **Memory budget:** What's the maximum sequence length / item count for TPU v6e?
+2. **[BLOCKER] Compilation overhead measurement:** Item-count buckets (5) interact multiplicatively with existing token-length and batch-size padding buckets. Actual total compilation count and warmup time are unknown. Needs benchmarking before committing to bucket sizes.
 
-3. **bf16 precision:** Does attention mask computation need special handling for bf16?
+3. **Empty item string policy:** PyTorch accepts empty item strings; this RFC proposes rejecting them with 400. This is a behavioral divergence that could break existing workloads. Decision needed: match PyTorch (accept) or diverge for safety (reject)?
 
-4. **Multi-host consistency:** How to ensure position manipulation is consistent across TPU hosts?
+4. **Memory budget:** What's the maximum sequence length / item count for TPU v6e?
+
+5. **bf16 precision:** Does attention mask computation need special handling for bf16?
+
+6. **Multi-host consistency:** How to ensure position manipulation is consistent across TPU hosts?
+
+7. **`apply_softmax=False` cross-RFC synchronization:** RFC-000 has been corrected (2026-02-06) to document `exp(logprob)` behavior. Existing JAX tests and user docs may still reference "raw logprobs." Need audit and synchronized update.
 
 ---
 
@@ -1633,7 +1684,7 @@ if len(items) > threshold and delimiter_configured:
 
 ## Success Metrics
 
-- [ ] Multi-item scores match single-item within tolerance (1e-4)
+- [ ] Multi-item scores match single-item within tolerance (rtol=1e-3, due to delimiter visibility)
 - [ ] Attention isolation verified (changing item N doesn't affect item M)
 - [ ] 10x+ speedup for 100 items
 - [ ] All edge cases pass (empty, unicode, many items)
@@ -1668,3 +1719,4 @@ if len(items) > threshold and delimiter_configured:
 | 2026-02-05 | Third review pass: added `skip_special_tokens=False` to delimiter decode, clarified delimiter validation must be token-ID based, confirmed SciPy softmax as ADR-001 standard, added GLOBAL_SERVER_ARGS_KEYS propagation requirement, documented specific JAX changes for `next_token_logits=None`, marked JAX-only validations as divergence from PyTorch |
 | 2026-02-05 | Fourth review pass (JAX/XLA specialist feedback): rewrote JAX section as "JAX/XLA Compilation Constraints" with mandatory static shape handling, added bucket-based compilation strategy, made concrete decision on Block Diagonal attention masking (Segment-based MVP, Pallas production), added JAX-compatible LogitsProcessor implementation, made delimiter validation mandatory 400 error, added underflow warning for apply_softmax=False, schema-level empty query validation |
 | 2026-02-05 | Fifth review pass (final fixes): fixed off-by-one delimiter count (max_delimiters = max_items + 1), added delimiter visibility rules for attention parity, fixed position manipulation -1 index bug, made delimiter retokenization a hard error, defined empty item behavior (400 error), fixed test item count (100 not 1000), moved max items limit to resolved (128), updated compatibility section for behavioral/shape changes, marked segment mask example as conceptual only, changed tests to use tolerances (assert_allclose), added warning when item_first=True ignored |
+| 2026-02-06 | Sixth review pass (factual accuracy audit): Fixed "from PyTorch Test Suite" mislabeling — PyTorch accepts empty items/queries, tests do not enforce rejection; split edge cases into "Shared with PyTorch" and "JAX-Specific Safety Validations" with citations. Added comprehensive Compatibility Matrix (PyTorch actual vs JAX intended, verified against codebase). Fixed apply_softmax=False contradiction with RFC-000 (was "raw logprobs", actual is `exp(logprob)`; RFC-000 updated). Standardized numerical tolerances to rtol=1e-3 for multi-item vs single-item (accounts for delimiter visibility). Downgraded attention mechanism from "decided" to "requires investigation" — no production JAX API validated. Corrected compilation count claim (item buckets interact with token/batch buckets, not "5 total"). Added delimiter token ID 0 truthiness bug and backend validation gap to compatibility matrix. Marked 3 open blockers. |
