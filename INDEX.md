@@ -74,11 +74,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Fuzz/property testing with hypothesis
 
 - **[RFC-008: Multi-Item Scoring](rfcs/008-multi-item-scoring.md)**
-  - Status: Draft
+  - Status: **Ready for Implementation**
   - Score N items in single forward pass (vs N passes currently)
   - Matches PyTorch implementation for performance parity
-  - Uses delimiter tokens to combine items into single sequence
-  - Estimated 10-60x speedup for large item counts
+  - Uses delimiter tokens + `custom_mask` in `ragged_paged_attention` for attention isolation
+  - All decisions resolved, all open questions answered, Phase 0 prerequisites complete
+  - Supporting investigations: [attention mechanism](investigations/multi-item-attention-mechanism.md), [compilation overhead](investigations/multi-item-compilation-overhead.md)
 
 - **[RFC-009: Self-Hosted ARC Runners with TPU](rfcs/009-arc-runner-setup.md)**
   - Status: Draft
@@ -157,6 +158,14 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Key finding: `segment_ids` across ALL APIs cannot express the shared-prefix pattern
   - Recommendation: reuse existing `custom_mask` in `ragged_paged_attention` (zero kernel changes)
   - Decision matrix with correctness, memory, dev effort, TPU optimization criteria
+
+- **[Multi-Item Compilation Overhead](investigations/multi-item-compilation-overhead.md)**
+  - Investigation for RFC-008 Decision 7: JIT compilation overhead from multi-item scoring
+  - Traced pytree chain: ForwardBatch → FlashAttention → FlashAttentionMetadata → custom_mask
+  - Key finding: `custom_mask` None→Array changes pytree structure, adding +8 EXTEND compilations (one per token bucket)
+  - Item count does NOT affect compilation — only mask values, not shape
+  - Previous "5 item-count compilations × token × batch = multiplicative" claim was incorrect
+  - Recommendation: lazy JIT compilation for MVP, no precompilation needed
 
 ## Runbooks
 
