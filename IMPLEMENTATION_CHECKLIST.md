@@ -6,6 +6,19 @@
 | **Repository** | sglang-jax |
 | **Documentation** | This repo (sglang-jax-dev-scripts) |
 
+## RFC-008 Status Snapshot (2026-02-07)
+
+This checklist originally focused on Score API test integration. RFC-008 status is tracked here for rollout visibility:
+
+- [x] Multi-item scoring implemented in `sglang-jax` feature branch `feat/multi-item-scoring`
+- [x] TPU validation completed on Qwen3 model matrix (`0.6B`, `1.7B`, `4B`)
+- [x] Changed-length isolation drift reduced to `0.0` in validated matrix
+- [x] Throughput gains validated (`~3x`-`~5x` vs serial one-item baseline for larger item counts)
+- [x] Rollout evidence documented in this repo:
+  - `reports/multi-item-scoring-tpu-validation-2026-02-07.md`
+  - `runbooks/running-multi-item-scoring-validation.md`
+- [ ] Follow-up: generalize fused-KV compatibility path for tested Qwen2.5 variants
+
 ## Changes Needed in sglang-jax Repository
 
 ### 1. Add Score API Tests to Test Suite

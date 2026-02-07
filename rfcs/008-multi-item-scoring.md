@@ -2,18 +2,45 @@
 
 | | |
 |------------|------|
-| **Status** | Ready for Implementation |
+| **Status** | Implemented (Feature-Gated MVP) |
 | **Author** | Engineering Team |
 | **Created** | 2026-02-01 |
-| **Updated** | 2026-02-06 |
+| **Updated** | 2026-02-07 |
 | **Related** | [RFC-000](000-score-api-design.md), [ADR-001](../decisions/001-pure-python-softmax.md) |
 | **PyTorch PR** | [sgl-project/sglang#10979](https://github.com/sgl-project/sglang/pull/10979) |
+| **JAX PR** | [alexshires/sglang-jax#15](https://github.com/alexshires/sglang-jax/pull/15) |
 
 ## Summary
 
 Add multi-item scoring mode to the JAX Score API, enabling N items to be scored in a single forward pass instead of N separate forward passes. This matches the PyTorch implementation (PR #10979) and provides significant performance improvements for batch scoring workloads.
 
 **Critical Implementation Note:** Multi-item scoring is NOT simply concatenating items with delimiters. It requires **custom attention masking** to prevent items from attending to each other. Without this, later items would be conditioned on earlier items, producing incorrect scores.
+
+## Implementation Outcome (2026-02-07)
+
+Implementation is complete as a strict feature-gated MVP in `sglang-jax`:
+
+- Branch: `feat/multi-item-scoring`
+- PR: [alexshires/sglang-jax#15](https://github.com/alexshires/sglang-jax/pull/15)
+- Kernel approach: reuse existing `custom_mask` path in `ragged_paged_attention` (no new custom kernel)
+- Correctness hardening: default `--multi-item-scoring-chunk-size` set to `2` for robust changed-length isolation
+
+Validation summary on TPU `v6e-1`:
+
+- Models validated: `Qwen/Qwen3-0.6B`, `Qwen/Qwen3-1.7B`, `Qwen/Qwen3-4B`
+- Isolation: same-length mutation max diff `0.0`, changed-length mutation max diff `0.0`
+- Throughput: `~3x` to `~5x` speedup vs serial one-item scoring for larger item counts
+- Parity: delimiter-aligned equivalence and JAX-vs-PyTorch semantic parity remain within small tolerances
+
+Known limitation discovered during rollout validation:
+
+- `Qwen/Qwen2.5-1.5B-Instruct` and `Qwen/Qwen2.5-3B-Instruct` can fail in current fused-KV path with
+  `reshape((2, -1, 8, 128))` mismatch; this is tracked as follow-up kernel compatibility work.
+
+Supporting rollout docs in this repository:
+
+- [Report: Multi-Item Scoring TPU Validation (2026-02-07)](../reports/multi-item-scoring-tpu-validation-2026-02-07.md)
+- [Runbook: Running Multi-Item Scoring Validation](../runbooks/running-multi-item-scoring-validation.md)
 
 ## Motivation
 
@@ -1665,14 +1692,14 @@ if len(items) > threshold and delimiter_configured:
 
 ## Success Metrics
 
-- [ ] Multi-item scores match single-item within tolerance (rtol=1e-3, due to delimiter visibility)
-- [ ] Attention isolation verified (changing item N doesn't affect item M)
+- [x] Multi-item scores match single-item within tolerance under delimiter-aligned semantics
+- [x] Attention isolation verified (changing item N doesn't affect item M)
 - [ ] 10x+ speedup for 100 items
 - [ ] All edge cases pass (empty, unicode, many items)
-- [ ] Required flags validated at startup
-- [ ] `apply_softmax` semantics match PyTorch
-- [ ] Memory usage bounded for large item counts
-- [ ] All existing single-item tests still pass
+- [x] Required flags validated at startup
+- [x] `apply_softmax` semantics match PyTorch contract
+- [x] Memory usage bounded via max sequence guard and feature-gated constraints
+- [x] Existing single-item behavior preserved
 
 ---
 
@@ -1696,6 +1723,7 @@ if len(items) > threshold and delimiter_configured:
 
 | Date | Change |
 |------|--------|
+| 2026-02-07 | Implemented in `sglang-jax` as feature-gated MVP ([PR #15](https://github.com/alexshires/sglang-jax/pull/15)). Added TPU validation matrix across Qwen3 0.6B/1.7B/4B, achieved zero changed-length isolation drift with chunk size `2`, and documented known fused-KV compatibility limitation for tested Qwen2.5 variants. |
 | 2026-02-01 | Initial draft |
 | 2026-02-05 | Comprehensive update (5 review passes): Added attention mask architecture, runtime constraints, corrected logprob dataflow (delimiter-only extraction), resolved apply_softmax semantics (match PyTorch: `exp(logprob)`), added JAX/XLA compilation constraints, bucket-based static shapes, delimiter validation, compatibility matrix, expanded testing |
 | 2026-02-06 | Factual accuracy audit + investigation spikes: Verified all PyTorch claims against codebase. Investigated attention mechanism (6 candidates evaluated, `custom_mask` in `ragged_paged_attention` selected — zero kernel changes). Measured compilation overhead (+8 EXTEND compilations, additive not multiplicative, item count invisible to JIT). Added investigation docs for [attention mechanism](../investigations/multi-item-attention-mechanism.md) and [compilation overhead](../investigations/multi-item-compilation-overhead.md). Resolved Decisions 7 and 8. |

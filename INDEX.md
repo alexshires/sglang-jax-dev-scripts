@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-06
+**Last Updated:** 2026-02-07
 
 ---
 
@@ -74,11 +74,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Fuzz/property testing with hypothesis
 
 - **[RFC-008: Multi-Item Scoring](rfcs/008-multi-item-scoring.md)**
-  - Status: **Ready for Implementation**
-  - Score N items in single forward pass (vs N passes currently)
-  - Matches PyTorch implementation for performance parity
-  - Uses delimiter tokens + `custom_mask` in `ragged_paged_attention` for attention isolation
-  - All decisions resolved, all open questions answered, Phase 0 prerequisites complete
+  - Status: **Implemented (Feature-Gated MVP)**
+  - Score N items in single forward pass (vs N passes in serial mode)
+  - Reuses JAX `custom_mask` in `ragged_paged_attention` for attention isolation
+  - Validated on TPU v6e-1 across Qwen3 0.6B/1.7B/4B (zero changed-length drift with chunk size `2`)
+  - Evidence: [validation report](reports/multi-item-scoring-tpu-validation-2026-02-07.md), [validation runbook](runbooks/running-multi-item-scoring-validation.md)
   - Supporting investigations: [attention mechanism](investigations/multi-item-attention-mechanism.md), [compilation overhead](investigations/multi-item-compilation-overhead.md)
 
 - **[RFC-009: Self-Hosted ARC Runners with TPU](rfcs/009-arc-runner-setup.md)**
@@ -193,6 +193,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Baseline management and regression detection
   - CI/CD integration and cost management
 
+- **[Running Multi-Item Scoring Validation](runbooks/running-multi-item-scoring-validation.md)** ← **NEW**
+  - Reproducible TPU commands for multi vs serial scoring eval
+  - Standard thresholds for isolation, parity, and speedup checks
+  - Model matrix procedure and artifact collection
+
 ## Reports
 
 - **[Profiling Session 2026-02-05](reports/profiling-session-2026-02-05.md)** ← **NEW**
@@ -200,6 +205,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - TinyLlama 1.1B model, 15 generate requests
   - Trace analysis with 283K events, 27s total traced time
   - Artifacts in GCS: `gs://sglang-jax-profiling-results/2026-02-05-tinyllama-tpu-v6e/`
+
+- **[Multi-Item Scoring TPU Validation 2026-02-07](reports/multi-item-scoring-tpu-validation-2026-02-07.md)** ← **NEW**
+  - Implementation rollout evidence for RFC-008
+  - Correctness and throughput matrix across Qwen3 models
+  - Known compatibility limitation for tested Qwen2.5 variants
 
 ## Test Plans
 
@@ -238,7 +248,7 @@ Quick reference for all design documents, decisions, and guides in this reposito
 ```
 RFC-000 (Design & Architecture)  ← START HERE
     ↓
-RFC-008 (Multi-Item Scoring)  ← NEW: Major optimization
+RFC-008 (Multi-Item Scoring)  ← Implemented (Feature-gated MVP)
     ↓
 RFC-006 (Error Handling)
     ↓
@@ -315,6 +325,7 @@ Runbook: Debugging
 - [RFC-004: Performance Benchmarks](rfcs/004-score-api-performance-benchmarks.md)
 - [RFC-010: Cross-Backend Benchmarking](rfcs/010-cross-backend-benchmarking.md) ← PyTorch GPU vs JAX TPU
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
+- [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 - [Test Plan 004: Benchmarks and Stress Tests](test-plans/004-performance-benchmarks-and-stress-tests.md)
 - [Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)
@@ -332,6 +343,7 @@ Runbook: Debugging
 - [Debugging TPU Tests](runbooks/debugging-tpu-test-failures.md)
 - [RFC-002: Fork CI/CD Strategy](rfcs/002-cicd-tpu-testing.md)
 - [Running Score API Tests](runbooks/running-score-api-tests.md)
+- [Running Multi-Item Scoring Validation](runbooks/running-multi-item-scoring-validation.md)
 
 ## Contributing
 
@@ -369,6 +381,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-07:** RFC-008 implemented in `sglang-jax` (feature-gated MVP)
+  - PR: [alexshires/sglang-jax#15](https://github.com/alexshires/sglang-jax/pull/15)
+  - Added rollout report: [multi-item-scoring-tpu-validation-2026-02-07.md](reports/multi-item-scoring-tpu-validation-2026-02-07.md)
+  - Added runbook: [running-multi-item-scoring-validation.md](runbooks/running-multi-item-scoring-validation.md)
+  - Validation matrix completed on TPU v6e-1 for Qwen3 0.6B/1.7B/4B
+  - Documented known fused-KV compatibility limitation for tested Qwen2.5 variants
 
 - **2026-02-05:** RFC-012: CI/CD Pipeline Optimization
   - Reduce CI execution time for utility/docs PRs (14 TPU jobs → lint only)
