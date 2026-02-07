@@ -9,6 +9,7 @@
 | **Related** | [RFC-000](000-score-api-design.md), [ADR-001](../decisions/001-pure-python-softmax.md) |
 | **PyTorch PR** | [sgl-project/sglang#10979](https://github.com/sgl-project/sglang/pull/10979) |
 | **JAX PR** | [alexshires/sglang-jax#15](https://github.com/alexshires/sglang-jax/pull/15) |
+| **JAX Follow-up PR** | [alexshires/sglang-jax#16](https://github.com/alexshires/sglang-jax/pull/16) |
 
 ## Summary
 
@@ -41,6 +42,7 @@ Supporting rollout docs in this repository:
 
 - [Report: Multi-Item Scoring TPU Validation (2026-02-07)](../reports/multi-item-scoring-tpu-validation-2026-02-07.md)
 - [Runbook: Running Multi-Item Scoring Validation](../runbooks/running-multi-item-scoring-validation.md)
+- [Report: Multi-Item Mask/Chunk Ablation (2026-02-07)](../reports/multi-item-mask-chunk-ablation-2026-02-07.md)
 
 ## Motivation
 
@@ -1723,6 +1725,7 @@ if len(items) > threshold and delimiter_configured:
 
 | Date | Change |
 |------|--------|
+| 2026-02-07 | Follow-up ablation run in [PR #16](https://github.com/alexshires/sglang-jax/pull/16): compared mask variants and chunk sizes on TPU. Outcome: keep baseline mask (`prefix_first_delim`) and default chunk size `2` as best correctness/semantic-parity/speed trade-off. |
 | 2026-02-07 | Implemented in `sglang-jax` as feature-gated MVP ([PR #15](https://github.com/alexshires/sglang-jax/pull/15)). Added TPU validation matrix across Qwen3 0.6B/1.7B/4B, achieved zero changed-length isolation drift with chunk size `2`, and documented known fused-KV compatibility limitation for tested Qwen2.5 variants. |
 | 2026-02-01 | Initial draft |
 | 2026-02-05 | Comprehensive update (5 review passes): Added attention mask architecture, runtime constraints, corrected logprob dataflow (delimiter-only extraction), resolved apply_softmax semantics (match PyTorch: `exp(logprob)`), added JAX/XLA compilation constraints, bucket-based static shapes, delimiter validation, compatibility matrix, expanded testing |

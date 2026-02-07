@@ -79,6 +79,7 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Reuses JAX `custom_mask` in `ragged_paged_attention` for attention isolation
   - Validated on TPU v6e-1 across Qwen3 0.6B/1.7B/4B (zero changed-length drift with chunk size `2`)
   - Evidence: [validation report](reports/multi-item-scoring-tpu-validation-2026-02-07.md), [validation runbook](runbooks/running-multi-item-scoring-validation.md)
+  - Follow-up ablation: [mask/chunk report](reports/multi-item-mask-chunk-ablation-2026-02-07.md)
   - Supporting investigations: [attention mechanism](investigations/multi-item-attention-mechanism.md), [compilation overhead](investigations/multi-item-compilation-overhead.md)
 
 - **[RFC-009: Self-Hosted ARC Runners with TPU](rfcs/009-arc-runner-setup.md)**
@@ -211,6 +212,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Correctness and throughput matrix across Qwen3 models
   - Known compatibility limitation for tested Qwen2.5 variants
 
+- **[Multi-Item Mask/Chunk Ablation 2026-02-07](reports/multi-item-mask-chunk-ablation-2026-02-07.md)** ← **NEW**
+  - Follow-up experiment for RFC-008 in PR #16
+  - Compares mask semantics and chunk-size tradeoffs
+  - Confirms keeping baseline mask + chunk size `2`
+
 ## Test Plans
 
 - **[Test Plan 001: Shared Fixtures and Core Tests](test-plans/001-shared-fixtures-and-core-tests.md)**
@@ -326,6 +332,7 @@ Runbook: Debugging
 - [RFC-010: Cross-Backend Benchmarking](rfcs/010-cross-backend-benchmarking.md) ← PyTorch GPU vs JAX TPU
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
+- [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 - [Test Plan 004: Benchmarks and Stress Tests](test-plans/004-performance-benchmarks-and-stress-tests.md)
 - [Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)
@@ -381,6 +388,12 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-07:** RFC-008 follow-up ablation in PR #16
+  - PR: [alexshires/sglang-jax#16](https://github.com/alexshires/sglang-jax/pull/16)
+  - Added report: [multi-item-mask-chunk-ablation-2026-02-07.md](reports/multi-item-mask-chunk-ablation-2026-02-07.md)
+  - Compared mask variants and chunk sizes on TPU v6e-1
+  - Outcome: keep baseline mask semantics (`prefix_first_delim`) and chunk size `2`
 
 - **2026-02-07:** RFC-008 implemented in `sglang-jax` (feature-gated MVP)
   - PR: [alexshires/sglang-jax#15](https://github.com/alexshires/sglang-jax/pull/15)

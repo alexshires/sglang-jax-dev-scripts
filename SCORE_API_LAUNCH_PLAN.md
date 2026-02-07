@@ -390,6 +390,7 @@ Track completed implementations with links to PRs/commits.
 |------|------|-----------|-------|-------|
 | 2026-01-31 | Score API Performance Benchmark | [PR #2](https://github.com/alexshires/sglang-jax/pull/2) | `test/srt/test_bench_score.py`, `test/srt/run_suite.py` | 4 benchmark tests with latency/throughput thresholds |
 | 2026-02-07 | RFC-008 Multi-Item Scoring | [PR #15](https://github.com/alexshires/sglang-jax/pull/15) | feature + tests + docs + evaluation scripts | Feature-gated MVP with TPU validation matrix (Qwen3 0.6B/1.7B/4B) |
+| 2026-02-07 | RFC-008 Mask/Chunk Ablation Follow-up | [PR #16](https://github.com/alexshires/sglang-jax/pull/16) | experiment mask variants + chunk-size sweep + reports | Recommendation confirmed: keep baseline mask semantics and chunk size `2` |
 
 ### How to Update This Log
 
