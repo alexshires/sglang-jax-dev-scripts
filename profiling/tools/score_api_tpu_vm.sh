@@ -21,7 +21,7 @@ TPU_TAG="$(echo "${TPU_TYPE}" | tr -d '-' | tr '[:upper:]' '[:lower:]')"
 RUN_DIR="${RUN_DIR:-${ROOT_DIR}/profiling/runs/${RUN_TIMESTAMP}_score_${MODEL_TAG}_${TPU_TAG}}"
 RUN_ID="${RUN_ID:-$(basename "${RUN_DIR}")}"
 RUN_TS_BUCKET="$(echo "${RUN_TIMESTAMP}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9')"
-RAND_SUFFIX="${RAND_SUFFIX:-$(python3 - <<'PY'\nimport secrets\nprint(secrets.token_hex(2))\nPY\n)}"
+RAND_SUFFIX="${RAND_SUFFIX:-$(python3 -c "import hashlib,sys; print(hashlib.sha1(sys.argv[1].encode()).hexdigest()[:4])" "${RUN_ID}")}"
 GCS_BUCKET="${GCS_BUCKET:-gs://sglang-jax-profiles-${RUN_TS_BUCKET}-score-${RAND_SUFFIX}}"
 GCS_PREFIX="${GCS_PREFIX:-${GCS_BUCKET}/${RUN_ID}}"
 HOST_TRACER_LEVEL="${HOST_TRACER_LEVEL:-2}"
@@ -143,10 +143,10 @@ function profile() {
     curl -s -X POST http://localhost:30000/start_profile \
       -H 'Content-Type: application/json' \
       -d '{\"output_dir\": \"${OUTPUT_DIR}\", \"num_steps\": ${NUM_STEPS}, \"host_tracer_level\": ${HOST_TRACER_LEVEL}, \"python_tracer_level\": ${PYTHON_TRACER_LEVEL}, \"device_tracer_level\": ${DEVICE_TRACER_LEVEL}}' > /tmp/score_start_profile.json; \
-    for i in $(seq 1 ${PROFILE_REQUESTS}); do \
+    for i in \$(seq 1 ${PROFILE_REQUESTS}); do \
       curl -s -X POST http://localhost:30000/v1/score \
         -H 'Content-Type: application/json' \
-        -d '{\"query\": \"Is this positive?\", \"items\": [\"Great product!\", \"Terrible experience\"], \"label_token_ids\": [9834, 902], \"apply_softmax\": true, \"model\": \"${MODEL}\"}' > /tmp/score_profile_${i}.json; \
+        -d '{\"query\": \"Is this positive?\", \"items\": [\"Great product!\", \"Terrible experience\"], \"label_token_ids\": [9834, 902], \"apply_softmax\": true, \"model\": \"${MODEL}\"}' > /tmp/score_profile_\${i}.json; \
     done; \
     curl -s -X POST http://localhost:30000/stop_profile > /tmp/score_stop_profile.json || true"
 }
