@@ -19,7 +19,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: test-runner
-        image: europe-docker.pkg.dev/ashires-e7aaot/container/vllm-tpu:pr
+        image: gcr.io/ashires-e7aaot/sglang-jax-runner:latest
         imagePullPolicy: Always
         resources:
           requests:
@@ -47,19 +47,33 @@ spec:
           git clone https://github.com/alexshires/sglang-jax.git
           cd sglang-jax
           
-          echo "Checking out branch fix/score-api-missing-logprobs..."
-          git checkout fix/score-api-missing-logprobs
+          echo "Checking out branch feat/scoring-workflow..."
+          git checkout feat/scoring-workflow
           
-          echo "Installing package..."
+          echo "Setting up test environment..."
+          python3 -m venv .venv
+          source .venv/bin/activate
+          
+          # Install dependencies
+          echo "Installing dependencies..."
+          pip install uv
+          pip install openai pytest
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          
+          # Install sglang-jax in the venv
+          echo "Installing sglang-jax..."
           cd python
           pip install -e .[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+          cd ..
           
           echo "Running tests..."
-          cd .. # Go back to sglang-jax root (where 'test' folder is)
+          # Patch run_suite.py to use python3 directly instead of uv run python3
+          # as uv run is trying to sync a project it found in the parent directory
+          sed -i 's/\["uv", "run", "python3"/\["python3"/g' test/srt/run_suite.py
           
-          # Run the specific score API test
-          echo "Running test_score_api.py..."
-          python3 test/srt/test_score_api.py
+          export UV_NO_PROJECT=true
+          # Run just the failing test core file to debug OOM
+          python3 test/srt/test_score_api_core.py
           
           echo "Test runner job completed successfully."
         volumeMounts:

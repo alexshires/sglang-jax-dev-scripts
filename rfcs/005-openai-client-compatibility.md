@@ -2,10 +2,10 @@
 
 | | |
 |------------|------|
-| **Status** | Draft |
+| **Status** | Implemented |
 | **Author** | Engineering Team |
 | **Created** | 2026-01-29 |
-| **Updated** | 2026-01-29 |
+| **Updated** | 2026-02-06 |
 | **Related** | [RFC-003](003-score-api-comprehensive-test-suite.md), [RFC-006](006-error-handling-api-contract.md) |
 
 ## Summary
@@ -65,13 +65,13 @@ from openai import OpenAI
 # Point client to SGLang server
 client = OpenAI(
     base_url="http://localhost:8000/v1",
-    api_key="not-needed"  # SGLang doesn't validate by default
+    api_key="not-needed",
+    timeout=600.0  # Crucial for JIT compilation on first request
 )
 
 # Use Score API via OpenAI client's generic post method
-# Note: client.post() and cast_to= are part of OpenAI's public API (v1.0+)
-# but are less stable than typed methods. For maximum compatibility,
-# consider using httpx or requests directly (see below).
+# NOTE: Use cast_to=object to return raw parsed JSON.
+# cast_to=dict fails in newer openai package versions due to lack of generic args.
 response = client.post(
     "/score",
     body={
@@ -85,7 +85,7 @@ response = client.post(
         "apply_softmax": True,
         "item_first": False
     },
-    cast_to=dict  # Score API returns custom format
+    cast_to=object
 )
 
 print(response["scores"])
@@ -192,7 +192,7 @@ class TestScoreOpenAIClient:
                 "apply_softmax": True,
                 "item_first": False
             },
-            cast_to=dict
+            cast_to=object
         )
 
         # Validate response structure
@@ -211,15 +211,6 @@ class TestScoreOpenAIClient:
     def test_score_error_handling_openai_client(self):
         """
         Test that errors are returned in OpenAI-compatible format.
-
-        OpenAI client expects errors in specific format:
-        {
-            "error": {
-                "message": "...",
-                "type": "...",
-                "code": "..."
-            }
-        }
         """
         from openai import BadRequestError
 
@@ -232,7 +223,7 @@ class TestScoreOpenAIClient:
                     "items": [],  # Empty items should error
                     "label_token_ids": [123]
                 },
-                cast_to=dict
+                cast_to=object
             )
 
         # Verify error is in expected format
@@ -250,7 +241,7 @@ class TestScoreOpenAIClient:
                 "label_token_ids": [311, 310],
                 "apply_softmax": False  # Return logprobs
             },
-            cast_to=dict
+            cast_to=object
         )
 
         assert "scores" in response
@@ -301,7 +292,7 @@ class TestScoreOpenAIClientEdgeCases:
                 ],
                 "apply_softmax": True
             },
-            cast_to=dict
+            cast_to=object
         )
 
         assert len(response["scores"]) == 20
@@ -326,7 +317,7 @@ class TestScoreOpenAIClientEdgeCases:
                 ],
                 "apply_softmax": True
             },
-            cast_to=dict
+            cast_to=object
         )
 
         assert "scores" in response
@@ -352,7 +343,7 @@ class TestScoreOpenAIClientEdgeCases:
                 ],
                 "apply_softmax": True
             },
-            cast_to=dict
+            cast_to=object
         )
 
         assert "scores" in response
@@ -365,6 +356,7 @@ class TestScoreOpenAIClientEdgeCases:
 | 1.0.x | Supported | Minimum version |
 | 1.1.x - 1.5.x | Supported | Tested |
 | 1.6.x+ | Expected | Should work, test on release |
+| 2.x | Supported | Tested with 2.17.0 |
 | 0.x | Not Supported | Legacy API, different interface |
 
 ### Request/Response Compatibility
@@ -444,7 +436,7 @@ client = OpenAI(
 The `/v1/score` endpoint is unique to SGLang. Use the generic `.post()` method:
 
 ```python
-response = client.post("/score", body={...}, cast_to=dict)
+response = client.post("/score", body={...}, cast_to=object)
 ```
 
 **Step 3: Handle model names**
@@ -459,31 +451,31 @@ response = client.post("/score", body={...}, cast_to=dict)
 
 ### Phase 1: Basic Compatibility Tests
 
-- [ ] Create `test/srt/test_score_openai_client.py`
-- [ ] Implement `test_score_with_openai_client_post`
-- [ ] Implement `test_score_error_handling_openai_client`
-- [ ] Add `openai` to test dependencies
+- [x] Create `test/srt/test_score_openai_client.py`
+- [x] Implement `test_score_with_openai_client_post`
+- [x] Implement `test_score_error_handling_openai_client`
+- [x] Add `openai` to test dependencies
 
 ### Phase 2: Edge Case Coverage
 
-- [ ] Test large batches through client
-- [ ] Test Unicode content
-- [ ] Test special characters
-- [ ] Test token input mode
+- [x] Test large batches through client
+- [x] Test Unicode content
+- [x] Test special characters
+- [x] Test token input mode
 
 ### Phase 3: Version Compatibility
 
-- [ ] Test with openai 1.0.x
-- [ ] Test with openai 1.5.x
-- [ ] Document minimum version requirement
-- [ ] Add CI matrix for multiple versions
+- [x] Test with openai 1.0.x
+- [x] Test with openai 2.17.x
+- [x] Document minimum version requirement
+- [x] Add CI matrix for multiple versions
 
 ### Phase 4: Documentation
 
-- [ ] Add migration guide to docs
-- [ ] Document known deviations
-- [ ] Add examples to README
-- [ ] Create troubleshooting guide
+- [x] Add migration guide to docs
+- [x] Document known deviations
+- [x] Add examples to README
+- [x] Create troubleshooting guide
 
 ## Testing Strategy
 
@@ -499,77 +491,15 @@ response = client.post("/score", body={...}, cast_to=dict)
     python -m pytest test/srt/test_score_openai_client.py -v
 ```
 
-### Test Matrix
+## Implementation Learnings
 
-| Test | CI | Nightly | On-Demand |
-|------|-----|---------|-----------|
-| Basic client usage | ✓ | ✓ | ✓ |
-| Error handling | ✓ | ✓ | ✓ |
-| Large batch | | ✓ | ✓ |
-| Unicode/special chars | ✓ | ✓ | ✓ |
-| Multi-version | | ✓ | |
+### 1. Strict Type Inspection in `openai` Package
+The official OpenAI Python client (v1.0+) uses Pydantic-based type construction. Passing `cast_to=dict` to the `.post()` method triggers a `ValueError: not enough values to unpack (expected 2, got 0)` because the internal logic expects generic arguments (like `dict[str, Any]`) when it sees a mapping type.
+**Resolution:** Use `cast_to=object` for custom endpoints. This instructs the client to return the raw parsed JSON (typically a Python dictionary) without further validation or type construction.
 
-## Cost Analysis
-
-**Development Cost:**
-- Test implementation: 3 hours
-- Documentation: 2 hours
-- Version testing: 1 hour
-- **Total:** 6 hours
-
-**Ongoing Cost:**
-- Additional CI time: ~30 seconds per run
-- Negligible
-
-**ROI:**
-- Prevents user confusion and bug reports
-- Reduces support burden
-- Improves adoption
-
-## Alternatives Considered
-
-### Alternative 1: Custom SGLang Client
-
-**Description:** Create a dedicated SGLang Python client
-
-**Pros:**
-- Full control over interface
-- Can add SGLang-specific methods
-
-**Cons:**
-- Another dependency for users
-- Maintenance burden
-- Users expect OpenAI compatibility
-
-**Why rejected:** OpenAI compatibility is the primary goal. Custom client could be added later.
-
-### Alternative 2: Don't Test Client Compatibility
-
-**Description:** Only test raw HTTP, assume client works
-
-**Pros:**
-- Less test code
-- Faster tests
-
-**Cons:**
-- Users may hit issues we don't catch
-- No documentation of what works
-
-**Why rejected:** Client compatibility is a key user experience factor.
-
-## Open Questions
-
-- [ ] Should we implement API key validation (optional feature)?
-- [ ] Should we add rate limiting support?
-- [ ] Create a thin wrapper method for `.score()` convenience?
-- [ ] Support for async OpenAI client (`AsyncOpenAI`)?
-
-## Success Metrics
-
-- [ ] All OpenAI client tests pass
-- [ ] Documentation covers migration path
-- [ ] At least 2 OpenAI versions tested
-- [ ] Zero client-related bug reports post-launch
+### 2. Client-Side Timeouts
+On TPU systems, the first request to a model triggers JAX JIT compilation. This can take 60-180 seconds depending on the model and batch size. The default OpenAI client timeout is often 60 seconds, leading to immediate `APITimeoutError`.
+**Resolution:** Initialize the client with `timeout=600.0` or higher in test environments.
 
 ## References
 

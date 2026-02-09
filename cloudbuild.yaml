@@ -1,0 +1,12 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', 'gcr.io/ashires-e7aaot/sglang-jax-profiler:latest',
+    '-f', 'docker/Dockerfile.profiling',
+    '--build-arg', 'BRANCH_NAME=serving-fixes',
+    '.'
+  ]
+images:
+- 'gcr.io/ashires-e7aaot/sglang-jax-profiler:latest'
+timeout: '1200s'

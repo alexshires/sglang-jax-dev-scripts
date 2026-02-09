@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: score-api-profiling-job
+  namespace: arc-runners
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: sglang-gh-runner
+      
+      nodeSelector:
+        pool_type: "tpu-standard"
+        cloud.google.com/gke-tpu-accelerator: "tpu-v6e-slice"
+        cloud.google.com/gke-tpu-topology: "1x1"
+        cloud.google.com/gke-spot: "true"
+      
+      tolerations:
+      - key: "cloud.google.com/gke-spot"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      - key: "google.com/tpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+        
+      containers:
+      - name: profiler
+        # Replace with your built image
+        image: gcr.io/ashires-e7aaot/sglang-jax-profiler:latest 
+        imagePullPolicy: Always
+        
+        command: ["python", "/app/profile_score_api.py"]
+        args: 
+          - "--model-path"
+          - "/models/huggingface_models/Qwen/Qwen3-0.6B"
+          - "--output-dir"
+          - "/models/profiles"
+          - "--profiler"
+          - "jax"
+          
+        securityContext:
+          capabilities:
+            add: ["SYS_PTRACE"] # Required for py-spy
+            
+        resources:
+          limits:
+            google.com/tpu: 1
+            cpu: 40
+            memory: "150Gi"
+          requests:
+            google.com/tpu: 1
+            cpu: 40
+            memory: "150Gi"
+            
+        volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        - name: gcs-models
+          mountPath: /models
+          
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: gcs-models
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ashires-e7aaot-model-download-europe-west4
+            mountOptions: "implicit-dirs"
