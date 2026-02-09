@@ -20,16 +20,16 @@ spec:
   - name: inference-server
     image: gcr.io/ashires-e7aaot/sglang-jax:latest
     imagePullPolicy: Always
-    command: ["/bin/bash", "-c", "sleep infinity"]
+    command: ["/bin/bash", "-c", "export HF_HUB_OFFLINE=1 && export HF_HOME=/data/huggingface_models && sleep infinity"]
     resources:
       requests:
-        cpu: "24"
-        memory: "100Gi"
+        cpu: "40"
+        memory: "150Gi"
         ephemeral-storage: "10Gi"
         google.com/tpu: "1"
       limits:
-        cpu: "24"
-        memory: "100Gi"
+        cpu: "40"
+        memory: "150Gi"
         ephemeral-storage: "10Gi"
         google.com/tpu: "1"
     volumeMounts:

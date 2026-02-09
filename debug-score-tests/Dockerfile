@@ -16,7 +16,18 @@ RUN git clone ${REPO_URL} sglang-jax && \
 # Change to sglang-jax directory before installing
 WORKDIR /app/sglang-jax
 
+<<<<<<< HEAD
 RUN cd python && pip install -e .[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+=======
+# Install sglang-jax package and common test dependencies
+RUN cd python && pip install -e .[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html && \
+    pip install pytest openai && \
+    pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Copy the test script from the build context
+COPY run_tests.sh /app/run_tests.sh
+RUN chmod +x /app/run_tests.sh
+>>>>>>> alex/score-testing
 
 ENV JAX_COMPILATION_CACHE_DIR=/tmp/jit_cache
 

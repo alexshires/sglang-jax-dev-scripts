@@ -20,13 +20,13 @@ spec:
     imagePullPolicy: Always
     resources:
       requests:
-        cpu: "24"
-        memory: "100Gi"
+        cpu: "40"
+        memory: "150Gi"
         ephemeral-storage: "10Gi"
         google.com/tpu: "1"
       limits:
-        cpu: "24"
-        memory: "100Gi"
+        cpu: "40"
+        memory: "150Gi"
         ephemeral-storage: "10Gi"
         google.com/tpu: "1"
     command:
