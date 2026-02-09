@@ -117,8 +117,9 @@ def main():
         "--host", args.host,
         "--port", args.port,
         "--trust-remote-code",
-        "--mem-fraction-static", "0.8",
-        "--dtype", "bfloat16"
+        "--mem-fraction-static", "0.7",
+        "--dtype", "bfloat16",
+        "--skip-server-warmup"
     ])
     
     if os.getenv("TPU_NAME") or "tpu" in os.getenv("JAX_PLATFORMS", "").lower():
