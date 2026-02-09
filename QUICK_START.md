@@ -10,8 +10,8 @@ Quick reference for navigating the sglang-jax-dev-scripts documentation.
 - What bugs were found and fixed
 - Test results and coverage
 
-### Understand why we use pure Python softmax
-→ **[ADR-001: Pure Python Softmax](decisions/001-pure-python-softmax.md)**
+### Understand why we use SciPy softmax
+→ **[ADR-001: SciPy Softmax](decisions/001-pure-python-softmax.md)**
 - Device conflict problem explained
 - Alternatives considered
 - Implementation details
@@ -85,7 +85,7 @@ RFC-001 (Initial 4 tests)
     ↓
 Bugs Found
     ↓
-ADR-001 (Pure Python Softmax)
+ADR-001 (SciPy Softmax)
     ↓
 Investigation (Architecture)
     ↓

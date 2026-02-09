@@ -1,0 +1,29 @@
+| Op type | Total time (us) | % of non-idle |
+|---|---|---|
+| pallas_call | 453.1 | 29.9% |
+| dot_general | 396.9 | 26.2% |
+| Unknown | 314.1 | 20.7% |
+| reduce_sum | 135.7 | 9.0% |
+| transpose | 71.3 | 4.7% |
+| reduce | 30.0 | 2.0% |
+| reshape | 22.9 | 1.5% |
+| gather | 22.5 | 1.5% |
+| sub | 16.6 | 1.1% |
+| convert_element_type | 16.0 | 1.1% |
+| concatenate | 11.9 | 0.8% |
+| reduce_max | 6.9 | 0.5% |
+| rsqrt | 4.3 | 0.3% |
+| div | 3.2 | 0.2% |
+| max | 2.5 | 0.2% |
+| select_n | 2.0 | 0.1% |
+| slice | 1.8 | 0.1% |
+| or | 1.2 | 0.1% |
+| dynamic_update_slice | 1.1 | 0.1% |
+| jit(ragged_paged_attention) | 0.3 | 0.0% |
+| neg | 0.2 | 0.0% |
+| cond | 0.2 | 0.0% |
+| bitcast_convert_type | 0.2 | 0.0% |
+| add | 0.1 | 0.0% |
+| iota_2x32_shape | 0.0 | 0.0% |
+| broadcast_in_dim | 0.0 | 0.0% |
+| log | 0.0 | 0.0% |

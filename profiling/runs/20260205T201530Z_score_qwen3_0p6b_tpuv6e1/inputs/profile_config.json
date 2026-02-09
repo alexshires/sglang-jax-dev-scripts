@@ -1,0 +1,7 @@
+{
+  "output_dir": "/tmp/score_profile_device",
+  "num_steps": 2,
+  "host_tracer_level": 2,
+  "python_tracer_level": 1,
+  "device_tracer_level": 2
+}

@@ -149,8 +149,8 @@ ci/     - CI/CD configuration changes
 
 | Branch | Description | Depends On | ~Size | Status |
 |--------|-------------|------------|-------|--------|
-| `feat/multi-item-scoring` | RFC-008 implementation | validation | ~400 LOC | Not started |
-| `test/multi-item-scoring` | RFC-008 tests | multi-item-scoring | ~200 LOC | Not started |
+| `feat/multi-item-scoring` | RFC-008 implementation | validation | ~400 LOC | Implemented ([PR #15](https://github.com/alexshires/sglang-jax/pull/15)) |
+| `test/multi-item-scoring` | RFC-008 tests | multi-item-scoring | ~200 LOC | Implemented in `feat/multi-item-scoring` |
 
 #### Tooling Branches (Can parallel with Features)
 
@@ -389,6 +389,8 @@ Track completed implementations with links to PRs/commits.
 | Date | Item | PR/Commit | Files | Notes |
 |------|------|-----------|-------|-------|
 | 2026-01-31 | Score API Performance Benchmark | [PR #2](https://github.com/alexshires/sglang-jax/pull/2) | `test/srt/test_bench_score.py`, `test/srt/run_suite.py` | 4 benchmark tests with latency/throughput thresholds |
+| 2026-02-07 | RFC-008 Multi-Item Scoring | [PR #15](https://github.com/alexshires/sglang-jax/pull/15) | feature + tests + docs + evaluation scripts | Feature-gated MVP with TPU validation matrix (Qwen3 0.6B/1.7B/4B) |
+| 2026-02-07 | RFC-008 Mask/Chunk Ablation Follow-up | [PR #16](https://github.com/alexshires/sglang-jax/pull/16) | experiment mask variants + chunk-size sweep + reports | Recommendation confirmed: keep baseline mask semantics and chunk size `2` |
 
 ### How to Update This Log
 

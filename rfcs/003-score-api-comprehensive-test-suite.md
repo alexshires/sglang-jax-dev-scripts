@@ -189,4 +189,9 @@ The implementation of this test suite on TPU v6e-1 infrastructure revealed sever
 
 - [RFC-001: Score API Comprehensive Tests](001-score-api-comprehensive-tests.md)
 - [RFC-005: OpenAI Client Compatibility](005-openai-client-compatibility.md)
+- [RFC-001: Score API Comprehensive Tests](001-score-api-comprehensive-tests.md) (baseline)
+- [RFC-002: CI/CD for TPU Testing](002-cicd-tpu-testing.md) (infrastructure)
+- [ADR-001: SciPy Softmax Decision](../decisions/001-pure-python-softmax.md)
+- PyTorch reference: `sglang/test/registered/core/test_score_api.py`
+- [Investigation: Score API PyTorch vs JAX](../investigations/score-api-pytorch-vs-jax.md)
 - [Runbook: Debugging TPU test failures](../runbooks/debugging-tpu-test-failures.md)

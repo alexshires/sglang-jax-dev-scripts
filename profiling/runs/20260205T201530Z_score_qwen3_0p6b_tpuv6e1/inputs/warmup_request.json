@@ -1,0 +1,7 @@
+{
+  "query": "Is this positive?",
+  "items": ["Great product!", "Terrible experience"],
+  "label_token_ids": [9834, 902],
+  "apply_softmax": true,
+  "model": "Qwen/Qwen3-0.6B"
+}

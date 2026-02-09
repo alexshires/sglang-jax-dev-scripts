@@ -6,14 +6,62 @@
 | **Author** | Engineering Team |
 | **Created** | 2026-02-05 |
 | **Updated** | 2026-02-05 |
+| **Reviewed** | 2026-02-05 (gap analysis) |
 | **Related** | [RFC-004](004-score-api-performance-benchmarks.md), [RFC-010](010-cross-backend-benchmarking.md) |
 
 ## Summary
 
 Design a comprehensive profiling framework for sglang-jax that enables deep performance analysis of JAX/TPU workloads, with special focus on the Score API. This RFC covers hardware profiling (TPU traces), software profiling (Python/JAX), memory profiling, and provides step-by-step operational guides.
 
+---
+
+## ⚠️ Known Issues and Gaps
+
+> **This section tracks known discrepancies between this RFC and the current implementation.**
+> Issues marked ✅ have been addressed in this RFC. Issues marked ❌ require code changes.
+
+### Critical - All Addressed in RFC ✅
+
+| Issue | Status | Resolution |
+|-------|--------|------------|
+| **Client code calls `.json()` on plain text response** | ✅ Fixed | Changed to `response.text()` |
+| **`profile_id` not in API schema** | ✅ Fixed | Removed from client code and documented as PyTorch-only |
+| **Per-request profiling impossible** | ✅ Documented | Added warnings about JAX single-trace limitation |
+
+### Major
+
+| Issue | Status | Resolution |
+|-------|--------|------------|
+| **`create_perfetto_link=True` blocks** | ✅ Fixed | Removed from examples, added warning |
+| **Missing `block_until_ready()`** | ✅ Fixed | Added to profiling examples with warning |
+| **Softmax implementation** | ✅ Resolved | ADR-001 updated to document SciPy as the standard implementation |
+| **Memory profile format** | ✅ Documented | Clarified .prof format, not .json.gz |
+| **Step-based vs request-based profiling** | ✅ Documented | Added warnings about dynamic batching |
+| **`trace_merger.py` doesn't exist** | ✅ Documented | Marked as "planned but not implemented" |
+| **PD disaggregation profiling** | ✅ Documented | Clarified as not implemented |
+| **TP/EP file naming uses profile_id** | ✅ Fixed | Corrected to show JAX uses timestamp naming |
+
+### Minor - All Addressed in RFC ✅
+
+| Issue | Status | Resolution |
+|-------|--------|------------|
+| **`trace_path` undefined** | ✅ Fixed | Defined variable in bench_score |
+| **`get_environment_metadata()` uses client devices** | ✅ Fixed | Changed to call `/get_server_info` |
+| **`SGL_LOG_L1_TIMING` not implemented** | ✅ Documented | Marked as "NOT IMPLEMENTED" |
+| **TensorBoard plugin guidance** | ✅ Fixed | Clarified xprof vs tensorboard-plugin-profile options |
+| **Perfetto `open` is macOS-only** | ✅ Fixed | Added cross-platform instructions |
+| **TPU metrics tool requirements** | ✅ Fixed | Added "Tool Required" column to table |
+| **bench_score hardcodes parameters** | ✅ Fixed | Added model, apply_softmax, item_first parameters |
+
+### Remaining Code Issues (Outside RFC Scope)
+
+*None - all issues resolved.*
+
+---
+
 ## Table of Contents
 
+0. [⚠️ Known Issues and Gaps](#️-known-issues-and-gaps) ← **READ FIRST**
 1. [Motivation](#motivation)
 2. [Current State Analysis](#current-state-analysis)
 3. [Profiling Architecture](#profiling-architecture)
@@ -24,10 +72,11 @@ Design a comprehensive profiling framework for sglang-jax that enables deep perf
 8. [Visualization Tools](#visualization-tools)
 9. [General Benchmarking Tools](#general-benchmarking-tools)
 10. [Distributed Profiling (TP/EP)](#distributed-profiling-tpep)
-11. [Advanced Options](#advanced-options)
-12. [Known Issues and Troubleshooting](#known-issues-and-troubleshooting)
-13. [Implementation Plan](#implementation-plan)
-14. [Cost Analysis](#cost-analysis)
+11. [Artifact Storage Strategy](#artifact-storage-strategy) ← **NEW**
+12. [Advanced Options](#advanced-options)
+13. [Known Issues and Troubleshooting](#known-issues-and-troubleshooting)
+14. [Implementation Plan](#implementation-plan)
+15. [Cost Analysis](#cost-analysis)
 
 ---
 
@@ -168,6 +217,27 @@ export DISABLE_PROF_GENERATION=1      # Disable .prof files (jax memory snapshot
 export DISABLE_MEMORY_CONSOLE_LOG=1   # Disable console logging
 ```
 
+> **⚠️ LATENCY IMPACT WARNING:**
+>
+> Memory profiling via `jax.profiler.save_device_memory_profile()` **forces device synchronization**.
+> This adds significant latency overhead (10-50ms+ per capture).
+>
+> **DO NOT** run latency benchmarks with `ENABLE_MEMORY_PROFILING=1`. Results will be invalid.
+>
+> The bench_score.py script should:
+> 1. Check if `ENABLE_MEMORY_PROFILING=1` is set
+> 2. Print a loud warning: `"⚠️ Memory profiling enabled - latency metrics will be inflated!"`
+> 3. Optionally refuse to run with `--strict` flag
+>
+> ```python
+> # In bench_score.py
+> if os.environ.get("ENABLE_MEMORY_PROFILING") == "1":
+>     print("⚠️ WARNING: ENABLE_MEMORY_PROFILING=1 detected!")
+>     print("   Latency benchmarks will be INVALID due to synchronization overhead.")
+>     if args.strict:
+>         sys.exit(1)
+> ```
+
 #### 4. Kernel Performance Utilities (`python/sgl_jax/srt/kernels/utils/perf.py`)
 
 ```python
@@ -255,7 +325,7 @@ PyTorch SGLang has more mature profiling infrastructure we can learn from:
 │  - Prompt concatenation (query + items)                     Memory alloc      │
 │  - Batch creation (GenerateReqInput)                                          │
 │                                                                               │
-│  ⚠️ DEVICE-AGNOSTIC: Uses scipy.special.softmax (ADR-001)                    │
+│  ⚠️ DEVICE-AGNOSTIC: Uses scipy.special.softmax (see Known Issues - ADR-001) │
 └──────────────────────────────────────────────────────────────────────────────┘
        │
        ▼ (IPC to subprocess)
@@ -289,7 +359,7 @@ PyTorch SGLang has more mature profiling infrastructure we can learn from:
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  Post-processing (TokenizerManager)                         [PROFILE POINT 6]│
 │  - Logprob extraction                                       CPU time          │
-│  - Softmax application (scipy)                              Pure Python       │
+│  - Softmax application (SciPy)                              CPU (device-agnostic) │
 │  - Response formatting                                                        │
 └──────────────────────────────────────────────────────────────────────────────┘
        │
@@ -334,16 +404,22 @@ with jax.profiler.trace("/tmp/jax_trace"):
 import jax
 
 # Start profiling
-jax.profiler.start_trace("/tmp/jax_trace", create_perfetto_link=True)
+# NOTE: Do NOT use create_perfetto_link=True in server processes - it blocks
+# until Perfetto loads the trace. Use default (False) instead.
+jax.profiler.start_trace("/tmp/jax_trace")
 
 # Run workload
 for i in range(10):
     result = my_jax_function(inputs)
+    # IMPORTANT: Block until device work completes before stopping trace
     jax.block_until_ready(result)
 
-# Stop and save
+# Stop and save - traces may be incomplete if block_until_ready was not called
 jax.profiler.stop_trace()
 ```
+
+> **⚠️ Warning:** Always call `jax.block_until_ready(result)` before `stop_trace()`.
+> JAX operations are asynchronous; without blocking, the trace may miss device work.
 
 #### 3. `jax.named_scope()` - Hierarchical Tracing
 
@@ -419,13 +495,17 @@ jax.profiler.start_trace("/tmp/trace", profiler_options=options)
 
 #### TPU Metrics Available in Traces
 
-| Metric | Description | Unit |
-|--------|-------------|------|
-| `device_duration_ps` | Kernel execution time | picoseconds |
-| `flops` | Floating point operations | count |
-| `bytes_accessed` | HBM memory accessed | bytes |
-| `MXU_utilization` | Matrix unit utilization | percentage |
-| `infeed/outfeed` | Host-device transfer | bytes |
+| Metric | Description | Unit | Tool Required |
+|--------|-------------|------|---------------|
+| `device_duration_ps` | Kernel execution time | picoseconds | Perfetto / XProf |
+| `flops` | Floating point operations | count | XProf (roofline) |
+| `bytes_accessed` | HBM memory accessed | bytes | XProf (roofline) |
+| `MXU_utilization` | Matrix unit utilization | percentage | **XProf only** |
+| `infeed/outfeed` | Host-device transfer | bytes | Perfetto / XProf |
+
+> **Note:** Raw Perfetto traces contain `device_duration_ps` and basic event data.
+> Higher-level metrics like `MXU_utilization` and `flops` are **computed by XProf**
+> from the raw trace data. Use XProf for roofline analysis and utilization metrics.
 
 #### TPU Memory Hierarchy
 
@@ -659,8 +739,13 @@ PROFILES = {
 }
 
 
-async def start_server_profiling(base_url: str, output_dir: str, num_steps: int, profile_id: str):
-    """Start profiling on the server via HTTP API."""
+async def start_server_profiling(base_url: str, output_dir: str, num_steps: int):
+    """Start profiling on the server via HTTP API.
+
+    NOTE: The server returns plain text, not JSON. The ProfileReqInput schema
+    accepts: output_dir, start_step, num_steps, host_tracer_level, python_tracer_level.
+    There is NO profile_id parameter - see Known Issues section.
+    """
     import aiohttp
     async with aiohttp.ClientSession() as session:
         async with session.post(
@@ -668,18 +753,24 @@ async def start_server_profiling(base_url: str, output_dir: str, num_steps: int,
             json={
                 "output_dir": output_dir,
                 "num_steps": num_steps,
-                "profile_id": profile_id,
+                # NOTE: profile_id is NOT supported by current API
+                # host_tracer_level and python_tracer_level are optional
             },
         ) as response:
-            return await response.json()
+            # Server returns plain text, not JSON
+            return await response.text()
 
 
 async def stop_server_profiling(base_url: str):
-    """Stop profiling on the server via HTTP API."""
+    """Stop profiling on the server via HTTP API.
+
+    NOTE: The server returns plain text, not JSON.
+    """
     import aiohttp
     async with aiohttp.ClientSession() as session:
         async with session.post(f"{base_url}/stop_profile") as response:
-            return await response.json()
+            # Server returns plain text, not JSON
+            return await response.text()
 
 
 async def run_benchmark(
@@ -703,21 +794,30 @@ async def run_benchmark(
         for label_count in config.label_counts:
             # Warmup
             for _ in range(config.warmup_runs):
-                await run_single_score_request(base_url, batch_size, label_count)
+                await run_single_score_request(
+                    base_url, batch_size, label_count, model=config.model
+                )
 
             # Measurement
             latencies = []
+            # NOTE: profile_id is for local tracking only; NOT sent to server API
             profile_id = f"score_b{batch_size}_l{label_count}"
+            trace_output_dir = f"{output_dir}/{profile_id}"
 
             # Start SERVER-SIDE profiling (not client-side!)
+            # WARNING: JAX only allows ONE active trace. Do not call this concurrently.
+            # num_steps refers to forward passes, NOT HTTP requests. With dynamic
+            # batching, multiple requests may be batched into one step.
             if enable_trace:
                 await start_server_profiling(
-                    base_url, output_dir, num_steps=config.num_runs, profile_id=profile_id
+                    base_url, trace_output_dir, num_steps=config.num_runs
                 )
 
             for run in range(config.num_runs):
                 start = time.perf_counter()
-                await run_single_score_request(base_url, batch_size, label_count)
+                await run_single_score_request(
+                    base_url, batch_size, label_count, model=config.model
+                )
                 latency_ms = (time.perf_counter() - start) * 1000
                 latencies.append(latency_ms)
 
@@ -735,24 +835,58 @@ async def run_benchmark(
                 "p99_ms": latencies[int(len(latencies) * 0.99)],
                 "mean_ms": sum(latencies) / len(latencies),
                 "throughput_items_per_sec": batch_size * 1000 / (sum(latencies) / len(latencies)),
-                "trace_path": trace_path,
+                "trace_path": trace_output_dir if enable_trace else None,
             })
 
     return {
         "config": config.__dict__,
         "results": results,
-        "metadata": get_environment_metadata(),
+        "metadata": await get_environment_metadata(base_url),
     }
 
 
-async def run_single_score_request(base_url: str, batch_size: int, label_count: int):
-    """Run a single score request."""
+async def run_single_score_request(
+    base_url: str,
+    batch_size: int,
+    label_count: int,
+    model: str,
+    apply_softmax: bool = True,
+    item_first: bool = False,
+):
+    """Run a single score request.
+
+    Args:
+        base_url: Server URL
+        batch_size: Number of items to score
+        label_count: Number of label tokens
+        model: Model name (must match server's loaded model)
+        apply_softmax: Whether to apply softmax to scores (RFC-010 parity)
+        item_first: Whether to use item-first format (RFC-010 parity)
+
+    NOTE: For proper benchmarking, label_token_ids should be actual vocabulary
+    token IDs (e.g., "Yes"/"No" tokens), not just range(label_count).
+    Use get_tokenizer() to look up real token IDs for the model.
+
+    ASYNC DISPATCH CONSIDERATION:
+    JAX uses async dispatch - Python can return while TPU is still running.
+    The /v1/score endpoint transfers scores from Device->Host before returning,
+    which forces synchronization. This means HTTP response time accurately
+    reflects end-to-end latency including TPU execution.
+
+    If you modify the endpoint to return before D2H transfer, benchmarks will
+    measure submission time, not execution time. Verify sync behavior if you
+    change the endpoint implementation.
+    """
     import aiohttp
 
     # Generate test data
     query = "Is this a positive review? "
     items = [f"Sample item {i} with some text content." for i in range(batch_size)]
-    label_token_ids = list(range(label_count))  # Placeholder
+
+    # TODO: Use actual token IDs from tokenizer for cross-backend parity (RFC-010)
+    # Example for Llama: {"Yes": 9454, "No": 2753}
+    # For now, use placeholder IDs - this weakens cross-backend comparison
+    label_token_ids = list(range(1000, 1000 + label_count))  # Placeholder token IDs
 
     async with aiohttp.ClientSession() as session:
         async with session.post(
@@ -761,35 +895,131 @@ async def run_single_score_request(base_url: str, batch_size: int, label_count: 
                 "query": query,
                 "items": items,
                 "label_token_ids": label_token_ids,
-                "model": "default",
+                "model": model,
+                "apply_softmax": apply_softmax,
+                "item_first": item_first,
             },
         ) as response:
             return await response.json()
 
 
-def get_environment_metadata() -> Dict[str, Any]:
-    """Get environment metadata for reproducibility."""
+async def get_environment_metadata(base_url: str) -> Dict[str, Any]:
+    """Get environment metadata for reproducibility.
+
+    NOTE: Uses /get_server_info to get SERVER hardware info, not client.
+    Client-side jax.devices() would return the benchmark machine's devices,
+    not the server's TPUs.
+    """
     import subprocess
+    import aiohttp
+
+    # Get server info (not client-side JAX devices!)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{base_url}/get_server_info") as response:
+            server_info = await response.json()
 
     return {
-        "jax_version": jax.__version__,
-        "devices": [str(d) for d in jax.devices()],
-        "device_count": jax.device_count(),
-        "platform": jax.default_backend(),
+        # Server hardware (from /get_server_info)
+        "server_devices": server_info.get("device", "unknown"),
+        "server_device_count": server_info.get("device_count", 0),
+        "model_path": server_info.get("model_path", "unknown"),
+        # Client metadata
+        "client_jax_version": jax.__version__,
         "commit": subprocess.getoutput("git rev-parse --short HEAD"),
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
+
+
+async def sanity_check(base_url: str, model: str) -> bool:
+    """Pre-flight sanity check before running benchmarks.
+
+    Validates:
+    1. Server is reachable
+    2. Model matches expected config
+    3. Single request returns valid response
+
+    Returns True if all checks pass, False otherwise.
+    """
+    import aiohttp
+
+    print("Running sanity checks...")
+
+    # Check 1: Server reachable
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{base_url}/health", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status != 200:
+                    print(f"  ❌ Server not healthy: status {resp.status}")
+                    return False
+        print("  ✓ Server is reachable")
+    except Exception as e:
+        print(f"  ❌ Cannot connect to server: {e}")
+        return False
+
+    # Check 2: Server info / model match
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{base_url}/get_server_info") as resp:
+                info = await resp.json()
+                server_model = info.get("model_path", "unknown")
+                if model != "default" and model not in server_model:
+                    print(f"  ⚠️ Model mismatch: expected '{model}', server has '{server_model}'")
+                else:
+                    print(f"  ✓ Model: {server_model}")
+    except Exception as e:
+        print(f"  ⚠️ Could not verify model: {e}")
+
+    # Check 3: Single request works
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{base_url}/v1/score",
+                json={"query": "test", "items": ["a"], "label_token_ids": [1000]},
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                if resp.status != 200:
+                    print(f"  ❌ Score request failed: status {resp.status}")
+                    return False
+                result = await resp.json()
+                if "scores" not in result:
+                    print(f"  ❌ Invalid response: missing 'scores' key")
+                    return False
+        print("  ✓ Score request returned valid JSON")
+    except Exception as e:
+        print(f"  ❌ Score request failed: {e}")
+        return False
+
+    print("All sanity checks passed!\n")
+    return True
 
 
 def main():
     parser = argparse.ArgumentParser(description="Score API Benchmark")
     parser.add_argument("--profile", choices=PROFILES.keys(), default="smoke")
     parser.add_argument("--base-url", default="http://localhost:30000")
+    parser.add_argument("--model", default="default", help="Expected model name (for sanity check)")
     parser.add_argument("--enable-trace", action="store_true")
     parser.add_argument("--enable-memory", action="store_true")
     parser.add_argument("--output-dir", default="/tmp/score_benchmark")
     parser.add_argument("--output-json", default=None)
+    parser.add_argument("--skip-sanity-check", action="store_true", help="Skip pre-flight checks")
+    parser.add_argument("--strict", action="store_true", help="Fail on warnings (e.g., memory profiling)")
     args = parser.parse_args()
+
+    # Check for memory profiling (invalidates latency benchmarks)
+    if os.environ.get("ENABLE_MEMORY_PROFILING") == "1":
+        print("⚠️  WARNING: ENABLE_MEMORY_PROFILING=1 detected!")
+        print("   Latency benchmarks will be INVALID due to synchronization overhead.")
+        if args.strict:
+            print("   Exiting due to --strict flag. Disable memory profiling for benchmarks.")
+            sys.exit(1)
+        print()
+
+    # Run sanity checks
+    if not args.skip_sanity_check:
+        if not asyncio.run(sanity_check(args.base_url, args.model)):
+            print("\nSanity checks failed. Use --skip-sanity-check to bypass.")
+            sys.exit(1)
 
     config = PROFILES[args.profile]
     results = asyncio.run(run_benchmark(
@@ -866,8 +1096,11 @@ if __name__ == "__main__":
 
 For production profiling, use simple `time.perf_counter` logs that can be enabled via environment variable. This has minimal overhead and is easy to correlate with JAX traces:
 
+> **⚠️ NOT YET IMPLEMENTED:** The `SGL_LOG_L1_TIMING` environment variable shown below
+> is a PROPOSED addition. It does not exist in the current codebase. See Implementation Plan.
+
 ```python
-# In tokenizer_manager.py
+# PROPOSED addition to tokenizer_manager.py (not yet implemented)
 import os
 import time
 
@@ -984,8 +1217,11 @@ curl -X POST 'http://localhost:30000/v1/score' \
 # Stop profiling
 curl -X POST 'http://localhost:30000/stop_profile'
 
-# View trace
-open https://ui.perfetto.dev  # Upload /tmp/score_profile/*.trace.json.gz
+# View trace - open Perfetto in browser and upload the trace file
+# NOTE: 'open' is macOS-only; on Linux use xdg-open, on Windows use start
+# Or simply navigate to the URL in any browser and drag-drop the trace file
+echo "Open https://ui.perfetto.dev in your browser"
+echo "Then drag and drop: /tmp/score_profile/plugins/profile/*/*.trace.json.gz"
 ```
 
 #### Scenario 2: Batch Throughput Analysis
@@ -1174,10 +1410,14 @@ ls -la /tmp/score_profile/plugins/profile/*/
 **Option A: Perfetto UI (Recommended)**
 
 ```bash
-# Open in browser
-open https://ui.perfetto.dev
-
-# Drag and drop: /tmp/score_profile/plugins/profile/*/*.trace.json.gz
+# Navigate to https://ui.perfetto.dev in your browser
+# Then drag and drop the trace file:
+#   /tmp/score_profile/plugins/profile/*/*.trace.json.gz
+#
+# NOTE: The 'open' command is macOS-only.
+# Linux: xdg-open https://ui.perfetto.dev
+# Windows: start https://ui.perfetto.dev
+# Or just open the URL in any browser manually.
 ```
 
 **Option B: TensorBoard**
@@ -1563,13 +1803,21 @@ SELECT ts, value FROM counter WHERE name = 'hbm_usage';
 
 ### TensorBoard Quick Reference
 
-> **⚠️ Plugin Required:** Standard TensorBoard often fails to render TPU traces correctly.
-> You need `tensorboard-plugin-profile` that matches your TPU software version:
+> **⚠️ Plugin Options (pick ONE):**
+>
+> **Option 1: XProf (recommended for JAX 0.4.35+)**
+> ```bash
+> pip install tensorboard xprof
+> # Or for latest features: pip install tb-nightly xprof-nightly
+> ```
+>
+> **Option 2: Legacy plugin (older setups)**
 > ```bash
 > pip install tensorboard tensorboard-plugin-profile
 > ```
+>
 > **Recommendation:** Perfetto is generally more robust for JAX/TPU traces and doesn't
-> require version matching.
+> require plugin version matching. Use TensorBoard/XProf for roofline analysis.
 
 ```bash
 # Launch
@@ -1746,6 +1994,47 @@ def analyze_score_requests(trace_path: str):
 - Compare score vs generate performance in same trace
 - Track score request latency separately in dashboards
 - Debug score-specific performance issues in mixed workloads
+
+### Enhancement: Request ID Correlation
+
+> **Problem:** There is no shared ID or clock between `time.perf_counter()` in TokenizerManager
+> (CPU timing) and the `ts` (timestamp) in JAX traces. You cannot correlate a high-latency log
+> entry to its corresponding TPU slice.
+
+**Solution:** Add a unique `req_id` that propagates from TokenizerManager through to TraceAnnotation:
+
+```python
+# Step 1: Generate unique ID in TokenizerManager
+import uuid
+
+async def score_request(self, ...):
+    req_id = str(uuid.uuid4())[:8]  # Short unique ID
+
+    # Log with req_id for CPU timing correlation
+    logger.info(f"[{req_id}] score_request start")
+    t0 = time.perf_counter()
+
+    batch_request = GenerateReqInput(
+        # ... existing fields ...
+        request_type="score",
+        req_id=req_id,  # NEW: Pass request ID
+    )
+
+# Step 2: Include in TraceAnnotation
+with jax.profiler.TraceAnnotation(
+    "run_batch",
+    batch_size=batch.batch_size(),
+    request_type=batch.request_type or "unknown",
+    req_id=batch.req_id,  # NEW: Correlatable ID
+):
+    output = self.tp_worker.forward_batch_generation(...)
+```
+
+**Benefit:** Find exact TPU slice corresponding to a specific high-latency log entry:
+```bash
+# In logs: [abc12345] score_request took 250ms (expected 50ms)
+# In trace: Search for req_id="abc12345" to find the corresponding TPU events
+```
 
 ---
 
@@ -1969,18 +2258,24 @@ The `/start_profile` endpoint accepts these parameters:
     "num_steps": 10,                    // Number of forward steps to profile (optional)
     "start_step": 5,                    // Skip warmup steps before profiling (optional)
     "host_tracer_level": 2,             // 0=off, 1=minimal, 2=medium, 3=verbose
-    "python_tracer_level": 1,           // 0=off, 1=enabled
-    "profile_id": "my_profile"          // Logged for debugging, NOT used in file naming
+    "python_tracer_level": 1            // 0=off, 1=enabled
 }
 ```
 
+> **⚠️ Note:** Unlike PyTorch SGLang, the JAX `/start_profile` API does **NOT** accept:
+> - `profile_id` - Not in schema (PyTorch-only)
+> - `activities` - Not in schema (PyTorch-only)
+> - `profile_by_stage` / `profile_stages` - Not implemented (PyTorch-only)
+>
+> See [Parity Plan](#parity-plan-pytorch-features-missing-in-jax) for planned enhancements.
+
 **Notes:**
 - If `num_steps` is not specified, profiling continues until `/stop_profile` is called
-- `profile_id` is stored and logged but does NOT affect output file names (see Parity Plan for planned enhancement)
+- Output directory defaults to `$SGLANG_JAX_PROFILER_DIR` or `/tmp` if not specified
 
 ### Multi-Device Profiling
 
-sglang-jax automatically handles profiling across TP/EP ranks. Each rank generates its own trace file with a standardized naming convention.
+sglang-jax automatically handles profiling across TP/EP ranks. Each rank generates its own trace file.
 
 ```bash
 # Launch with TP=4
@@ -1994,35 +2289,30 @@ curl -X POST 'http://localhost:30000/start_profile' \
     -H 'Content-Type: application/json' \
     -d '{
         "output_dir": "/tmp/tp4_profile",
-        "num_steps": 5,
-        "profile_id": "tp4_test"
+        "num_steps": 5
     }'
 ```
 
-**Generated files follow this naming convention:**
+**Generated files:**
 ```
 /tmp/tp4_profile/
 ├── plugins/profile/<timestamp>/
-│   ├── tp4_test-TP-0-EP-0.trace.json.gz
-│   ├── tp4_test-TP-1-EP-0.trace.json.gz
-│   ├── tp4_test-TP-2-EP-0.trace.json.gz
-│   └── tp4_test-TP-3-EP-0.trace.json.gz
+│   ├── <timestamp>.trace.json.gz        # Rank 0
+│   └── ... (one file per rank)
 ```
 
-> **⚠️ Note:** Unlike PyTorch SGLang, JAX does **NOT** have automatic trace merging.
-> Each rank produces a separate trace file. You must manually load them into Perfetto
-> or implement a custom merger. See [Parity Plan](#parity-plan-pytorch-features-missing-in-jax).
+> **⚠️ JAX vs PyTorch Differences:**
+> - JAX does **NOT** use `{profile_id}-TP-{rank}-EP-{rank}` file naming (that's PyTorch behavior)
+> - JAX does **NOT** have automatic trace merging
+> - Each rank produces a separate trace file with timestamp-based naming
+> - You must manually load them into Perfetto or implement a custom merger
+>
+> See [Parity Plan](#parity-plan-pytorch-features-missing-in-jax) for planned enhancements.
 
-**File naming format:** `{profile_id}-TP-{tp_rank}-EP-{ep_rank}.trace.json.gz`
-
-For setups with expert parallelism (MoE models):
-```
-# TP=2, EP=2 setup
-├── moe_profile-TP-0-EP-0.trace.json.gz
-├── moe_profile-TP-0-EP-1.trace.json.gz
-├── moe_profile-TP-1-EP-0.trace.json.gz
-└── moe_profile-TP-1-EP-1.trace.json.gz
-```
+**Viewing multi-rank traces:**
+1. Open https://ui.perfetto.dev
+2. Load each rank's trace file separately
+3. Use timeline alignment to compare ranks
 
 ### Stage-Based Profiling (Prefill vs Decode)
 
@@ -2097,10 +2387,13 @@ for f in glob.glob('/shared/profiles/**/*.trace.json.gz', recursive=True):
     with gzip.open(f, 'rb') as fh:
         traces.append(json.load(fh))
 
-# Manual merge (basic)
+# Manual merge (basic) - WARNING: see caveats below
 merged = {'traceEvents': []}
-for t in traces:
-    merged['traceEvents'].extend(t.get('traceEvents', []))
+for rank, t in enumerate(traces):
+    for event in t.get('traceEvents', []):
+        # IMPORTANT: Remap pid to avoid collisions between ranks
+        event['pid'] = rank
+        merged['traceEvents'].append(event)
 
 with gzip.open('/shared/profiles/merged.trace.json.gz', 'wt') as f:
     json.dump(merged, f)
@@ -2109,6 +2402,24 @@ with gzip.open('/shared/profiles/merged.trace.json.gz', 'wt') as f:
 
 > **⚠️ TODO:** The `sgl_jax.srt.utils.trace_merger` module is **planned but not yet implemented**.
 > See [Implementation Plan Phase 1](#phase-1-core-infrastructure-priority-high) for the `trace_merger.py` task.
+
+> **⚠️ Trace Merging Caveats:**
+>
+> Merging traces from multiple ranks is NOT just concatenating JSON files:
+>
+> 1. **Clock Drift:** If profiling across multiple hosts (distributed TP), timestamps may not align.
+>    Each host has its own clock. Consider using a common reference point or accepting ~ms skew.
+>
+> 2. **PID Remapping:** Each rank reports `pid: 1` by default. Without remapping (as shown above),
+>    all ranks overlap in Perfetto. Assign unique PIDs per rank.
+>
+> 3. **Perfetto Metadata:** The merged trace should include proper `metadata` entries for Perfetto
+>    to correctly label each rank.
+>
+> **Recommendation:** Before writing a custom merger, investigate if existing tools can be reused:
+> - `tensorboard_plugin_profile` has trace utilities
+> - `perfetto` Python package has trace parsing/writing support
+> - PyTorch SGLang's `ProfileMerger` as reference (if porting to JAX)
 
 ### Analyzing TP Communication Overhead
 
@@ -2120,6 +2431,270 @@ Look for these kernels in traces to understand TP overhead:
 | `reduce_scatter` | Distribute gradients | Batch size tuning |
 | `all_reduce` | Collective reduction | TP size vs compute |
 | `psum` | JAX collective sum | Sharding strategy |
+
+---
+
+## Artifact Storage Strategy
+
+### Quick Start (Minimal)
+
+For getting started quickly - sufficient for ad-hoc profiling and small teams.
+
+**Local/TPU VM:**
+```bash
+# Traces go to /tmp/profile by default
+curl -X POST 'http://localhost:30000/start_profile' \
+    -d '{"output_dir": "/tmp/profile", "num_steps": 10}'
+
+# IMPORTANT: Copy off before deleting VM!
+gsutil cp -r /tmp/profile gs://YOUR_BUCKET/profiles/$(date +%Y%m%d)-manual/
+```
+
+**CI (GitHub Actions):**
+```yaml
+# Already sufficient - 90-day retention
+- name: Upload profiling artifacts
+  uses: actions/upload-artifact@v4
+  with:
+    name: profile-${{ github.sha }}
+    path: /tmp/profile
+    retention-days: 30
+```
+
+**Sharing with teammates:**
+```bash
+# Traces are typically <100MB - create signed URL for sharing
+gsutil signurl -d 7d /path/to/service-account.json gs://YOUR_BUCKET/profiles/trace.json.gz
+# Or just Slack/email the file directly
+```
+
+**That's it for getting started.** The long-term solution below is for when you need repeatability and historical comparison.
+
+---
+
+### Long-Term Solution (Repeatable)
+
+For production use, CI integration, and historical regression detection.
+
+#### GCS Bucket Structure
+
+```
+gs://YOUR_BUCKET/sglang-profiles/
+│
+├── nightly/                          # Automated CI runs
+│   └── {YYYY-MM-DD}/
+│       └── {commit_short}/
+│           ├── traces/
+│           │   └── *.trace.json.gz
+│           ├── memory/
+│           │   └── *.prof
+│           ├── benchmark_results.json
+│           └── metadata.json
+│
+├── manual/                           # Ad-hoc profiling sessions
+│   └── {YYYY-MM-DD}-{description}/
+│       └── ...
+│
+├── baselines/                        # Reference baselines for comparison
+│   ├── v1.0.0-baseline.json
+│   └── {YYYY-MM-DD}-baseline.json
+│
+└── reports/                          # Generated analysis reports
+    └── {YYYY-MM-DD}/
+        ├── regression_report.html
+        └── comparison_charts.png
+```
+
+#### Naming Convention
+
+| Component | Format | Example |
+|-----------|--------|---------|
+| Date | `YYYY-MM-DD` | `2026-02-05` |
+| Commit | First 7 chars | `abc1234` |
+| Run ID | Timestamp or UUID | `1707123456` |
+| Description | Kebab-case | `fix-attention-perf` |
+
+#### Metadata Schema
+
+Every profiling run should save `metadata.json`:
+
+```json
+{
+  "timestamp": "2026-02-05T14:30:00Z",
+  "commit": "abc1234def5678",
+  "branch": "main",
+  "trigger": "nightly",
+  "config": {
+    "profile": "standard",
+    "model": "meta-llama/Llama-3.2-1B-Instruct",
+    "batch_sizes": [1, 4, 8, 16],
+    "num_runs": 20
+  },
+  "hardware": {
+    "device": "TPU v6e-1",
+    "device_count": 1,
+    "zone": "us-east5-b"
+  },
+  "artifacts": {
+    "traces": ["traces/profile.trace.json.gz"],
+    "memory": ["memory/step_10.prof"],
+    "benchmark": "benchmark_results.json"
+  }
+}
+```
+
+#### Automated Upload (bench_score.py addition)
+
+```python
+def upload_to_gcs(output_dir: str, bucket: str, commit: str, run_type: str = "manual"):
+    """Upload profiling artifacts to GCS with proper structure."""
+    import subprocess
+    from datetime import datetime
+
+    date = datetime.now().strftime("%Y-%m-%d")
+    commit_short = commit[:7] if commit else "unknown"
+
+    if run_type == "nightly":
+        gcs_path = f"gs://{bucket}/sglang-profiles/nightly/{date}/{commit_short}/"
+    else:
+        gcs_path = f"gs://{bucket}/sglang-profiles/manual/{date}-{commit_short}/"
+
+    # Upload all artifacts
+    subprocess.run(["gsutil", "-m", "cp", "-r", output_dir, gcs_path], check=True)
+
+    # Save metadata
+    metadata = {
+        "timestamp": datetime.now().isoformat(),
+        "commit": commit,
+        "gcs_path": gcs_path,
+        # ... add more as needed
+    }
+    with open(f"{output_dir}/metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+    subprocess.run(["gsutil", "cp", f"{output_dir}/metadata.json", gcs_path], check=True)
+
+    print(f"Artifacts uploaded to: {gcs_path}")
+    return gcs_path
+
+
+# In main():
+if args.upload:
+    upload_to_gcs(
+        args.output_dir,
+        bucket=os.environ.get("SGLANG_PROFILE_BUCKET", "your-bucket"),
+        commit=os.environ.get("GITHUB_SHA", subprocess.getoutput("git rev-parse HEAD")),
+        run_type="nightly" if os.environ.get("CI") else "manual",
+    )
+```
+
+#### CI Workflow Integration
+
+```yaml
+# .github/workflows/nightly-profiling.yaml
+name: Nightly Profiling
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:
+
+env:
+  BUCKET: your-project-sglang-profiles
+  COMMIT: ${{ github.sha }}
+
+jobs:
+  profile:
+    runs-on: [self-hosted, tpu-v6e]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run profiling benchmark
+        run: |
+          python test/srt/bench_score.py \
+            --profile standard \
+            --enable-trace \
+            --output-dir /tmp/profile \
+            --output-json /tmp/profile/benchmark_results.json
+
+      - name: Upload to GCS (persistent)
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          COMMIT_SHORT=${COMMIT:0:7}
+          GCS_PATH="gs://$BUCKET/sglang-profiles/nightly/$DATE/$COMMIT_SHORT/"
+
+          gsutil -m cp -r /tmp/profile/* $GCS_PATH
+
+          echo "Uploaded to: $GCS_PATH"
+          echo "gcs_path=$GCS_PATH" >> $GITHUB_OUTPUT
+
+      - name: Upload to GitHub (backup, 30-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: profile-${{ github.sha }}
+          path: /tmp/profile
+          retention-days: 30
+
+      - name: Compare to baseline (optional)
+        run: |
+          # Download latest baseline
+          gsutil cp gs://$BUCKET/sglang-profiles/baselines/latest.json /tmp/baseline.json
+
+          # Compare (implement comparison logic)
+          python scripts/compare_benchmarks.py \
+            --current /tmp/profile/benchmark_results.json \
+            --baseline /tmp/baseline.json \
+            --threshold 10
+```
+
+#### Retention Policy
+
+| Tier | Location | Retention | Use Case |
+|------|----------|-----------|----------|
+| **Hot** | `nightly/` | 7 days | Recent debugging |
+| **Warm** | `nightly/` (older) | 30 days | Weekly comparison |
+| **Cold** | Archive bucket | 1 year | Release validation |
+| **Baselines** | `baselines/` | Forever | Regression reference |
+
+**GCS Lifecycle Rule (apply via `gsutil` or Console):**
+
+```json
+{
+  "rule": [
+    {
+      "action": {"type": "Delete"},
+      "condition": {
+        "age": 30,
+        "matchesPrefix": ["sglang-profiles/nightly/"]
+      }
+    },
+    {
+      "action": {"type": "SetStorageClass", "storageClass": "COLDLINE"},
+      "condition": {
+        "age": 7,
+        "matchesPrefix": ["sglang-profiles/nightly/"]
+      }
+    }
+  ]
+}
+```
+
+#### Retrieving Past Runs
+
+```bash
+# List recent runs
+gsutil ls gs://YOUR_BUCKET/sglang-profiles/nightly/
+
+# Download specific run
+gsutil -m cp -r gs://YOUR_BUCKET/sglang-profiles/nightly/2026-02-05/abc1234/ ./local_profile/
+
+# Find runs for a commit
+gsutil ls "gs://YOUR_BUCKET/sglang-profiles/**/abc1234/**"
+
+# Compare two runs
+python scripts/compare_benchmarks.py \
+  --run1 gs://YOUR_BUCKET/sglang-profiles/nightly/2026-02-04/def5678/benchmark_results.json \
+  --run2 gs://YOUR_BUCKET/sglang-profiles/nightly/2026-02-05/abc1234/benchmark_results.json
+```
 
 ---
 
@@ -2164,15 +2739,18 @@ python -m sgl_jax.launch_server \
 
 ### Environment Variable Reference
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SGLANG_JAX_PROFILER_DIR` | Default profiler output directory | `/tmp` |
-| `ENABLE_MEMORY_PROFILING` | Enable memory profiling | `0` |
-| `SGL_MEMORY_OUTPUT_DIR` | Memory profile output directory | `memory_profiles` |
-| `MEMORY_PROFILING_LAYERS` | Layers to profile (`all`, `4`, `0,1,2`) | `4` |
-| `JAX_COMPILATION_CACHE_DIR` | XLA compilation cache (see note below) | None |
-| `XLA_FLAGS` | XLA compiler flags | None |
-| `SGL_LOG_L1_TIMING` | Enable lightweight timing logs | `0` |
+| Variable | Description | Default | Status |
+|----------|-------------|---------|--------|
+| `SGLANG_JAX_PROFILER_DIR` | Default profiler output directory | `/tmp` | ✅ Implemented |
+| `ENABLE_MEMORY_PROFILING` | Enable memory profiling | `0` | ✅ Implemented |
+| `SGL_MEMORY_OUTPUT_DIR` | Memory profile output directory | `memory_profiles` | ✅ Implemented |
+| `MEMORY_PROFILING_LAYERS` | Layers to profile (`all`, `4`, `0,1,2`) | `4` | ✅ Implemented |
+| `DISABLE_MEMORY_REPORTS` | Disable .txt/.json memory reports | `0` | ✅ Implemented |
+| `DISABLE_PROF_GENERATION` | Disable .prof file generation | `0` | ✅ Implemented |
+| `DISABLE_MEMORY_CONSOLE_LOG` | Disable memory console logging | `0` | ✅ Implemented |
+| `JAX_COMPILATION_CACHE_DIR` | XLA compilation cache (see note below) | None | ✅ JAX native |
+| `XLA_FLAGS` | XLA compiler flags | None | ✅ JAX native |
+| `SGL_LOG_L1_TIMING` | Enable lightweight timing logs | `0` | ❌ **NOT IMPLEMENTED** |
 
 > **XLA Cache Recommendation:** Set `JAX_COMPILATION_CACHE_DIR` to a persistent location
 > *outside* `/tmp` if you want the cache to survive reboots. For Docker containers, ensure
@@ -2180,6 +2758,36 @@ python -m sgl_jax.launch_server \
 > ```bash
 > export JAX_COMPILATION_CACHE_DIR=/persistent/jax_cache
 > # Or in Docker: -v /host/jax_cache:/persistent/jax_cache
+> ```
+
+> **CI/CD Cache Management:**
+>
+> For nightly CI profiling workflows, consider these trade-offs:
+>
+> | Strategy | Pros | Cons | When to Use |
+> |----------|------|------|-------------|
+> | **Preserve cache** | Skip compilation time (~1-5 min) | May hide compilation regressions | Performance benchmarks |
+> | **Clear cache each run** | Tests full cold-start path | Adds compilation overhead | Release validation |
+> | **Rotate weekly** | Balance of both | Requires cron job | Most CI setups |
+>
+> ```yaml
+> # GitHub Actions example - preserve cache for benchmarks
+> - name: Restore XLA cache
+>   uses: actions/cache@v3
+>   with:
+>     path: /tmp/jax_cache
+>     key: jax-xla-cache-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
+>
+> # Or clear cache to test compilation
+> - name: Clear XLA cache (release builds)
+>   if: github.event_name == 'release'
+>   run: rm -rf /tmp/jax_cache
+> ```
+>
+> **Disk management:** XLA caches can grow large (1-10GB). Set up periodic cleanup:
+> ```bash
+> # Cron job to clear old caches (> 7 days)
+> find /persistent/jax_cache -type f -mtime +7 -delete
 > ```
 
 ---
@@ -2330,7 +2938,7 @@ See [Implementation Plan](#implementation-plan) for planned named_scope instrume
 - [How to Scale Your Model - Profiling](https://jax-ml.github.io/scaling-book/profiling/)
 - [RFC-004: Performance Benchmarks](004-score-api-performance-benchmarks.md)
 - [RFC-010: Cross-Backend Benchmarking](010-cross-backend-benchmarking.md)
-- [ADR-001: Pure Python Softmax](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax](../decisions/001-pure-python-softmax.md)
 - [sglang-jax Benchmark Docs](../../sglang-jax/docs/developer_guide/benchmark_and_profiling.md)
 
 ---
@@ -2457,3 +3065,26 @@ export JAX_COMPILATION_CACHE_DIR=/tmp/jax_cache
   }
 }
 ```
+
+---
+
+## References
+
+### Runbooks
+- **[Profiling Infrastructure Setup](../runbooks/profiling-infrastructure-setup.md)** - Step-by-step infrastructure setup (TPU VM, GKE+TPU, GKE+GPU, Local)
+- [Running Performance Benchmarks](../runbooks/running-performance-benchmarks.md) - Benchmark execution guides
+- [Running Score API Tests](../runbooks/running-score-api-tests.md) - Test execution guides
+- [Debugging TPU Test Failures](../runbooks/debugging-tpu-test-failures.md) - Troubleshooting
+
+### Related RFCs
+- [RFC-004: Score API Performance Benchmarks](004-score-api-performance-benchmarks.md)
+- [RFC-009: ARC Runner Setup](009-arc-runner-setup.md) - GKE self-hosted runners
+- [RFC-010: Cross-Backend Benchmarking](010-cross-backend-benchmarking.md)
+
+### Architecture Decisions
+- [ADR-001: SciPy Softmax](../decisions/001-pure-python-softmax.md)
+
+### External Documentation
+- [JAX Profiling Guide](https://jax.readthedocs.io/en/latest/profiling.html)
+- [Perfetto UI](https://ui.perfetto.dev)
+- [XProf Documentation](https://github.com/tensorflow/profiler)

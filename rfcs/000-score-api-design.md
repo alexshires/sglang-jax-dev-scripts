@@ -195,7 +195,7 @@ label_token_ids = [PARIS_TOKEN]  # Score probability of " Paris" after each
 # France context should score highest for Paris
 ```
 
-**Important:** For Patterns 1-3, use `apply_softmax=False` (raw logprobs) to compare across items. Softmax normalizes per-item, which is only meaningful when comparing labels within a single item.
+**Important:** For Patterns 1-3, use `apply_softmax=False` (unnormalized probabilities — `exp(logprob)`) to compare across items. Softmax normalizes per-item, which is only meaningful when comparing labels within a single item.
 
 ## Design Principles
 
@@ -244,12 +244,14 @@ The `item_first` parameter controls whether the model sees `query + item` or `it
 
 ### 4. Softmax as Post-Processing
 
-The `apply_softmax` parameter controls whether raw logprobs or normalized probabilities are returned:
+The `apply_softmax` parameter controls post-processing of model logprobs:
 
 ```python
-# apply_softmax=False: Returns raw logprobs [-2.3, -4.5, -6.7]
-# apply_softmax=True:  Returns probabilities [0.85, 0.10, 0.05] (sum to 1.0)
+# apply_softmax=False: Returns exp(logprob) — unnormalized probabilities [0.10, 0.01, 0.001]
+# apply_softmax=True:  Returns normalized probabilities [0.85, 0.10, 0.05] (sum to 1.0)
 ```
+
+> **Correction (2026-02-06):** This section previously stated that `apply_softmax=False` returns "raw logprobs". The actual implementation (both PyTorch and JAX) returns `exp(logprob)` — unnormalized probabilities, not log-space values. All scores are non-negative. To get raw logprobs, access `input_token_ids_logprobs` from `meta_info` directly. See [RFC-008](008-multi-item-scoring.md) for the full semantics analysis.
 
 **Softmax Axis:** Softmax is applied **per-item, across the provided labels only**. Each item's scores are normalized independently:
 
@@ -262,16 +264,16 @@ scores = [
 ```
 
 **Important distinction:**
-- `apply_softmax=False`: Returns true model logprobs (log P(token | context) from full vocabulary)
+- `apply_softmax=False`: Returns `exp(logprob)` — unnormalized probabilities. Values are non-negative but do NOT sum to 1.0 (they are not normalized across labels). Underflow to `0.0` is possible for very unlikely tokens.
 - `apply_softmax=True`: Returns **relative probabilities within the label set**, not true model probabilities. Useful for comparing labels, but the values only sum to 1.0 over your provided labels.
 
 **When to use each:**
-- Use `apply_softmax=False` when comparing scores across different items (e.g., ranking)
+- Use `apply_softmax=False` when comparing scores across different items (e.g., ranking). Note: values are `exp(logprob)`, not raw logprobs.
 - Use `apply_softmax=True` when comparing labels within a single item (e.g., classification)
 
 **Why this matters:**
-- Raw logprobs useful for custom normalization
-- Probabilities easier to interpret and use directly
+- Unnormalized probabilities useful for custom normalization
+- Normalized probabilities easier to interpret and use directly
 - Softmax done in Python to avoid device conflicts (see [ADR-001](../decisions/001-pure-python-softmax.md))
 
 ## Architecture
@@ -306,7 +308,7 @@ scores = [
 │     - return_logprob=True                                       │
 │  4. Send to Scheduler via IPC                                   │
 │  5. Receive logprobs from Scheduler                             │
-│  6. Apply softmax if requested (pure Python)                    │
+│  6. Apply softmax if requested (SciPy)                          │
 │  7. Return scores                                               │
 └─────────────────────────────────────────────────────────────────┘
                                 │
@@ -332,7 +334,7 @@ The TokenizerManager runs in the main process and must be **device-agnostic**:
 2. **No device conflicts:** Main process can't use JAX operations (see [ADR-001](../decisions/001-pure-python-softmax.md))
 3. **Clean separation:** Tokenization/formatting separate from inference
 
-This is why softmax is implemented in pure Python, not JAX.
+This is why softmax is implemented using SciPy, not JAX.
 
 ## API Parameters
 
@@ -421,16 +423,16 @@ scores = [
 
 **Trade-off:** Requires special handling in scheduler to not fail on zero tokens.
 
-### Decision 2: Pure Python Softmax
+### Decision 2: SciPy Softmax
 
-**Choice:** Implement softmax in Python, not JAX.
+**Choice:** Implement softmax using SciPy, not JAX.
 
 **Rationale:**
 - TokenizerManager runs in main process
 - Main process cannot access TPU/GPU (subprocess has exclusive access)
 - JAX operations in main process cause device conflicts
 
-**Trade-off:** Slightly slower than JAX softmax, but negligible for small label sets.
+**Trade-off:** Uses CPU via SciPy, but negligible for small label sets.
 
 **See:** [ADR-001](../decisions/001-pure-python-softmax.md) for detailed analysis.
 
@@ -461,7 +463,7 @@ scores = [
 | Aspect | PyTorch | JAX |
 |--------|---------|-----|
 | Implementation location | `tokenizer_manager.py` | `tokenizer_manager.py` |
-| Softmax implementation | JAX (in process) | Pure Python (device-agnostic) |
+| Softmax implementation | Pure Python | SciPy (device-agnostic) |
 | Test coverage | 17 tests | 4+ tests (expanding) |
 | HTTP endpoint | `/v1/score` | `/v1/score` |
 | Request format | Identical | Identical |
@@ -518,7 +520,7 @@ Request 4 (seq_len=75):  ~12ms         (cached)
 TPU natively uses bfloat16 (bf16), which has less precision than float32:
 
 - **Model inference:** bf16 (TPU-optimized)
-- **Softmax computation:** float32 via pure Python (see [ADR-001](../decisions/001-pure-python-softmax.md))
+- **Softmax computation:** float32 via SciPy (see [ADR-001](../decisions/001-pure-python-softmax.md))
 - **Expected variance:** Scores may differ by ~0.01 vs float32 reference
 
 For most scoring tasks, bf16 precision is sufficient. If exact reproducibility with CPU/GPU float32 is required, this is a known limitation.
@@ -635,9 +637,9 @@ scores = engine.score(
     query="The capital of France is",
     items=[""],  # Empty - score next token after query
     label_token_ids=[PARIS_ID, LONDON_ID, BERLIN_ID],
-    apply_softmax=False  # Raw logprobs for ranking
+    apply_softmax=False  # Unnormalized probabilities (exp of logprob) for ranking
 )
-# Returns: [[-0.5, -3.2, -4.1]]  # Paris has highest logprob
+# Returns: [[0.607, 0.041, 0.017]]  # Paris has highest probability
 # Rank by scores[0]: Paris > London > Berlin
 ```
 
@@ -652,9 +654,9 @@ scores = engine.score(
     query="The capital of",
     items=[" France is", " Germany is", " Italy is"],  # Different contexts
     label_token_ids=[TARGET_ID],  # Same target for all
-    apply_softmax=False  # Raw logprobs for comparison
+    apply_softmax=False  # Unnormalized probabilities (exp of logprob) for comparison
 )
-# Returns: [[-0.5], [-5.2], [-4.8]]
+# Returns: [[0.607], [0.006], [0.008]]
 # "The capital of France is" → " Paris" has highest probability
 ```
 
@@ -690,7 +692,7 @@ See [RFC-006](006-error-handling-api-contract.md) for complete error handling sp
 
 ## References
 
-- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax Decision](../decisions/001-pure-python-softmax.md)
 - [RFC-001: Comprehensive Testing for Score API](001-score-api-comprehensive-tests.md)
 - [RFC-003: Comprehensive Score API Test Suite](003-score-api-comprehensive-test-suite.md)
 - [RFC-005: OpenAI Client Compatibility](005-openai-client-compatibility.md)

@@ -79,7 +79,7 @@ grep -n "import jax" python/sgl_jax/srt/managers/tokenizer_manager.py
 
 **Fix:**
 1. Remove JAX imports from tokenizer_manager.py
-2. Use pure Python alternatives (e.g., softmax)
+2. Use SciPy alternatives (e.g., softmax)
 3. See ADR-001 for rationale
 
 **Validation:**
@@ -485,7 +485,7 @@ grep -r "import jax" python/sgl_jax/srt/managers/tokenizer_manager.py && echo "E
 
 - [RFC-001: Score API Comprehensive Tests](../rfcs/001-score-api-comprehensive-tests.md)
 - [RFC-002: CI/CD for TPU Testing](../rfcs/002-cicd-tpu-testing.md)
-- [ADR-001: Pure Python Softmax Decision](../decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax Decision](../decisions/001-pure-python-softmax.md)
 - [Investigation: TokenizerManager Architecture](../investigations/tokenizer-manager-architecture.md)
 
 ## Escalation

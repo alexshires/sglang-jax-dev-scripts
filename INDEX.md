@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-04
+**Last Updated:** 2026-02-07
 
 ---
 
@@ -74,11 +74,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Fuzz/property testing with hypothesis
 
 - **[RFC-008: Multi-Item Scoring](rfcs/008-multi-item-scoring.md)**
-  - Status: Draft
-  - Score N items in single forward pass (vs N passes currently)
-  - Matches PyTorch implementation for performance parity
-  - Uses delimiter tokens to combine items into single sequence
-  - Estimated 10-60x speedup for large item counts
+  - Status: **Implemented (Feature-Gated MVP)**
+  - Score N items in single forward pass (vs N passes in serial mode)
+  - Reuses JAX `custom_mask` in `ragged_paged_attention` for attention isolation
+  - Validated on TPU v6e-1 across Qwen3 0.6B/1.7B/4B (zero changed-length drift with chunk size `2`)
+  - Evidence: [validation report](reports/multi-item-scoring-tpu-validation-2026-02-07.md), [validation runbook](runbooks/running-multi-item-scoring-validation.md)
+  - Follow-up ablation: [mask/chunk report](reports/multi-item-mask-chunk-ablation-2026-02-07.md)
+  - Supporting investigations: [attention mechanism](investigations/multi-item-attention-mechanism.md), [compilation overhead](investigations/multi-item-compilation-overhead.md)
 
 - **[RFC-009: Self-Hosted ARC Runners with TPU](rfcs/009-arc-runner-setup.md)**
   - Status: Draft
@@ -102,6 +104,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Step-by-step guides for all profiling scenarios
   - Tools: JAX profiler, XProf, TensorBoard, Perfetto
 
+- **[RFC-012: CI/CD Pipeline Optimization](rfcs/012-ci-optimization.md)**
+  - Status: Draft
+  - Reduce CI execution time for utility/docs PRs
+  - Path-based filtering, draft PR workflow, dependency caching
+  - Infrastructure optimizations: model pre-caching, warm runner pools
+  - 4-tier implementation plan with cost analysis
+
 ### Templates
 
 - **[RFC Template](rfcs/template.md)**
@@ -109,10 +118,10 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 ## ADRs (Architecture Decision Records)
 
-- **[ADR-001: Pure Python Softmax in TokenizerManager](decisions/001-pure-python-softmax.md)**
+- **[ADR-001: SciPy Softmax in TokenizerManager](decisions/001-pure-python-softmax.md)**
   - Date: 2026-01-29
-  - Status: Accepted
-  - Use pure Python softmax instead of JAX to avoid device conflicts
+  - Status: Implemented
+  - Use SciPy softmax instead of JAX to avoid device conflicts
   - TokenizerManager runs in main process, must be device-agnostic
 
 - **[ADR-002: Use gcloud Directly for Unit Tests](decisions/002-no-skypilot-for-unit-tests.md)**
@@ -144,6 +153,21 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - 7 critical gaps identified (hardcoded values, no GPU support, missing bench_score.py)
   - Benchmark script comparison: PyTorch vs JAX tooling
 
+- **[Multi-Item Attention Mechanism](investigations/multi-item-attention-mechanism.md)**
+  - Investigation for RFC-008 Decision 8: which JAX API for shared-prefix + block-diagonal masking
+  - Evaluated 6 candidates: existing custom_mask, splash attention, Pallas flash attention, jax.nn.dot_product_attention, Kvax, custom Pallas kernel
+  - Key finding: `segment_ids` across ALL APIs cannot express the shared-prefix pattern
+  - Recommendation: reuse existing `custom_mask` in `ragged_paged_attention` (zero kernel changes)
+  - Decision matrix with correctness, memory, dev effort, TPU optimization criteria
+
+- **[Multi-Item Compilation Overhead](investigations/multi-item-compilation-overhead.md)**
+  - Investigation for RFC-008 Decision 7: JIT compilation overhead from multi-item scoring
+  - Traced pytree chain: ForwardBatch → FlashAttention → FlashAttentionMetadata → custom_mask
+  - Key finding: `custom_mask` None→Array changes pytree structure, adding +8 EXTEND compilations (one per token bucket)
+  - Item count does NOT affect compilation — only mask values, not shape
+  - Previous "5 item-count compilations × token × batch = multiplicative" claim was incorrect
+  - Recommendation: lazy JIT compilation for MVP, no precompilation needed
+
 ## Runbooks
 
 - **[Debugging TPU Test Failures](runbooks/debugging-tpu-test-failures.md)**
@@ -151,6 +175,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Common failure scenarios and fixes
   - CI/CD specific debugging
   - Useful commands and diagnostics
+
+- **[Profiling Infrastructure Setup](runbooks/profiling-infrastructure-setup.md)** ← **NEW**
+  - 4 infrastructure options: TPU VM, GKE+TPU, GKE+GPU, Local CPU
+  - Step-by-step setup for each option
+  - Cost comparison and trade-offs
+  - Trace viewing with Perfetto and TensorBoard
 
 - **[Running Score API Tests](runbooks/running-score-api-tests.md)**
   - How to run tests in CI (automatic)
@@ -163,6 +193,29 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Stress tests: large batch, concurrent, sustained
   - Baseline management and regression detection
   - CI/CD integration and cost management
+
+- **[Running Multi-Item Scoring Validation](runbooks/running-multi-item-scoring-validation.md)** ← **NEW**
+  - Reproducible TPU commands for multi vs serial scoring eval
+  - Standard thresholds for isolation, parity, and speedup checks
+  - Model matrix procedure and artifact collection
+
+## Reports
+
+- **[Profiling Session 2026-02-05](reports/profiling-session-2026-02-05.md)** ← **NEW**
+  - End-to-end profiling of sglang-jax on TPU v6e
+  - TinyLlama 1.1B model, 15 generate requests
+  - Trace analysis with 283K events, 27s total traced time
+  - Artifacts in GCS: `gs://sglang-jax-profiling-results/2026-02-05-tinyllama-tpu-v6e/`
+
+- **[Multi-Item Scoring TPU Validation 2026-02-07](reports/multi-item-scoring-tpu-validation-2026-02-07.md)** ← **NEW**
+  - Implementation rollout evidence for RFC-008
+  - Correctness and throughput matrix across Qwen3 models
+  - Known compatibility limitation for tested Qwen2.5 variants
+
+- **[Multi-Item Mask/Chunk Ablation 2026-02-07](reports/multi-item-mask-chunk-ablation-2026-02-07.md)** ← **NEW**
+  - Follow-up experiment for RFC-008 in PR #16
+  - Compares mask semantics and chunk-size tradeoffs
+  - Confirms keeping baseline mask + chunk size `2`
 
 ## Test Plans
 
@@ -201,7 +254,7 @@ Quick reference for all design documents, decisions, and guides in this reposito
 ```
 RFC-000 (Design & Architecture)  ← START HERE
     ↓
-RFC-008 (Multi-Item Scoring)  ← NEW: Major optimization
+RFC-008 (Multi-Item Scoring)  ← Implemented (Feature-gated MVP)
     ↓
 RFC-006 (Error Handling)
     ↓
@@ -239,13 +292,15 @@ Runbook: Running Performance Benchmarks
 ```
 RFC-002 (Fork CI/CD Strategy)
     ↓
+RFC-012 (CI Optimization)  ← NEW: Speed up PR validation
+    ↓
 RFC-009 (ARC Runner Setup)  ← Self-hosted TPU runners
     ↓
 RFC-004 (Performance Benchmarks)
     ↓
 RFC-010 (Cross-Backend Benchmarking)  ← PyTorch GPU vs JAX TPU
     ↓
-RFC-011 (Profiling Framework)  ← NEW: Comprehensive profiling
+RFC-011 (Profiling Framework)  ← Comprehensive profiling
     ↓
 Investigation: v1 Infrastructure Assessment  ← Gap analysis
     ↓
@@ -276,12 +331,14 @@ Runbook: Debugging
 - [RFC-004: Performance Benchmarks](rfcs/004-score-api-performance-benchmarks.md)
 - [RFC-010: Cross-Backend Benchmarking](rfcs/010-cross-backend-benchmarking.md) ← PyTorch GPU vs JAX TPU
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
+- [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
+- [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 - [Test Plan 004: Benchmarks and Stress Tests](test-plans/004-performance-benchmarks-and-stress-tests.md)
 - [Running Performance Benchmarks](runbooks/running-performance-benchmarks.md)
 
 ### Architecture
-- [ADR-001: Pure Python Softmax](decisions/001-pure-python-softmax.md)
+- [ADR-001: SciPy Softmax](decisions/001-pure-python-softmax.md)
 - [TokenizerManager Architecture](investigations/tokenizer-manager-architecture.md)
 
 ### Comparisons
@@ -289,9 +346,11 @@ Runbook: Debugging
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 
 ### Operations
+- [Profiling Infrastructure Setup](runbooks/profiling-infrastructure-setup.md) ← **NEW**
 - [Debugging TPU Tests](runbooks/debugging-tpu-test-failures.md)
 - [RFC-002: Fork CI/CD Strategy](rfcs/002-cicd-tpu-testing.md)
 - [Running Score API Tests](runbooks/running-score-api-tests.md)
+- [Running Multi-Item Scoring Validation](runbooks/running-multi-item-scoring-validation.md)
 
 ## Contributing
 
@@ -329,6 +388,26 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-07:** RFC-008 follow-up ablation in PR #16
+  - PR: [alexshires/sglang-jax#16](https://github.com/alexshires/sglang-jax/pull/16)
+  - Added report: [multi-item-mask-chunk-ablation-2026-02-07.md](reports/multi-item-mask-chunk-ablation-2026-02-07.md)
+  - Compared mask variants and chunk sizes on TPU v6e-1
+  - Outcome: keep baseline mask semantics (`prefix_first_delim`) and chunk size `2`
+
+- **2026-02-07:** RFC-008 implemented in `sglang-jax` (feature-gated MVP)
+  - PR: [alexshires/sglang-jax#15](https://github.com/alexshires/sglang-jax/pull/15)
+  - Added rollout report: [multi-item-scoring-tpu-validation-2026-02-07.md](reports/multi-item-scoring-tpu-validation-2026-02-07.md)
+  - Added runbook: [running-multi-item-scoring-validation.md](runbooks/running-multi-item-scoring-validation.md)
+  - Validation matrix completed on TPU v6e-1 for Qwen3 0.6B/1.7B/4B
+  - Documented known fused-KV compatibility limitation for tested Qwen2.5 variants
+
+- **2026-02-05:** RFC-012: CI/CD Pipeline Optimization
+  - Reduce CI execution time for utility/docs PRs (14 TPU jobs → lint only)
+  - 4-tier implementation: draft PR workflow, run-ci label, path filtering, infra
+  - Immediate actions require no workflow changes (draft PR, labels)
+  - Infrastructure optimizations: dependency caching, model pre-caching, warm runners
+  - Path-based filters to skip TPU tests for test utilities and documentation
 
 - **2026-02-05:** RFC-011: Comprehensive Profiling Framework for sglang-jax
   - End-to-end profiling framework for JAX/TPU workloads with Score API focus
@@ -424,7 +503,7 @@ See [README.md](README.md) for document workflow and best practices.
 - **2026-01-29 (Morning):** Created repository with initial RFCs, ADRs, investigations, and runbook
   - RFC-001: Score API comprehensive tests (Implemented)
   - RFC-002: CI/CD for TPU testing (Draft)
-  - ADR-001: Pure Python softmax decision (Accepted)
+  - ADR-001: SciPy softmax decision (Implemented)
   - Investigation: TokenizerManager architecture
   - Investigation: PyTorch vs JAX comparison
   - Runbook: Debugging TPU test failures

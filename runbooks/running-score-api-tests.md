@@ -270,7 +270,7 @@ See [debugging-tpu-test-failures.md](debugging-tpu-test-failures.md) for full tr
 
 1. **Device conflict error**
    - Check: JAX not imported in tokenizer_manager.py
-   - Fix: Use pure Python softmax (see [ADR-001](../decisions/001-pure-python-softmax.md))
+   - Fix: Use SciPy softmax (see [ADR-001](../decisions/001-pure-python-softmax.md))
 
 2. **Slow tests (>150s)**
    - Check: `max_new_tokens=1` instead of `0`
@@ -344,7 +344,7 @@ python test/srt/run_suite.py --suite e2e-test-tpu-v6e-1
 
 - **[RFC-001: Score API Comprehensive Tests](../rfcs/001-score-api-comprehensive-tests.md)** - Test design and implementation
 - **[RFC-003: Comprehensive Test Suite](../rfcs/003-score-api-comprehensive-test-suite.md)** - Future expansion plan
-- **[ADR-001: Pure Python Softmax](../decisions/001-pure-python-softmax.md)** - Why we avoid JAX in tokenizer_manager
+- **[ADR-001: SciPy Softmax](../decisions/001-pure-python-softmax.md)** - Why we avoid JAX in tokenizer_manager
 - **[Runbook: Debugging TPU Test Failures](debugging-tpu-test-failures.md)** - Troubleshooting guide
 
 ## Support
