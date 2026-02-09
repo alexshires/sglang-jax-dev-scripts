@@ -1,10 +1,28 @@
 steps:
+  # Pull the previous image to use as cache
   - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/sglang-jax:latest', '-f', 'Dockerfile', '.' ]
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull gcr.io/$PROJECT_ID/sglang-jax:latest || exit 0
+  
+  # Build the image using the pulled image as cache
   - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'push', 'gcr.io/$PROJECT_ID/sglang-jax:latest' ]
+    args: [
+      'build',
+      '-t', 'gcr.io/$PROJECT_ID/sglang-jax:latest',
+      '--cache-from', 'gcr.io/$PROJECT_ID/sglang-jax:latest',
+      '-f', 'Dockerfile',
+      '.'
+    ]
+  
+  # Push the new image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/sglang-jax:latest']
+
 images:
   - 'gcr.io/$PROJECT_ID/sglang-jax:latest'
-tags: ['latest']
+
 options:
   machineType: 'E2_HIGHCPU_8'
