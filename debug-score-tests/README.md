@@ -1,60 +1,49 @@
-# sGLANG Scripts & Manifests
+# SGLang-JAX Debug Score Testing
 
-This directory contains Kubernetes manifests, Dockerfiles, and utility scripts for deploying, testing, and debugging sGLANG (JAX/Pytorch) on Google Kubernetes Engine (GKE), specifically targeting TPU environments.
+This directory contains the infrastructure for debugging and verifying the SGLang-JAX `/v1/score` API on Google Kubernetes Engine (GKE) with TPUs.
 
-## Directory Structure
+## Recent Improvements (2026-02-10)
 
-- **benchmark/**: Contains scripts and manifests for benchmarking sGLANG performance (see [benchmark/README.md](benchmark/README.md)).
-- **cloudbuild.yaml**: Google Cloud Build configuration for building the sGLANG JAX Docker image.
-- **debug-tpu-pod.yaml**: A standalone Pod manifest for debugging TPU connectivity and environment issues.
-- **Dockerfile**: Defines the sGLANG JAX container image.
-- **test-runner-job.yaml**: A Kubernetes Job that runs the sGLANG JAX test suite on a remote node.
+The following enhancements were made to improve developer velocity and test reliability:
+
+1.  **Robust Build Process**: The `Dockerfile` now performs a clean, multi-stage-style build. It clones the repository, switches to the feature branch (`feat/multi-item-scoring`), and installs all dependencies in a single optimized layer.
+2.  **Efficient Caching**: `cloudbuild.yaml` is configured to pull the previous `latest` image to use as a cache (`--cache-from`), significantly reducing build times for subsequent changes.
+3.  **Standardized Dependencies**: A `requirements.txt` file now manages all additional test packages (e.g., `pytest`, `openai`, `torch`, `transformers`), ensuring consistent environments across local and remote runs.
+4.  **Integrated Multi-Item Testing**: The test suite now includes dedicated multi-item scoring regression and correctness tests, accessible via the `run_tests.sh` script.
+5.  **Resource Alignment**: Kubernetes manifests (`debug-tpu-pod.yaml`) are aligned with TPU v6e node capacities (40 CPU, 150Gi RAM) to prevent OOMs during JAX compilation.
+6.  **Offline Model Support**: The debug environment is configured to use models pre-cached in GCS (mounted at `/data`), avoiding expensive downloads during test execution.
 
 ---
 
-## File Descriptions & Usage
+## Workflow
 
-### 1. `test-runner-job.yaml`
-A Kubernetes Job designed to run the sGLANG JAX test suite (including specific new features like the Scoring API) on a remote TPU node.
-
-**Usage:**
-```bash
-# Create a new test run (creates a unique job name each time)
-kubectl create -f test-runner-job.yaml -n eval-serving
-
-# View logs
-kubectl logs -f job/<job-name> -n eval-serving
-```
-
-**Key Configuration:**
-- `git checkout fix/score-api-missing-logprobs`: Specifies the branch to test. Update this in the YAML if needed.
-- `backoffLimit: 3`: Retries the pod up to 3 times if it fails (e.g., due to node preemption).
-
-### 2. `debug-tpu-pod.yaml`
-A simple Pod that keeps a TPU node active ('sleep infinity') to allow interactive debugging via `kubectl exec`.
-
-**Usage:**
-```bash
-# Deploy the debug pod
-kubectl apply -f debug-tpu-pod.yaml -n eval-serving
-
-# Access the pod
-kubectl exec -it debug-tpu-sglang-score -n eval-serving -- /bin/bash
-```
-
-### 3. `Dockerfile`
-Multi-stage Dockerfile for building the sGLANG JAX environment.
-
-**Usage:**
-Usually built via Cloud Build, but can be built locally:
-```bash
-docker build -t sglang-jax:latest -f Dockerfile ..
-```
-
-### 4. `cloudbuild.yaml`
-Google Cloud Build config to automate building and pushing the Docker image to Google Container Registry (GCR).
-
-**Usage:**
+### 1. Build and Push Image
+Submit a build to Google Cloud Build from this directory. This will clone the latest code and push a new image to GCR.
 ```bash
 gcloud builds submit --config cloudbuild.yaml .
 ```
+
+### 2. Launch Debug Pod
+Delete the existing pod and launch a fresh one with the new image.
+```bash
+kubectl delete pod -n eval-serving debug-tpu-sglang-score --ignore-not-found
+kubectl apply -f debug-tpu-pod.yaml
+kubectl wait --for=condition=Ready pod/debug-tpu-sglang-score -n eval-serving --timeout=300s
+```
+
+### 3. Run Tests
+Execute the integrated test suite on the running pod.
+```bash
+kubectl exec -n eval-serving debug-tpu-sglang-score -c inference-server -- /app/run_tests.sh
+```
+
+---
+
+## Components
+
+- **`Dockerfile`**: Self-contained build for the JAX server and test runner.
+- **`cloudbuild.yaml`**: Automates image creation with Docker layer caching.
+- **`run_tests.sh`**: Entry point for executing the multi-item scoring test suite.
+- **`requirements.txt`**: Additional Python packages required for testing.
+- **`debug-tpu-pod.yaml`**: Kubernetes manifest for a TPU-enabled debug environment.
+- **`test-runner-job.yaml`**: Template for running tests as a Kubernetes Job.

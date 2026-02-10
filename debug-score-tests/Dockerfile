@@ -1,32 +1,38 @@
-FROM python:3.12
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install git
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Clone the repository
-ARG REPO_URL=https://github.com/alexshires/sglang-jax.git
-ARG BRANCH_NAME=feat/scoring-workflow
+# Install uv for faster pip installs
+RUN pip install --no-cache-dir uv
 
-RUN git clone ${REPO_URL} sglang-jax && \
-    cd sglang-jax && \
-    git checkout ${BRANCH_NAME}
-
-# Change to sglang-jax directory before installing
-WORKDIR /app/sglang-jax
-
-# Install sglang-jax package and common test dependencies
-RUN cd python && pip install -e .[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html && \
-    pip install pytest openai && \
-    pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-# Copy the test script from the build context
+# Copy local config files needed for the build
+COPY requirements.txt /app/requirements-debug.txt
 COPY run_tests.sh /app/run_tests.sh
 RUN chmod +x /app/run_tests.sh
 
-ENV JAX_COMPILATION_CACHE_DIR=/tmp/jit_cache
+# Clone and setup the repository
+# We use a single RUN to ensure the environment is correctly configured
+ARG REPO_URL=https://github.com/alexshires/sglang-jax.git
+ARG FEATURE_BRANCH=feat/multi-item-scoring
 
+RUN git clone ${REPO_URL} sglang-jax && \
+    cd sglang-jax && \
+    git checkout main && \
+    git checkout ${FEATURE_BRANCH} && \
+    cd python && \
+    uv pip install --system -e .[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html && \
+    uv pip install --system -r /app/requirements-debug.txt
+
+# Environment setup
+ENV JAX_COMPILATION_CACHE_DIR=/tmp/jit_cache
 RUN mkdir -p /tmp/jit_cache /tmp/models
 
-ENTRYPOINT ["python", "-u", "-m", "sgl_jax.launch_server", "--host", "0.0.0.0", "--port", "30000", "--dist-init-addr=0.0.0.0:10011", "--nnodes=1", "--tp-size=4", "--node-rank=0", "--mem-fraction-static=0.8", "--max-prefill-tokens=8192", "--download-dir=/tmp", "--dtype=bfloat16", "--skip-server-warmup", "--enable-single-process", "--grammar-backend=none"]
+# Use sleep infinity for debugging
+ENTRYPOINT ["sleep", "infinity"]
