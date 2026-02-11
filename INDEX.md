@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-07
+**Last Updated:** 2026-02-11
 
 ---
 
@@ -168,6 +168,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Previous "5 item-count compilations × token × batch = multiplicative" claim was incorrect
   - Recommendation: lazy JIT compilation for MVP, no precompilation needed
 
+- **[JAX vs PyTorch Multi-Item Comparison Methodology](investigations/jax-vs-pytorch-multi-item-comparison-methodology.md)** ← **NEW**
+  - Reproducible two-view design: portable vs best-native
+  - Frozen PyTorch baseline policy with correctness gate
+  - Shared canonical workload and schema contract
+
 ## Runbooks
 
 - **[Debugging TPU Test Failures](runbooks/debugging-tpu-test-failures.md)**
@@ -199,6 +204,10 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Standard thresholds for isolation, parity, and speedup checks
   - Model matrix procedure and artifact collection
 
+- **[Running JAX vs PyTorch Multi-Item Comparison](runbooks/running-jax-vs-pytorch-multi-item-comparison.md)** ← **NEW**
+  - End-to-end commands for canonical workload, backend matrix runs, and final comparison
+  - Includes portable and best-native execution flow
+
 ## Reports
 
 - **[Profiling Session 2026-02-05](reports/profiling-session-2026-02-05.md)** ← **NEW**
@@ -216,6 +225,10 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Follow-up experiment for RFC-008 in PR #16
   - Compares mask semantics and chunk-size tradeoffs
   - Confirms keeping baseline mask + chunk size `2`
+
+- **[JAX vs PyTorch Multi-Item Comparison 2026-02-11](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md)** ← **NEW**
+  - Cross-backend comparison report template for frozen-baseline evaluation
+  - Portable and best-native result sections with correctness gating
 
 ## Test Plans
 
@@ -245,7 +258,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 ## Scripts
 
-*No utility scripts yet*
+- `investigations/scripts/generate_canonical_score_workload.py`
+- `investigations/scripts/run_score_matrix_jax.py`
+- `investigations/scripts/run_score_matrix_pytorch.py`
+- `investigations/scripts/compare_score_matrix_results.py`
+- `investigations/scripts/render_jax_vs_pytorch_final_report.py`
+- `scripts/run_all_jax_vs_pytorch_multi_item.sh` (G4-only orchestrator)
 
 ## Document Relationships
 
@@ -331,6 +349,7 @@ Runbook: Debugging
 - [RFC-004: Performance Benchmarks](rfcs/004-score-api-performance-benchmarks.md)
 - [RFC-010: Cross-Backend Benchmarking](rfcs/010-cross-backend-benchmarking.md) ← PyTorch GPU vs JAX TPU
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
+- [JAX vs PyTorch Multi-Item Comparison (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) ← Cross-backend evaluation report
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
@@ -343,6 +362,8 @@ Runbook: Debugging
 
 ### Comparisons
 - [PyTorch vs JAX Score API](investigations/score-api-pytorch-vs-jax.md)
+- [JAX vs PyTorch Multi-Item Comparison Methodology](investigations/jax-vs-pytorch-multi-item-comparison-methodology.md)
+- [JAX vs PyTorch Multi-Item Comparison Report (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md)
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 
 ### Operations
@@ -351,6 +372,7 @@ Runbook: Debugging
 - [RFC-002: Fork CI/CD Strategy](rfcs/002-cicd-tpu-testing.md)
 - [Running Score API Tests](runbooks/running-score-api-tests.md)
 - [Running Multi-Item Scoring Validation](runbooks/running-multi-item-scoring-validation.md)
+- [Running JAX vs PyTorch Multi-Item Comparison](runbooks/running-jax-vs-pytorch-multi-item-comparison.md)
 
 ## Contributing
 
@@ -388,6 +410,13 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-11:** Cross-backend evaluation harness for JAX vs frozen PyTorch baseline
+  - Added methodology: [jax-vs-pytorch-multi-item-comparison-methodology.md](investigations/jax-vs-pytorch-multi-item-comparison-methodology.md)
+  - Added runbook: [running-jax-vs-pytorch-multi-item-comparison.md](runbooks/running-jax-vs-pytorch-multi-item-comparison.md)
+  - Added report template: [jax-vs-pytorch-multi-item-comparison-2026-02-11.md](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md)
+  - Added scripts for canonical workload generation, per-backend matrix runs, and final comparison JSON/Markdown output
+  - Locked evaluation rules: correctness gate + latency guardrail + 100% success eligibility
 
 - **2026-02-07:** RFC-008 follow-up ablation in PR #16
   - PR: [alexshires/sglang-jax#16](https://github.com/alexshires/sglang-jax/pull/16)
