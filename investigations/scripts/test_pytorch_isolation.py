@@ -140,12 +140,15 @@ def score_items(
 
     # Response format: scores is List[List[float]] where each inner list
     # contains probabilities for each label_token_id.
-    # For isolation testing, we sum the log probs to get a single score per item.
+    #
+    # For isolation testing, use FIRST label only (not sum) to avoid
+    # cancellation effects when comparing across runs. The first label
+    # is typically "Yes" which gives a stable, interpretable signal.
     scores = {}
     for i, item in enumerate(items):
         key = f"{item}" if items.count(item) == 1 else f"{item}[{i}]"
-        # Sum log probs across label tokens for a single comparable score
-        scores[key] = sum(data["scores"][i])
+        # Use first label score only (avoids cancellation in sum)
+        scores[key] = data["scores"][i][0]
     return scores
 
 
@@ -656,6 +659,33 @@ def run_all_tests(
         isolation_count = 0
         conclusion = "ERROR"
 
+    # Compute confidence level based on statistical rigor
+    # Requirements for "high" confidence:
+    # 1. At least 5 runs (minimum for meaningful statistics)
+    # 2. All tests have narrow CI (CI width < 2x threshold)
+    MIN_RUNS_FOR_HIGH_CONFIDENCE = 5
+    CI_WIDTH_THRESHOLD = 0.002  # 2x the 0.001 isolation threshold
+
+    if n_runs >= MIN_RUNS_FOR_HIGH_CONFIDENCE:
+        # Check CI widths from statistical results
+        ci_widths_ok = True
+        for r in executed_tests:
+            if r.statistical:
+                for stat_key, stat_val in r.statistical.items():
+                    ci_width = stat_val.get("ci_95_upper", 0) - stat_val.get("ci_95_lower", 0)
+                    if ci_width > CI_WIDTH_THRESHOLD:
+                        ci_widths_ok = False
+                        break
+
+        if ci_widths_ok:
+            confidence = "high (>=5 runs, narrow CIs)"
+        else:
+            confidence = "medium (>=5 runs, wide CIs - consider more runs)"
+    elif n_runs > 1:
+        confidence = "low (2-4 runs, insufficient for decision)"
+    else:
+        confidence = "very low (single pass, not decision-grade)"
+
     return {
         "server_url": server_url,
         "mode": "decision_grade" if n_runs > 1 else "quick",
@@ -669,7 +699,7 @@ def run_all_tests(
             "all_tests_show_isolation": all_isolated,
             "any_test_shows_isolation": any_isolated,
             "conclusion": conclusion,
-            "confidence": "high (statistical)" if n_runs > 1 else "low (single pass)",
+            "confidence": confidence,
         }
     }
 

@@ -74,7 +74,7 @@ Compute reduction: 156M / 24M ≈ 6.5x
 |------|------------|------------|
 | **Radix cache eviction edge cases** | B0 | Test cache eviction under memory pressure. Verify LRU logic works when re-enabled for scoring after being "dormant" in disabled mode. Add explicit eviction test to B0 exit criteria. |
 | **Tile-skipping efficacy** | A | TPU/XLA control flow may not skip memory loads even with `if q_seg != k_seg`. **Verify speedup early** - if only 1.5x instead of ~3x, reprioritize B over A. |
-| **Memory limit surprisingly low** | A | 2000 tokens OOM on 32GB HBM suggests kernel allocates large intermediates (perhaps `[B,H,Q,K]` in float32). Investigate kernel memory footprint. Splash Attention (Strategy 3) may be needed sooner than expected. |
+| **Memory limit surprisingly low** | A | ~2700 tokens OOM (2000 OK) suggests kernel allocates large intermediates (perhaps `[B,H,Q,K]` in float32). Investigate kernel memory footprint if OOM persists after tile-skip. Splash Attention (Strategy 3) may be needed sooner than expected. |
 | **Python loop overhead at scale** | B1 | For 500 items, 16 async calls is fine. For 5000+ items, Python dispatch latency becomes visible. Ensure `_batched_extend_score` keeps JAX runtime fed. Consider `jax.lax.scan` for v2.0 if needed. |
 
 **Key insight from review:** Workstream B (Prefill+Extend) is likely the winner for the target workload. Workstream A provides correctness and robustness, but B is where the order-of-magnitude speedup lives.
@@ -622,11 +622,15 @@ def select_scoring_algorithm(
     #   - chunk_size=64  → seq = 2000 + 64×21 = 3344 tokens → likely OOM!
     #   - chunk_size=32  → seq = 2000 + 32×21 = 2672 tokens → borderline
     #
-    # OOM threshold is approximately seq² × hidden_dim × 4 bytes for attention
-    # intermediates. For v6e-1 with ~16GB HBM, empirical limit is ~2700 tokens.
+    # OOM threshold depends on model size, batch size, and attention intermediates.
+    # Effective memory limit is lower than raw HBM due to model weights,
+    # KV cache, and activation memory. Don't rely on theoretical calculations.
     #
-    # Formula: max_safe_seq ≈ 2700 (empirically measured)
-    EMPIRICAL_SEQ_LIMIT_V6E = 2700
+    # EMPIRICALLY MEASURED on TPU v6e-1 with Qwen3-0.6B:
+    #   - seq=2700: OOM
+    #   - seq=2000: OK
+    # This is the measured boundary, not a theoretical calculation.
+    EMPIRICAL_SEQ_LIMIT_V6E = 2500  # Conservative: 2000 measured OK, 2700 OOM
 
     packed_segment_memory_mb = packed_seq_len * 8 / 1e6  # Segment metadata (small)
     packed_dense_memory_mb = (packed_seq_len ** 2) * 4 / 1e6  # Dense mask
@@ -678,24 +682,36 @@ multi_item_algorithm_items_threshold: int = 32  # num_items > N → consider pre
 ### Auto-Chunk Selection
 
 ```python
+# Empirically measured seq limits per TPU type (with Qwen3-0.6B)
+# These are MEASURED boundaries, not theoretical calculations.
+# OOM is driven by attention intermediates, not mask size.
+EMPIRICAL_SEQ_LIMITS = {
+    "v6e-1": 2500,   # Measured: 2000 OK, 2700 OOM
+    "v6e-4": 4000,   # Estimate: scale with HBM
+    "v6e-8": 6000,   # Estimate: scale with HBM
+    "default": 2000, # Conservative fallback
+}
+
 def select_chunk_size(
     query_len: int,
     num_items: int,
     avg_item_len: int,
     chunk_candidates: List[int],
-    memory_headroom_mb: float,
-    mask_mode: str,
+    tpu_type: str = "v6e-1",
 ) -> int:
-    """Select largest safe chunk size."""
+    """
+    Select largest safe chunk size using EMPIRICAL seq limits.
+
+    NOTE: We use measured OOM boundaries, not mask-size calculations,
+    because OOM is driven by attention intermediates (O(seq²) activations),
+    not the mask itself.
+    """
+    max_seq = EMPIRICAL_SEQ_LIMITS.get(tpu_type, EMPIRICAL_SEQ_LIMITS["default"])
+
     for chunk in sorted(chunk_candidates, reverse=True):
         seq_len = query_len + chunk * (avg_item_len + 1)
 
-        if mask_mode == "segment":
-            memory_mb = seq_len * 8 / 1e6
-        else:  # dense
-            memory_mb = (seq_len ** 2) * 4 / 1e6
-
-        if memory_mb < memory_headroom_mb * 0.8:  # 80% safety margin
+        if seq_len < max_seq * 0.9:  # 10% safety margin
             return chunk
 
     return chunk_candidates[-1]  # Smallest fallback
