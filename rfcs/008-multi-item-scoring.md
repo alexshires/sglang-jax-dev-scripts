@@ -1,12 +1,14 @@
-# RFC-008: Multi-Item Scoring
+# RFC-008: Multi-Item Scoring (v0.1)
 
 | | |
 |------------|------|
-| **Status** | Implemented (Feature-Gated MVP) |
+| **Status** | **Implemented (v0.1 Feature-Gated MVP)** |
+| **Version** | v0.1 — Feature-complete, performance-limited |
 | **Author** | Engineering Team |
 | **Created** | 2026-02-01 |
-| **Updated** | 2026-02-07 |
+| **Updated** | 2026-02-11 |
 | **Related** | [RFC-000](000-score-api-design.md), [ADR-001](../decisions/001-pure-python-softmax.md) |
+| **Next** | [RFC-013: v1.0 Optimization Roadmap](013-multi-item-scoring-v1-optimization.md) |
 | **PyTorch PR** | [sgl-project/sglang#10979](https://github.com/sgl-project/sglang/pull/10979) |
 | **JAX PR** | [alexshires/sglang-jax#15](https://github.com/alexshires/sglang-jax/pull/15) |
 | **JAX Follow-up PR** | [alexshires/sglang-jax#16](https://github.com/alexshires/sglang-jax/pull/16) |
@@ -43,6 +45,22 @@ Supporting rollout docs in this repository:
 - [Report: Multi-Item Scoring TPU Validation (2026-02-07)](../reports/multi-item-scoring-tpu-validation-2026-02-07.md)
 - [Runbook: Running Multi-Item Scoring Validation](../runbooks/running-multi-item-scoring-validation.md)
 - [Report: Multi-Item Mask/Chunk Ablation (2026-02-07)](../reports/multi-item-mask-chunk-ablation-2026-02-07.md)
+
+## What's Next: v1.0 Optimization
+
+v0.1 is feature-complete but performance-limited by O(seq²) mask memory:
+
+| Metric | v0.1 Current | v1.0 Target |
+|--------|--------------|-------------|
+| Max chunk size | 64 | 256+ |
+| Throughput (500 items) | ~80 items/s | ~200 items/s |
+| Speedup vs serial | 16.5x | 40x+ |
+
+**See [RFC-013: Multi-Item Scoring v1.0 Optimization](013-multi-item-scoring-v1-optimization.md)** for:
+- Detailed performance analysis and bottleneck identification
+- Optimization strategies (procedural mask, causal mode, splash attention)
+- Implementation phases and success metrics
+- Critical investigation: [PyTorch isolation semantics](../investigations/pytorch-multi-item-isolation-semantics.md)
 
 ## Motivation
 
@@ -1725,6 +1743,7 @@ if len(items) > threshold and delimiter_configured:
 
 | Date | Change |
 |------|--------|
+| 2026-02-11 | Designated as **v0.1 baseline**. Added link to [RFC-013](013-multi-item-scoring-v1-optimization.md) for v1.0 optimization roadmap. Added "What's Next" section with performance targets. |
 | 2026-02-07 | Follow-up ablation run in [PR #16](https://github.com/alexshires/sglang-jax/pull/16): compared mask variants and chunk sizes on TPU. Outcome: keep baseline mask (`prefix_first_delim`) and default chunk size `2` as best correctness/semantic-parity/speed trade-off. |
 | 2026-02-07 | Implemented in `sglang-jax` as feature-gated MVP ([PR #15](https://github.com/alexshires/sglang-jax/pull/15)). Added TPU validation matrix across Qwen3 0.6B/1.7B/4B, achieved zero changed-length isolation drift with chunk size `2`, and documented known fused-KV compatibility limitation for tested Qwen2.5 variants. |
 | 2026-02-01 | Initial draft |

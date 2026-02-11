@@ -73,11 +73,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - JAX compilation caching verification
   - Fuzz/property testing with hypothesis
 
-- **[RFC-008: Multi-Item Scoring](rfcs/008-multi-item-scoring.md)**
-  - Status: **Implemented (Feature-Gated MVP)**
+- **[RFC-008: Multi-Item Scoring (v0.1)](rfcs/008-multi-item-scoring.md)**
+  - Status: **Implemented (v0.1 Feature-Gated MVP)**
   - Score N items in single forward pass (vs N passes in serial mode)
   - Reuses JAX `custom_mask` in `ragged_paged_attention` for attention isolation
   - Validated on TPU v6e-1 across Qwen3 0.6B/1.7B/4B (zero changed-length drift with chunk size `2`)
+  - Performance: 16.5x speedup at chunk_size=64, OOM at chunk_size=128
+  - **Next:** [RFC-013](rfcs/013-multi-item-scoring-v1-optimization.md) for v1.0 optimization roadmap
   - Evidence: [validation report](reports/multi-item-scoring-tpu-validation-2026-02-07.md), [validation runbook](runbooks/running-multi-item-scoring-validation.md)
   - Follow-up ablation: [mask/chunk report](reports/multi-item-mask-chunk-ablation-2026-02-07.md)
   - Supporting investigations: [attention mechanism](investigations/multi-item-attention-mechanism.md), [compilation overhead](investigations/multi-item-compilation-overhead.md)
@@ -110,6 +112,13 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Path-based filtering, draft PR workflow, dependency caching
   - Infrastructure optimizations: model pre-caching, warm runner pools
   - 4-tier implementation plan with cost analysis
+
+- **[RFC-013: Multi-Item Scoring v1.0 Optimization](rfcs/013-multi-item-scoring-v1-optimization.md)** ← **NEW**
+  - Status: Draft
+  - Performance roadmap from v0.1 (16.5x) to v1.0 (40x+ target)
+  - Optimization strategies: procedural mask, causal mode, splash attention
+  - Phased implementation with success metrics
+  - Depends on: [PyTorch isolation investigation](investigations/pytorch-multi-item-isolation-semantics.md)
 
 ### Templates
 
@@ -168,10 +177,16 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Previous "5 item-count compilations × token × batch = multiplicative" claim was incorrect
   - Recommendation: lazy JIT compilation for MVP, no precompilation needed
 
-- **[JAX vs PyTorch Multi-Item Comparison Methodology](investigations/jax-vs-pytorch-multi-item-comparison-methodology.md)** ← **NEW**
+- **[JAX vs PyTorch Multi-Item Comparison Methodology](investigations/jax-vs-pytorch-multi-item-comparison-methodology.md)**
   - Reproducible two-view design: portable vs best-native
   - Frozen PyTorch baseline policy with correctness gate
   - Shared canonical workload and schema contract
+
+- **[PyTorch Multi-Item Isolation Semantics](investigations/pytorch-multi-item-isolation-semantics.md)** ← **NEW**
+  - Critical investigation: Does PyTorch enforce item isolation in multi-item scoring?
+  - Test plan: order sensitivity, content contamination, scaling tests
+  - Blocks RFC-013 Strategy 2 (causal mode) decision
+  - Includes ready-to-run test script
 
 ## Runbooks
 
@@ -255,6 +270,15 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Enhanced `bench_score.py` with profiles and regression detection
   - Stress tests (`bench_score_stress.py`): large batch, concurrent, sustained
   - CI integration with nightly workflow
+
+## Implementation Specs
+
+- **[Multi-Item Scoring v1.0 Implementation Spec](specs/multi-item-scoring-v1-impl.md)** ← **NEW**
+  - Comprehensive implementation spec for v0.1 → v1.0
+  - 5 parallel workstreams: Kernel, Prefill+Extend, Startup, Orchestration, Validation
+  - Exact data structures, API contracts, and file changes
+  - Agent assignment template for parallel development
+  - Rollout plan with flag-gated stages
 
 ## Scripts
 
@@ -410,6 +434,28 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-11:** Multi-Item Scoring v1.0 Implementation Spec
+  - Added **[v1.0 Implementation Spec](specs/multi-item-scoring-v1-impl.md)** for parallel development
+    - 5 workstreams: Kernel (tile-skip), Prefill+Extend, Startup, Orchestration, Validation
+    - Exact data structures, API contracts, file lists per workstream
+    - Agent assignment template for parallel development
+    - Flag-gated rollout plan
+  - Updated RFC-013 with:
+    - Strategy 5: Prefill+Extend (promoted from rejected alternative)
+    - Strategy 6: Runtime Policy Selector (auto-select algorithm by geometry)
+    - Dual-bottleneck analysis (compute waste + memory)
+    - Vectorization and on-device mask generation quick wins
+
+- **2026-02-11:** Multi-Item Scoring v0.1 → v1.0 Optimization Roadmap
+  - Designated RFC-008 as **v0.1 baseline** (16.5x speedup, OOM at chunk=128)
+  - Added [RFC-013: Multi-Item Scoring v1.0 Optimization](rfcs/013-multi-item-scoring-v1-optimization.md)
+    - Target: 40x+ speedup, chunk_size=256+
+    - 6 strategies: tile-skipping kernel, causal mode, splash attention, incremental opts, prefill+extend, runtime selector
+    - Phased implementation with success metrics
+  - Added [Investigation: PyTorch Multi-Item Isolation Semantics](investigations/pytorch-multi-item-isolation-semantics.md)
+    - Critical question: Does PyTorch enforce item isolation?
+    - Includes test plan and ready-to-run verification script
 
 - **2026-02-11:** Cross-backend evaluation harness for JAX vs frozen PyTorch baseline
   - Added methodology: [jax-vs-pytorch-multi-item-comparison-methodology.md](investigations/jax-vs-pytorch-multi-item-comparison-methodology.md)
