@@ -75,6 +75,7 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
             trust_remote_code=True,
         )
         logger.info("[Benchmark] Engine initialized")
+        logger.info(f"[Benchmark] SERVER ARGS: {cls.engine.server_args}")
 
     @classmethod
     def tearDownClass(cls):

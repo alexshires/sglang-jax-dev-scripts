@@ -40,6 +40,7 @@ class TestSeqLenScaling(CustomTestCase):
             disable_radix_cache=True,
             skip_server_warmup=True,
         )
+        print(f"Engine initialized. SERVER ARGS: {engine.server_args}", flush=True)
         
         query = [1] * 2000
         items = [[2] * 20 for _ in range(self.NUM_ITEMS)]
