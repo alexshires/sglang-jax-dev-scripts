@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-11
+**Last Updated:** 2026-02-12
 
 ---
 
@@ -245,6 +245,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Cross-backend comparison report template for frozen-baseline evaluation
   - Portable and best-native result sections with correctness gating
 
+- **[JAX vs PyTorch Execution Status 2026-02-12](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md)** ← **NEW**
+  - Run-state snapshot for current cloud execution attempt
+  - Documents TPU readiness and GPU quota/capacity blocker
+  - Captures follow-up steps for unblocking full comparison
+
 ## Test Plans
 
 - **[Test Plan 001: Shared Fixtures and Core Tests](test-plans/001-shared-fixtures-and-core-tests.md)**
@@ -374,6 +379,7 @@ Runbook: Debugging
 - [RFC-010: Cross-Backend Benchmarking](rfcs/010-cross-backend-benchmarking.md) ← PyTorch GPU vs JAX TPU
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
 - [JAX vs PyTorch Multi-Item Comparison (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) ← Cross-backend evaluation report
+- [JAX vs PyTorch Execution Status (2026-02-12)](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) ← TPU-ready, GPU-blocked snapshot
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
@@ -388,6 +394,7 @@ Runbook: Debugging
 - [PyTorch vs JAX Score API](investigations/score-api-pytorch-vs-jax.md)
 - [JAX vs PyTorch Multi-Item Comparison Methodology](investigations/jax-vs-pytorch-multi-item-comparison-methodology.md)
 - [JAX vs PyTorch Multi-Item Comparison Report (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md)
+- [JAX vs PyTorch Execution Status (2026-02-12)](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md)
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
 
 ### Operations
@@ -434,6 +441,14 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-12:** TPU-ready / GPU-blocked execution status documented
+  - Added execution snapshot: [jax-vs-pytorch-multi-item-execution-status-2026-02-12.md](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md)
+  - Captured:
+    - Active project/account context
+    - TPU v6e-1 ready path
+    - GPU G4 quota/capacity blocker (`GPUS_PER_GPU_FAMILY`)
+    - Required follow-up to complete frozen-baseline cross-backend comparison
 
 - **2026-02-11:** Multi-Item Scoring v1.0 Implementation Spec
   - Added **[v1.0 Implementation Spec](specs/multi-item-scoring-v1-impl.md)** for parallel development

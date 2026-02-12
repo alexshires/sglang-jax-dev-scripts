@@ -7,6 +7,7 @@
 | **Question** | How well does `sglang-jax` multi-item scoring perform vs frozen PyTorch baseline? |
 | **Methodology** | [Investigation](../investigations/jax-vs-pytorch-multi-item-comparison-methodology.md) |
 | **Runbook** | [Execution guide](../runbooks/running-jax-vs-pytorch-multi-item-comparison.md) |
+| **Execution Status Update** | [2026-02-12 TPU-ready / GPU-blocked note](./jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) |
 
 ## Scope
 
@@ -105,3 +106,4 @@ Best-native winner:
 
 - This report template is intentionally pre-created on 2026-02-11 so results can be dropped in directly from generated JSON.
 - Comparison scripts enforce correctness thresholds before selecting winners.
+- Interim execution status (quota/capacity blockers and environment readiness) is tracked in `reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md`.
