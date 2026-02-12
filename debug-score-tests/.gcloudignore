@@ -1,0 +1,9 @@
+*
+!cloudbuild.yaml
+!Dockerfile
+!run_tests.sh
+!requirements.txt
+!debug-tpu-pod.yaml
+!debug-pod.yaml
+!test-runner-job.yaml
+!sglang-jax/

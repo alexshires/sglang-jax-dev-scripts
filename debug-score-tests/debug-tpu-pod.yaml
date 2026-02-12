@@ -21,11 +21,6 @@ spec:
     image: gcr.io/ashires-e7aaot/sglang-jax:latest
     imagePullPolicy: Always
     command: ["/bin/bash", "-c", "sleep infinity"]
-    env:
-    - name: HF_HUB_OFFLINE
-      value: "1"
-    - name: HF_HOME
-      value: "/models"
     resources:
       requests:
         cpu: "40"
@@ -39,7 +34,7 @@ spec:
         google.com/tpu: "1"
     volumeMounts:
     - name: gcs-fuse-csi-ephemeral
-      mountPath: /models
+      mountPath: /data
     - name: dshm
       mountPath: /dev/shm
     - name: tmp
@@ -59,4 +54,4 @@ spec:
       driver: gcsfuse.csi.storage.gke.io
       volumeAttributes:
         bucketName: ashires-e7aaot-model-download-europe-west4
-        mountOptions: "implicit-dirs,only-dir=huggingface_models,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1" 
+        mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1" 

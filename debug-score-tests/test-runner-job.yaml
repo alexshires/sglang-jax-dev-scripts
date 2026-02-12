@@ -1,0 +1,102 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: sglang-jax-test-runner-
+  namespace: eval-serving
+spec:
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+    spec:
+      serviceAccountName: eval-serving-sa
+      nodeSelector:
+        cloud.google.com/gke-tpu-topology: 1x1
+        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+      restartPolicy: Never
+      containers:
+      - name: test-runner
+        image: gcr.io/ashires-e7aaot/sglang-jax-runner:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "40"
+            memory: "150Gi"
+            ephemeral-storage: "10Gi"
+            google.com/tpu: "1"
+          limits:
+            cpu: "40"
+            memory: "150Gi"
+            ephemeral-storage: "10Gi"
+            google.com/tpu: "1"
+        command:
+        - "/bin/bash"
+        - "-c"
+        - |
+          set -e
+          echo "Starting test runner job..."
+          
+          # Install git if needed (likely needed in minimal images)
+          apt-get update && apt-get install -y git
+          
+          # Clone the repository
+          echo "Cloning sglang-jax..."
+          git clone https://github.com/alexshires/sglang-jax.git
+          cd sglang-jax
+          
+          echo "Checking out branch feat/scoring-workflow..."
+          git checkout feat/scoring-workflow
+          
+          echo "Setting up test environment..."
+          python3 -m venv .venv
+          source .venv/bin/activate
+          
+          # Install dependencies
+          echo "Installing dependencies..."
+          pip install uv
+          pip install openai pytest
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          
+          # Install sglang-jax in the venv
+          echo "Installing sglang-jax..."
+          cd python
+          pip install -e .[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+          cd ..
+          
+          echo "Running tests..."
+          # Patch run_suite.py to use python3 directly instead of uv run python3
+          # as uv run is trying to sync a project it found in the parent directory
+          sed -i 's/\["uv", "run", "python3"/\["python3"/g' test/srt/run_suite.py
+          
+          export UV_NO_PROJECT=true
+          # Run just the failing test core file to debug OOM
+          python3 test/srt/test_score_api_core.py
+          
+          echo "Test runner job completed successfully."
+        volumeMounts:
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /data
+        - name: dshm
+          mountPath: /dev/shm
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: gke-gcsfuse-cache
+        emptyDir:
+          medium: Memory
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: tmp
+        emptyDir:
+          medium: Memory
+      - name: gcs-fuse-csi-ephemeral
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ashires-e7aaot-model-download-europe-west4
+            mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1"
+  backoffLimit: 3
