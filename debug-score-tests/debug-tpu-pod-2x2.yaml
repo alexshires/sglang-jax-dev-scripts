@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: debug-tpu-sglang-score
+  name: debug-tpu-sglang-score-2x2
   namespace: eval-serving
   labels:
-    app: debug-tpu-sglang-score
+    app: debug-tpu-sglang-score-2x2
     ai.gke.io/inference-server: sglang-jax
   annotations:
     gke-gcsfuse/volumes: "true"
@@ -14,14 +14,9 @@ metadata:
 spec:
   serviceAccountName: eval-serving-sa
   nodeSelector:
-    cloud.google.com/gke-tpu-topology: 1x1
+    cloud.google.com/gke-tpu-topology: 2x2
     cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
     pool_type: tpu-standard
-  tolerations:
-  - key: "google.com/tpu"
-    operator: "Equal"
-    value: "present"
-    effect: "NoSchedule"
   containers:
   - name: inference-server
     image: gcr.io/ashires-e7aaot/sglang-jax:latest
@@ -33,20 +28,20 @@ spec:
     - name: HF_HOME
       value: "/models"
     - name: TP_SIZE
-      value: "1"
+      value: "4"
     - name: PYTHONPATH
       value: "/app/sglang-jax/python"
     resources:
       requests:
-        cpu: "40"
-        memory: "150Gi"
+        cpu: "160"
+        memory: "600Gi"
         ephemeral-storage: "10Gi"
-        google.com/tpu: "1"
+        google.com/tpu: "4"
       limits:
-        cpu: "40"
-        memory: "150Gi"
+        cpu: "160"
+        memory: "600Gi"
         ephemeral-storage: "10Gi"
-        google.com/tpu: "1"
+        google.com/tpu: "4"
     volumeMounts:
     - name: gcs-fuse-csi-ephemeral
       mountPath: /models

@@ -12,9 +12,9 @@ RUN pip install --no-cache-dir uv
 
 # Step 3: Setup repository
 ARG REPO_URL=https://github.com/alexshires/sglang-jax.git
-ARG FEATURE_BRANCH=feat/multi-item-scoring-large
+ARG FEATURE_BRANCH=feat/multi-item-scoring
 
-# Cache busting to force fresh clone
+# Cache busting to force fresh clone of the target branch
 ADD "https://api.github.com/repos/alexshires/sglang-jax/commits/${FEATURE_BRANCH}" latest_commit
 RUN git clone ${REPO_URL} sglang-jax
 WORKDIR /app/sglang-jax
