@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-gpu-g4-sglang
+  namespace: eval-serving
+  labels:
+    app: debug-gpu-g4-sglang
+    engine: sglang
+  annotations:
+    gke-gcsfuse/volumes: "true"
+    gke-gcsfuse/cpu-limit: "0"
+    gke-gcsfuse/memory-limit: "0"
+    gke-gcsfuse/ephemeral-storage-limit: "0"
+spec:
+  serviceAccountName: eval-serving-sa
+  nodeSelector:
+    cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+    cloud.google.com/gke-spot: "true"
+  tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+  - key: "cloud.google.com/gke-spot"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+  containers:
+  - name: inference-server
+    image: docker.io/lmsysorg/sglang:latest
+    imagePullPolicy: Always
+    command: ["/bin/bash", "-c", "sleep infinity"]
+    env:
+    - name: HF_HUB_OFFLINE
+      value: "1"
+    - name: HF_HOME
+      value: "/models"
+    resources:
+      requests:
+        cpu: "4"
+        memory: "16Gi"
+        ephemeral-storage: "10Gi"
+        nvidia.com/gpu: "1"
+      limits:
+        cpu: "4"
+        memory: "16Gi"
+        ephemeral-storage: "10Gi"
+        nvidia.com/gpu: "1"
+    volumeMounts:
+    - name: gcs-fuse-csi-ephemeral
+      mountPath: /models
+    - name: dshm
+      mountPath: /dev/shm
+    - name: tmp
+      mountPath: /tmp
+  volumes:
+  - name: gke-gcsfuse-cache
+    emptyDir:
+      medium: Memory
+  - name: dshm
+    emptyDir:
+      medium: Memory
+  - name: tmp
+    emptyDir:
+      medium: Memory
+  - name: gcs-fuse-csi-ephemeral
+    csi:
+      driver: gcsfuse.csi.storage.gke.io
+      volumeAttributes:
+        bucketName: ashires-e7aaot-model-download-europe-west4
+        mountOptions: "implicit-dirs,only-dir=huggingface_models,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1" 
