@@ -9,14 +9,11 @@ under specific load conditions:
 """
 
 import os
-import statistics
 import time
 import unittest
 from dataclasses import dataclass
-from typing import List
 
 import jax
-import numpy as np
 from transformers import AutoTokenizer
 
 from sgl_jax.srt.entrypoints.engine import Engine
@@ -69,7 +66,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
     def setUpClass(cls):
         """Initialize engine with multi-item support."""
         print(f"[Benchmark] Loading model: {cls.model_name}")
-        
+
         tp_size = int(os.getenv("TP_SIZE", "1"))
         print(f"[Benchmark] Using TP_SIZE={tp_size}")
 
@@ -80,13 +77,13 @@ class TestMultiItemScorePerformance(CustomTestCase):
             device="tpu",
             random_seed=3,
             node_rank=0,
-            mem_fraction_static=0.5,  # Leave room for compilation
-            max_prefill_tokens=16384,  # Reduced from 65536
+            mem_fraction_static=0.7,  # Leave room for compilation
+            max_prefill_tokens=16384,  # Support large packed sequences
             chunked_prefill_size=-1,
             download_dir="/data/huggingface_models",  # Use GCS mount
             dtype="bfloat16",
             precompile_bs_paddings=[1, 4, 8, 16, 32],
-            max_running_requests=16,  # Reduced from 32
+            max_running_requests=32,
             skip_server_warmup=True,
             attention_backend="fa",
             precompile_token_paddings=[1024, 4096, 16384],
@@ -108,6 +105,21 @@ class TestMultiItemScorePerformance(CustomTestCase):
             cls.engine.shutdown()
         jax.clear_caches()
 
+    def _warmup(self, query, items, count=2):
+        """Warm up the engine with a few requests."""
+        print(f"  Warmup ({count} requests)...")
+        for i in range(count):
+            try:
+                # We use a longer timeout for the very first JIT compilation if needed,
+                # but 30s is usually enough for these warmups if Engine already started.
+                self.engine.score(
+                    query=query, 
+                    items=items[:1], 
+                    label_token_ids=self.label_token_ids
+                )
+            except Exception as e:
+                print(f"  [Warmup Error] {e}")
+
     def test_benchmark_single_item_sequential(self):
         """
         Scenario: 500 candidates scored one-by-one (or in small batches).
@@ -121,12 +133,8 @@ class TestMultiItemScorePerformance(CustomTestCase):
         query_tokens = [1] * self.PROMPT_LEN
         candidate_tokens_list = [[2] * self.CANDIDATE_LEN for _ in range(self.NUM_CANDIDATES)]
 
-        # Warmup (1 request)
-        self.engine.score(
-            query=query_tokens,
-            items=candidate_tokens_list[:1],
-            label_token_ids=self.label_token_ids,
-        )
+        # Warmup
+        self._warmup(query_tokens, candidate_tokens_list)
 
         start_time = time.perf_counter()
 
@@ -168,12 +176,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         candidate_tokens_list = [[2] * self.CANDIDATE_LEN for _ in range(self.NUM_CANDIDATES)]
 
         # Warmup
-        # Note: In multi-item mode, the Engine.score implementation handles packing and chunking.
-        self.engine.score(
-            query=query_tokens,
-            items=candidate_tokens_list[:10],  # Small warmup
-            label_token_ids=self.label_token_ids,
-        )
+        self._warmup(query_tokens, candidate_tokens_list)
 
         start_time = time.perf_counter()
 
@@ -213,7 +216,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         items = [[3] * 20 for _ in range(500)]
         
         # Warmup
-        self.engine.score(query=query_tokens, items=items[:1], label_token_ids=self.label_token_ids)
+        self._warmup(query_tokens, items)
         
         start_time = time.perf_counter()
         self.engine.score(query=query_tokens, items=items, label_token_ids=self.label_token_ids)
@@ -245,7 +248,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         items = [[3] * 10 for _ in range(500)]
         
         # Warmup
-        self.engine.score(query=query_tokens, items=items[:1], label_token_ids=self.label_token_ids)
+        self._warmup(query_tokens, items)
         
         start_time = time.perf_counter()
         self.engine.score(query=query_tokens, items=items, label_token_ids=self.label_token_ids)

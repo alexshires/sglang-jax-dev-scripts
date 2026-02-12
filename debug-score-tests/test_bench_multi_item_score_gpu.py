@@ -7,7 +7,6 @@ import time
 import pytest
 import unittest
 from dataclasses import dataclass
-from typing import List
 
 from sglang.srt.entrypoints.engine import Engine
 
@@ -79,7 +78,7 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
         items = ["item " * 20 for _ in range(self.NUM_CANDIDATES)]
         
         # Warmup
-        self.engine.score(query=query, items=items[:1], label_token_ids=self.label_token_ids)
+        self._warmup(query, items)
         
         start_time = time.perf_counter()
         self.engine.score(query=query, items=items, label_token_ids=self.label_token_ids)
@@ -111,7 +110,7 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
         items = ["item " * 10 for _ in range(self.NUM_CANDIDATES)]
         
         # Warmup
-        self.engine.score(query=query, items=items[:1], label_token_ids=self.label_token_ids)
+        self._warmup(query, items)
         
         start_time = time.perf_counter()
         self.engine.score(query=query, items=items, label_token_ids=self.label_token_ids)
