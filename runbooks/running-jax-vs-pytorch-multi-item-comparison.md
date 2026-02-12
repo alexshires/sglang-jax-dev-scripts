@@ -79,6 +79,8 @@ nohup python -m sgl_jax.launch_server \
   --tp-size 1 \
   --multi-item-scoring-delimiter 151643 \
   --multi-item-scoring-chunk-size 500 \
+  --multi-item-mask-impl auto \
+  --multi-item-segment-fallback-threshold 32768 \
   --disable-radix-cache \
   --chunked-prefill-size -1 \
   --attention-backend fa \
@@ -109,6 +111,8 @@ python investigations/scripts/run_score_matrix_jax.py \
   --timeout-sec 180 \
   --server-config-note "JAX portable run" \
   --jax-server-chunk-size 500 \
+  --jax-mask-impl auto \
+  --jax-segment-fallback-threshold 32768 \
   --output-json reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_portable_matrix.json \
   --output-markdown reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_portable_matrix.md
 ```
@@ -134,6 +138,8 @@ nohup python -m sgl_jax.launch_server \
   --tp-size 1 \
   --multi-item-scoring-delimiter 151643 \
   --multi-item-scoring-chunk-size 64 \
+  --multi-item-mask-impl auto \
+  --multi-item-segment-fallback-threshold 32768 \
   --disable-radix-cache \
   --chunked-prefill-size -1 \
   --attention-backend fa \
@@ -164,6 +170,8 @@ python investigations/scripts/run_score_matrix_jax.py \
   --timeout-sec 180 \
   --server-config-note "JAX best-native run" \
   --jax-server-chunk-size 64 \
+  --jax-mask-impl auto \
+  --jax-segment-fallback-threshold 32768 \
   --output-json reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_best_native_matrix.json \
   --output-markdown reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_best_native_matrix.md
 ```
