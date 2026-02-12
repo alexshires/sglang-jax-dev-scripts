@@ -11,6 +11,8 @@ under specific load conditions:
 import os
 import time
 import unittest
+import logging
+import sys
 from dataclasses import dataclass
 
 import jax
@@ -18,6 +20,25 @@ from transformers import AutoTokenizer
 
 from sgl_jax.srt.entrypoints.engine import Engine
 from sgl_jax.test.test_utils import CustomTestCase, is_in_ci, write_github_step_summary
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+
+# Setup logger to write to both stdout and a file
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("/tmp/bench_results.log", mode='a')
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Force flush on every log
+for handler in logger.handlers:
+    handler.flush = sys.stdout.flush
 
 # =============================================================================
 # Benchmark Configuration
@@ -65,10 +86,10 @@ class TestMultiItemScorePerformance(CustomTestCase):
     @classmethod
     def setUpClass(cls):
         """Initialize engine with multi-item support."""
-        print(f"[Benchmark] Loading model: {cls.model_name}")
+        logger.info(f"[Benchmark] Loading model: {cls.model_name}")
 
         tp_size = int(os.getenv("TP_SIZE", "1"))
-        print(f"[Benchmark] Using TP_SIZE={tp_size}")
+        logger.info(f"[Benchmark] Using TP_SIZE={tp_size}")
 
         cls.engine = Engine(
             model_path=cls.model_name,
@@ -78,7 +99,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
             random_seed=3,
             node_rank=0,
             mem_fraction_static=0.7,  # Leave room for compilation
-            max_prefill_tokens=16384,  # Support large packed sequences
+            max_prefill_tokens=32768,  # Support large packed sequences
             chunked_prefill_size=-1,
             download_dir="/data/huggingface_models",  # Use GCS mount
             dtype="bfloat16",
@@ -92,11 +113,11 @@ class TestMultiItemScorePerformance(CustomTestCase):
             # Enable multi-item delimiter at engine level
             multi_item_scoring_delimiter=cls.DELIMITER_TOKEN_ID,
             disable_radix_cache=True,
-            max_multi_item_seq_len=16384,
+            max_multi_item_seq_len=32768,
         )
 
         cls.tokenizer = AutoTokenizer.from_pretrained(cls.model_name, trust_remote_code=True)
-        print("[Benchmark] Engine initialized")
+        logger.info("[Benchmark] Engine initialized")
 
     @classmethod
     def tearDownClass(cls):
@@ -107,7 +128,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
 
     def _warmup(self, query, items, count=2):
         """Warm up the engine with a few requests."""
-        print(f"  Warmup ({count} requests)...")
+        logger.info(f"  Warmup ({count} requests)...")
         for i in range(count):
             try:
                 # We use a longer timeout for the very first JIT compilation if needed,
@@ -118,14 +139,14 @@ class TestMultiItemScorePerformance(CustomTestCase):
                     label_token_ids=self.label_token_ids
                 )
             except Exception as e:
-                print(f"  [Warmup Error] {e}")
+                logger.info(f"  [Warmup Error] {e}")
 
     def test_benchmark_single_item_sequential(self):
         """
         Scenario: 500 candidates scored one-by-one (or in small batches).
         Each candidate has the same 2000 token prompt prefix.
         """
-        print(
+        logger.info(
             f"\n[Benchmark] Starting Single-Item Sequential (Items={self.NUM_CANDIDATES}, Prompt={self.PROMPT_LEN})"
         )
 
@@ -166,7 +187,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         Scenario: 500 candidates scored in a single packed sequence.
         Uses 100 token static prefix + 1900 token dynamic suffix + 500 * 20 token items.
         """
-        print(
+        logger.info(
             f"\n[Benchmark] Starting Multi-Item Packed (Items={self.NUM_CANDIDATES}, Prompt={self.PROMPT_LEN})"
         )
 
@@ -209,7 +230,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         - 2000-token static prefix
         - 20 token dynamic suffix
         """
-        print("\n[Benchmark] Starting Scenario 1")
+        logger.info("\n[Benchmark] Starting Scenario 1")
         static_prefix = [1] * 2000
         dynamic_suffix = [2] * 20
         query_tokens = static_prefix + dynamic_suffix
@@ -241,7 +262,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         - 1900-token static prefix
         - 10 token dynamic suffix
         """
-        print("\n[Benchmark] Starting Scenario 2")
+        logger.info("\n[Benchmark] Starting Scenario 2")
         static_prefix = [1] * 1900
         dynamic_suffix = [2] * 10
         query_tokens = static_prefix + dynamic_suffix
@@ -274,7 +295,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         chunk_sizes = [32, 64, 128, 256, 512]
         results = []
 
-        print(
+        logger.info(
             f"\n[Benchmark] Starting Multi-Item Chunk Scaling (Items={self.NUM_CANDIDATES}, Prompt={self.PROMPT_LEN})"
         )
 
@@ -282,7 +303,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
         candidate_tokens_list = [[2] * self.CANDIDATE_LEN for _ in range(self.NUM_CANDIDATES)]
 
         for cs in chunk_sizes:
-            print(f"  Testing chunk_size={cs}...")
+            logger.info(f"  Testing chunk_size={cs}...")
 
             start_time = time.perf_counter()
             # Manual chunking simulation
@@ -307,15 +328,15 @@ class TestMultiItemScorePerformance(CustomTestCase):
                 self._report_result(result)
                 results.append((cs, result))
             except Exception as e:
-                print(f"  [Error] Chunk size {cs} failed (likely OOM or Timeout): {e}")
-                print("  Breaking scaling loop.")
+                logger.info(f"  [Error] Chunk size {cs} failed (likely OOM or Timeout): {e}")
+                logger.info("  Breaking scaling loop.")
                 break
 
-        print("\n[Benchmark] Chunk Size Scaling Summary")
-        print("  Chunk Size | Throughput (items/s) | Latency/Item (ms)")
-        print("  -----------|---------------------|------------------")
+        logger.info("\n[Benchmark] Chunk Size Scaling Summary")
+        logger.info("  Chunk Size | Throughput (items/s) | Latency/Item (ms)")
+        logger.info("  -----------|---------------------|------------------")
         for cs, res in results:
-            print(f"  {cs:10} | {res.throughput_items_sec:19.2f} | {res.latency_per_item_ms:16.2f}")
+            logger.info(f"  {cs:10} | {res.throughput_items_sec:19.2f} | {res.latency_per_item_ms:16.2f}")
 
     def _report_result(self, result: BenchmarkResult):
         report = (
@@ -323,7 +344,7 @@ class TestMultiItemScorePerformance(CustomTestCase):
             f"  Latency per item: {result.latency_per_item_ms:.2f} ms\n"
             f"  Total time for {result.num_items} items: {result.total_time_sec:.2f} sec\n"
         )
-        print(report)
+        logger.info(report)
 
         if is_in_ci():
             write_github_step_summary(

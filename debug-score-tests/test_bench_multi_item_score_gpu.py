@@ -6,9 +6,28 @@ import os
 import time
 import pytest
 import unittest
+import logging
+import sys
 from dataclasses import dataclass
 
 from sglang.srt.entrypoints.engine import Engine
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Force flush on every log
+for handler in logger.handlers:
+    handler.flush = sys.stdout.flush
 
 # =============================================================================
 # Benchmark Configuration
@@ -44,10 +63,10 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Initialize engine."""
-        print(f"[Benchmark] Loading model: {cls.model_name}")
+        logger.info(f"[Benchmark] Loading model: {cls.model_name}")
         
         tp_size = int(os.getenv("TP_SIZE", "1"))
-        print(f"[Benchmark] Using TP_SIZE={tp_size}")
+        logger.info(f"[Benchmark] Using TP_SIZE={tp_size}")
 
         cls.engine = Engine(
             model_path=cls.model_name,
@@ -55,13 +74,26 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
             mem_fraction_static=0.7,
             trust_remote_code=True,
         )
-        print("[Benchmark] Engine initialized")
+        logger.info("[Benchmark] Engine initialized")
 
     @classmethod
     def tearDownClass(cls):
         """Clean up resources."""
         if cls.engine is not None:
             cls.engine.shutdown()
+
+    def _warmup(self, query, items, count=2):
+        """Warm up the engine with a few requests."""
+        logger.info(f"  Warmup ({count} requests)...")
+        for i in range(count):
+            try:
+                self.engine.score(
+                    query=query, 
+                    items=items[:1], 
+                    label_token_ids=self.label_token_ids
+                )
+            except Exception as e:
+                logger.info(f"  [Warmup Error] {e}")
 
     def test_benchmark_scenario_1(self):
         """
@@ -71,7 +103,7 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
         - 2000-token static prefix
         - 20 token dynamic suffix
         """
-        print("\n[Benchmark] Starting Scenario 1")
+        logger.info("\n[Benchmark] Starting Scenario 1")
         static_prefix = "hello " * 2000 
         dynamic_suffix = "world " * 20
         query = static_prefix + dynamic_suffix
@@ -103,7 +135,7 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
         - 1900-token static prefix
         - 10 token dynamic suffix
         """
-        print("\n[Benchmark] Starting Scenario 2")
+        logger.info("\n[Benchmark] Starting Scenario 2")
         static_prefix = "hello " * 1900
         dynamic_suffix = "world " * 10
         query = static_prefix + dynamic_suffix
@@ -133,7 +165,7 @@ class TestMultiItemScorePerformanceGPU(unittest.TestCase):
             f"  Latency per item: {result.latency_per_item_ms:.2f} ms\n"
             f"  Total time for {result.num_items} items: {result.total_time_sec:.2f} sec\n"
         )
-        print(report)
+        logger.info(report)
 
 if __name__ == "__main__":
     pytest.main([__file__])
