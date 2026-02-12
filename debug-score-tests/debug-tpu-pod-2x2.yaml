@@ -19,7 +19,7 @@ spec:
     pool_type: tpu-standard
   containers:
   - name: inference-server
-    image: gcr.io/ashires-e7aaot/sglang-jax:latest
+    image: europe-docker.pkg.dev/ashires-e7aaot/container/sglang-jax:aashishrampal-batching
     imagePullPolicy: Always
     command: ["/bin/bash", "-c", "sleep infinity"]
     env:
