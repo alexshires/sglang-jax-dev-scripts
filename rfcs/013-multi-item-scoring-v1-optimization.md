@@ -66,7 +66,7 @@ Key components:
 
 | Blocker | Status | Impact | Workaround |
 |---------|--------|--------|------------|
-| **Segment mask TPU lowering** | Open | Strategy 1 blocked | Use `--multi-item-mask-impl=dense` |
+| **Segment mask TPU lowering** | Resolved (2026-02-13) | Strategy 1 unblocked | See [segment fix validation report](../reports/segment-mask-tpu-fix-validation-2026-02-13.md) |
 
 **Segment mask issue:** The segment mode (`MULTI_ITEM_MASK_MODE_SEGMENT=2`) fails on TPU with `ValueError: Cannot do int indexing on TPU during kernel lowering`. Root cause: dynamic integer array indexing (gather) at `ragged_paged_attention.py:933` is not supported in Pallas kernels.
 

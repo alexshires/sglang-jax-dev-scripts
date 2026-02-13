@@ -117,7 +117,8 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Status: Draft (Updated 2026-02-12)
   - Performance roadmap from v0.1 (16.5x) to v1.0 (40x+ target)
   - **Parallel track model:** Stability → Segment Fix / Prefill+Extend / Orchestration
-  - **Blocker:** [Segment mask TPU lowering issue](investigations/segment-mask-tpu-lowering-issue.md) (workaround: use dense mode)
+  - **Track 2 Status:** [Segment mask TPU lowering issue](investigations/segment-mask-tpu-lowering-issue.md) resolved on TPU (2026-02-13)
+  - Validation: [segment fix report](reports/segment-mask-tpu-fix-validation-2026-02-13.md)
   - Depends on: [PyTorch isolation investigation](investigations/pytorch-multi-item-isolation-semantics.md)
 
 ### Templates
@@ -188,12 +189,10 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Blocks RFC-013 Strategy 2 (causal mode) decision
   - Includes ready-to-run test script
 
-- **[Segment Mask TPU Kernel Lowering Issue](investigations/segment-mask-tpu-lowering-issue.md)** ← **NEW**
-  - Root cause: dynamic int array indexing (gather) in Pallas kernel not supported on TPU
-  - Location: `ragged_paged_attention.py:933`
-  - Workaround: `--multi-item-mask-impl=dense`
-  - Blocks RFC-013 Track 2 (Segment Kernel Fix)
-  - Fix options: pre-scatter, scalar loop, on-the-fly computation
+- **[Segment Mask TPU Kernel Lowering Issue](investigations/segment-mask-tpu-lowering-issue.md)**
+  - Root cause: dynamic int gather in Pallas segment path
+  - Status: resolved (2026-02-13) with TPU-safe scalar-load segment metadata path
+  - Includes benchmark and regression validation links
 
 ## Scripts
 
@@ -291,6 +290,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Focused benchmark of `test/srt/test_bench_multi_item_score.py` on TPU v6e-1
   - Stable result: 508.30 items/sec (prefill+extend) vs 52.35 items/sec (packed)
   - Includes tuned benchmark profile and reproducible commands
+
+- **[Segment Mask TPU Fix Validation 2026-02-13](reports/segment-mask-tpu-fix-validation-2026-02-13.md)** ← **NEW**
+  - Confirms TPU-safe segment lowering fix in `ragged_paged_attention.py`
+  - Regression tests passed: TPU lowering, dense-vs-segment parity, prefill+extend flow
+  - Dense vs segment A/B benchmark commands and measured results
 
 ## Test Plans
 
@@ -423,6 +427,7 @@ Runbook: Debugging
 - [JAX vs PyTorch Multi-Item Comparison (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) ← Cross-backend evaluation report
 - [JAX vs PyTorch Execution Status (2026-02-12)](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) ← TPU-ready, GPU-blocked snapshot
 - [Multi-Item Prefill+Extend TPU Benchmark (2026-02-13)](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md) ← Stable 508 items/sec run
+- [Segment Mask TPU Fix Validation (2026-02-13)](reports/segment-mask-tpu-fix-validation-2026-02-13.md) ← Segment path fixed and validated on TPU
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
@@ -484,6 +489,18 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-13:** Segment-mask TPU lowering fix completed and validated
+  - Added report: [segment-mask-tpu-fix-validation-2026-02-13.md](reports/segment-mask-tpu-fix-validation-2026-02-13.md)
+  - Updated runbook: [running-multi-item-scoring-validation.md](runbooks/running-multi-item-scoring-validation.md)
+  - Packed-path A/B benchmark (`test_bench_multi_item_score.py`, Qwen3-0.6B, TPU v6e-1):
+    - Dense: 52.27 items/sec
+    - Segment: 105.06 items/sec
+    - Segment speedup: 2.01x
+  - Prefill+extend A/B benchmark:
+    - Dense: 518.36 items/sec
+    - Segment: 513.06 items/sec
+    - Delta: -1.02% (noise-level)
 
 - **2026-02-13:** Stable high-throughput prefill+extend benchmark on TPU v6e-1
   - Added report: [multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md)

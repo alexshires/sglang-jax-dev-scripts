@@ -48,7 +48,8 @@ pytest -q -s test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtend
 ```
 
 ## Notes
-- TPU segment mask path is still blocked by TPU lowering (`Cannot do int indexing on TPU`), so dense mask mode is required for reliable benchmark execution.
+- This report used dense mode for stability during the prefill+extend benchmark pass.
+- Segment TPU lowering was fixed later the same day; see [segment fix validation report](./segment-mask-tpu-fix-validation-2026-02-13.md).
 - Higher chunk profiles (for example `extend_batch_size=16` and above) can show higher short-run throughput but also occasional long-tail pauses; the selected default profile prioritizes repeatable benchmark outcomes.
 
 ## Artifacts

@@ -2,9 +2,9 @@
 
 | | |
 |------------|------|
-| **Last Updated** | 2026-02-07 |
+| **Last Updated** | 2026-02-13 |
 | **Maintainer** | Engineering Team |
-| **Related** | [RFC-008](../rfcs/008-multi-item-scoring.md), [Validation Report](../reports/multi-item-scoring-tpu-validation-2026-02-07.md) |
+| **Related** | [RFC-008](../rfcs/008-multi-item-scoring.md), [Validation Report](../reports/multi-item-scoring-tpu-validation-2026-02-07.md), [Segment TPU Fix Validation](../reports/segment-mask-tpu-fix-validation-2026-02-13.md) |
 
 ## Overview
 
@@ -14,10 +14,52 @@ This runbook reproduces RFC-008 validation on TPU for:
 - multi vs serial throughput
 - JAX vs PyTorch parity
 
+It also includes the focused TPU segment-mask fix validation and dense-vs-segment A/B benchmark commands.
+
 The commands use two local score endpoints:
 
 - `:30010` for multi-item mode
 - `:30011` for serial baseline mode
+
+## Segment TPU Fix Validation (Focused)
+
+Run from `sglang-jax` checkout on TPU VM:
+
+```bash
+source .venv/bin/activate
+export PYTHONPATH=python
+```
+
+### Regression tests
+
+```bash
+# Segment lowering must compile/run on TPU
+pytest -q -s test/srt/test_multi_item_regression.py::TestMultiItemSegmentTPURegression::test_segment_mode_runs_on_tpu
+
+# Dense vs segment parity (asserts max_diff <= 1e-4)
+pytest -q -s test/srt/test_multi_item_regression.py::TestMultiItemSegmentTPURegression::test_segment_matches_dense_scores
+
+# Segment path with prefill+extend flow
+pytest -q -s test/srt/test_multi_item_regression.py::TestMultiItemSegmentTPURegression::test_segment_prefill_extend_flow_no_regression
+```
+
+### Dense vs segment A/B benchmark commands
+
+```bash
+# Packed path A/B
+MULTI_ITEM_MASK_IMPL=dense MULTI_ITEM_BENCH_WARMUP_RUNS=1 MULTI_ITEM_BENCH_TIMED_RUNS=3 \
+pytest -q -s test/srt/test_bench_multi_item_score.py::TestMultiItemScorePerformance::test_benchmark_multi_item_packed
+
+MULTI_ITEM_MASK_IMPL=segment MULTI_ITEM_BENCH_WARMUP_RUNS=1 MULTI_ITEM_BENCH_TIMED_RUNS=3 \
+pytest -q -s test/srt/test_bench_multi_item_score.py::TestMultiItemScorePerformance::test_benchmark_multi_item_packed
+
+# Prefill+extend A/B
+MULTI_ITEM_MASK_IMPL=dense MULTI_ITEM_BENCH_WARMUP_RUNS=1 MULTI_ITEM_BENCH_TIMED_RUNS=2 \
+pytest -q -s test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+
+MULTI_ITEM_MASK_IMPL=segment MULTI_ITEM_BENCH_WARMUP_RUNS=1 MULTI_ITEM_BENCH_TIMED_RUNS=2 \
+pytest -q -s test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+```
 
 ## Prerequisites
 
