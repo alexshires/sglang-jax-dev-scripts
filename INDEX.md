@@ -117,7 +117,7 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Status: Draft (Updated 2026-02-12)
   - Performance roadmap from v0.1 (16.5x) to v1.0 (40x+ target)
   - **Parallel track model:** Stability → Segment Fix / Prefill+Extend / Orchestration
-  - **Blocker:** [Segment mask TPU lowering issue](investigations/segment-mask-tpu-lowering-issue.md) (workaround: use dense mode)
+  - **Track 2 update:** [Segment mask TPU lowering issue](investigations/segment-mask-tpu-lowering-issue.md) resolved on TPU (2026-02-13)
   - Depends on: [PyTorch isolation investigation](investigations/pytorch-multi-item-isolation-semantics.md)
 
 ### Templates
@@ -289,7 +289,7 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 - **[Multi-Item Prefill+Extend TPU Benchmark 2026-02-13](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md)** ← **NEW**
   - Focused benchmark of `test/srt/test_bench_multi_item_score.py` on TPU v6e-1
-  - Stable result: 508.30 items/sec (prefill+extend) vs 52.35 items/sec (packed)
+  - Stable result: 525.87 items/sec (prefill+extend) vs 52.18 items/sec (packed)
   - Includes tuned benchmark profile and reproducible commands
 
 ## Test Plans
@@ -422,7 +422,7 @@ Runbook: Debugging
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
 - [JAX vs PyTorch Multi-Item Comparison (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) ← Cross-backend evaluation report
 - [JAX vs PyTorch Execution Status (2026-02-12)](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) ← TPU-ready, GPU-blocked snapshot
-- [Multi-Item Prefill+Extend TPU Benchmark (2026-02-13)](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md) ← Stable 508 items/sec run
+- [Multi-Item Prefill+Extend TPU Benchmark (2026-02-13)](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md) ← Stable 526 items/sec run
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
@@ -485,12 +485,17 @@ See [README.md](README.md) for document workflow and best practices.
 
 ## Recent Updates
 
+- **2026-02-13:** PR #24 description handoff added
+  - Added handoff: [pr-24-description-update-2026-02-13.md](handoffs/pr-24-description-update-2026-02-13.md)
+  - Includes ready-to-paste PR summary, benchmark table, and validation evidence
+
 - **2026-02-13:** Stable high-throughput prefill+extend benchmark on TPU v6e-1
   - Added report: [multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md)
   - `test/srt/test_bench_multi_item_score.py` benchmark outcome on `Qwen/Qwen3-0.6B`:
-    - Packed: 52.35 items/sec
-    - Prefill+extend: 508.30 items/sec
-    - Speedup: 9.71x
+    - Single-item sequential: 10.34 items/sec
+    - Packed: 52.18 items/sec
+    - Prefill+extend: 525.87 items/sec
+    - Prefill+extend vs packed: 10.08x
   - Added reproducible raw artifacts under `reports/artifacts/prefill-extend-tpu-v6e1-20260213/`
 
 - **2026-02-12:** TPU-ready / GPU-blocked execution status documented
