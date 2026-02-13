@@ -1,0 +1,416 @@
+===== bs=4 mr=4 pads=1,2,4 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 165.72file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:48,  6.32it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.88it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.79it/s]Loading Regular Weights:  14%|██▏            | 44/310 [00:00<00:02, 122.78it/s]Loading Regular Weights:  43%|██████        | 133/310 [00:00<00:00, 359.18it/s]Loading Regular Weights:  72%|██████████    | 222/310 [00:00<00:00, 518.43it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 370.09it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=4, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.36s/it, bs=4, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.36s/it, bs=4, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:20, 10.25s/it, bs=4, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:20, 10.25s/it, bs=4, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.05s/it, bs=4, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.05s/it, bs=4, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:39<00:00,  9.76s/it, bs=4, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/3 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/3 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  33%|█████▋           | 1/3 [00:06<00:13,  6.54s/it, bs=1][DECODE] PRECOMPILE:  33%|█████▋           | 1/3 [00:06<00:13,  6.54s/it, bs=2][DECODE] PRECOMPILE:  67%|███████████▎     | 2/3 [00:12<00:06,  6.43s/it, bs=2][DECODE] PRECOMPILE:  67%|███████████▎     | 2/3 [00:12<00:06,  6.43s/it, bs=4][DECODE] PRECOMPILE: 100%|█████████████████| 3/3 [00:17<00:00,  5.62s/it, bs=4]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=4)
+  Run 1/3: 1.52 sec (329.50 items/sec)
+  Run 2/3: 11.16 sec (44.79 items/sec)
+  Run 3/3: 1.51 sec (330.25 items/sec)
+  Throughput: 105.68 items/sec
+  Latency per item: 9.46 ms
+  Total time for 500 items: 4.73 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 115.72s (0:01:55)
+RESULT bs=4 mr=4 pads=1,2,4 thr=105.68 status=OK
+===== bs=4 mr=6 pads=1,2,4,6 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 170.57file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:48,  6.31it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.81it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.90it/s]Loading Regular Weights:  18%|██▋            | 55/310 [00:00<00:01, 157.65it/s]Loading Regular Weights:  60%|████████▍     | 186/310 [00:00<00:00, 513.78it/s]Loading Regular Weights:  96%|█████████████▌| 299/310 [00:00<00:00, 698.92it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 415.72it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=6, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.39s/it, bs=6, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.39s/it, bs=6, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:20, 10.40s/it, bs=6, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:20, 10.40s/it, bs=6, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.27s/it, bs=6, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.27s/it, bs=6, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:40<00:00,  9.94s/it, bs=6, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/4 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.53s/it, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.53s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.39s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.39s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.37s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.37s/it, bs=6][DECODE] PRECOMPILE: 100%|█████████████████| 4/4 [00:23<00:00,  5.64s/it, bs=6]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=4)
+  Run 1/3: 1.58 sec (316.15 items/sec)
+  Run 2/3: 11.21 sec (44.59 items/sec)
+  Run 3/3: 1.72 sec (290.11 items/sec)
+  Throughput: 103.33 items/sec
+  Latency per item: 9.68 ms
+  Total time for 500 items: 4.84 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 123.27s (0:02:03)
+RESULT bs=4 mr=6 pads=1,2,4,6 thr=103.33 status=OK
+===== bs=5 mr=5 pads=1,2,4,5 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 169.13file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:49,  6.26it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 23.03it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.85it/s]Loading Regular Weights:  11%|█▊              | 35/310 [00:00<00:02, 94.42it/s]Loading Regular Weights:  31%|████▋          | 96/310 [00:00<00:00, 252.32it/s]Loading Regular Weights:  50%|███████       | 156/310 [00:00<00:00, 356.50it/s]Loading Regular Weights:  70%|█████████▊    | 217/310 [00:00<00:00, 432.04it/s]Loading Regular Weights:  89%|████████████▌ | 277/310 [00:00<00:00, 478.49it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 310.36it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=5, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:27,  9.31s/it, bs=5, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:27,  9.31s/it, bs=5, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:20, 10.24s/it, bs=5, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:20, 10.24s/it, bs=5, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:29<00:09,  9.99s/it, bs=5, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:29<00:09,  9.99s/it, bs=5, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:39<00:00,  9.71s/it, bs=5, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/4 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.55s/it, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.55s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.41s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.41s/it, bs=5][DECODE] PRECOMPILE: 100%|█████████████████| 4/4 [00:23<00:00,  5.64s/it, bs=5]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=5)
+  Run 1/3: 1.55 sec (321.78 items/sec)
+  Run 2/3: 1.42 sec (352.99 items/sec)
+  Run 3/3: 1.42 sec (351.17 items/sec)
+  Throughput: 341.36 items/sec
+  Latency per item: 2.93 ms
+  Total time for 500 items: 1.46 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 131.76s (0:02:11)
+RESULT bs=5 mr=5 pads=1,2,4,5 thr=341.36 status=OK
+===== bs=5 mr=8 pads=1,2,4,5,8 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 170.94file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:57,  5.37it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:14, 21.21it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 27.56it/s]Loading Regular Weights:  11%|█▊              | 34/310 [00:00<00:03, 88.90it/s]Loading Regular Weights:  30%|████▌          | 94/310 [00:00<00:00, 243.21it/s]Loading Regular Weights:  50%|███████       | 156/310 [00:00<00:00, 355.07it/s]Loading Regular Weights:  71%|█████████▉    | 220/310 [00:00<00:00, 439.14it/s]Loading Regular Weights:  91%|████████████▋ | 282/310 [00:00<00:00, 492.00it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:01<00:00, 305.29it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=8, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.66s/it, bs=8, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.66s/it, bs=8, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:21, 10.54s/it, bs=8, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:21, 10.54s/it, bs=8, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.36s/it, bs=8, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.36s/it, bs=8, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:40<00:00,  9.93s/it, bs=8, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/5 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/5 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:26,  6.50s/it, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:26,  6.50s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.41s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.41s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.36s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.36s/it, bs=5][DECODE] PRECOMPILE:  80%|█████████████▌   | 4/5 [00:25<00:06,  6.25s/it, bs=5][DECODE] PRECOMPILE:  80%|█████████████▌   | 4/5 [00:25<00:06,  6.25s/it, bs=8][DECODE] PRECOMPILE: 100%|█████████████████| 5/5 [00:29<00:00,  5.71s/it, bs=8]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=5)
+  Run 1/3: 1.40 sec (357.15 items/sec)
+  Run 2/3: 1.41 sec (354.95 items/sec)
+  Run 3/3: 1.40 sec (356.01 items/sec)
+  Throughput: 356.03 items/sec
+  Latency per item: 2.81 ms
+  Total time for 500 items: 1.40 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 141.11s (0:02:21)
+RESULT bs=5 mr=8 pads=1,2,4,5,8 thr=356.03 status=OK
+===== bs=6 mr=6 pads=1,2,4,6 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 170.90file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:48,  6.34it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.48it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.46it/s]Loading Regular Weights:  11%|█▊              | 35/310 [00:00<00:02, 93.69it/s]Loading Regular Weights:  33%|████▌         | 101/310 [00:00<00:00, 266.14it/s]Loading Regular Weights:  54%|███████▌      | 167/310 [00:00<00:00, 384.50it/s]Loading Regular Weights:  75%|██████████▍   | 232/310 [00:00<00:00, 464.11it/s]Loading Regular Weights:  96%|█████████████▍| 298/310 [00:00<00:00, 519.59it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 321.00it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=6, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.34s/it, bs=6, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.34s/it, bs=6, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:20, 10.23s/it, bs=6, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:20, 10.23s/it, bs=6, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.05s/it, bs=6, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.05s/it, bs=6, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:39<00:00,  9.76s/it, bs=6, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/4 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.56s/it, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.56s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.45s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.45s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.43s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.43s/it, bs=6][DECODE] PRECOMPILE: 100%|█████████████████| 4/4 [00:23<00:00,  5.64s/it, bs=6]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=6)
+  Run 1/3: 1.36 sec (367.67 items/sec)
+  Run 2/3: 1.37 sec (364.90 items/sec)
+  Run 3/3: 1.39 sec (359.96 items/sec)
+  Throughput: 364.15 items/sec
+  Latency per item: 2.75 ms
+  Total time for 500 items: 1.37 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 142.07s (0:02:22)
+RESULT bs=6 mr=6 pads=1,2,4,6 thr=364.15 status=OK
+===== bs=6 mr=8 pads=1,2,4,6,8 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 169.88file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:49,  6.30it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.55it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.44it/s]Loading Regular Weights:  15%|██▏            | 45/310 [00:00<00:02, 125.13it/s]Loading Regular Weights:  52%|███████▏      | 160/310 [00:00<00:00, 439.25it/s]Loading Regular Weights:  74%|██████████▎   | 228/310 [00:00<00:00, 509.12it/s]Loading Regular Weights:  93%|████████████▉ | 287/310 [00:00<00:00, 528.78it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 349.04it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=8, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.65s/it, bs=8, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.65s/it, bs=8, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:20, 10.38s/it, bs=8, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:20, 10.38s/it, bs=8, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.25s/it, bs=8, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.25s/it, bs=8, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:39<00:00,  9.85s/it, bs=8, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/5 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/5 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:26,  6.53s/it, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:26,  6.53s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.40s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.40s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.40s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.40s/it, bs=6][DECODE] PRECOMPILE:  80%|█████████████▌   | 4/5 [00:25<00:06,  6.32s/it, bs=6][DECODE] PRECOMPILE:  80%|█████████████▌   | 4/5 [00:25<00:06,  6.32s/it, bs=8][DECODE] PRECOMPILE: 100%|█████████████████| 5/5 [00:30<00:00,  5.75s/it, bs=8]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=6)
+  Run 1/3: 1.35 sec (369.22 items/sec)
+  Run 2/3: 1.32 sec (379.60 items/sec)
+  Run 3/3: 1.34 sec (373.27 items/sec)
+  Throughput: 373.98 items/sec
+  Latency per item: 2.67 ms
+  Total time for 500 items: 1.34 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 150.92s (0:02:30)
+RESULT bs=6 mr=8 pads=1,2,4,6,8 thr=373.98 status=OK
+===== bs=6 mr=12 pads=1,2,4,6,8,12 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 170.16file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:48,  6.32it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.67it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.59it/s]Loading Regular Weights:  11%|█▊              | 35/310 [00:00<00:02, 94.48it/s]Loading Regular Weights:  33%|████▌         | 101/310 [00:00<00:00, 268.00it/s]Loading Regular Weights:  55%|███████▋      | 170/310 [00:00<00:00, 394.33it/s]Loading Regular Weights:  77%|██████████▋   | 238/310 [00:00<00:00, 479.03it/s]Loading Regular Weights:  98%|█████████████▋| 304/310 [00:00<00:00, 531.70it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 324.86it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|           | 0/4 [00:00<?, ?it/s, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:11<00:33, 11.29s/it, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:11<00:33, 11.29s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:22<00:22, 11.16s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█ | 2/4 [00:22<00:22, 11.16s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:32<00:10, 10.74s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:32<00:10, 10.74s/it, bs=12, tokens=32768][EXTEND] PRECOMPILE: 100%|██| 4/4 [00:42<00:00, 10.25s/it, bs=12, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/6 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/6 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  17%|██▊              | 1/6 [00:06<00:32,  6.51s/it, bs=1][DECODE] PRECOMPILE:  17%|██▊              | 1/6 [00:06<00:32,  6.51s/it, bs=2][DECODE] PRECOMPILE:  33%|█████▋           | 2/6 [00:12<00:25,  6.43s/it, bs=2][DECODE] PRECOMPILE:  33%|█████▋           | 2/6 [00:12<00:25,  6.43s/it, bs=4][DECODE] PRECOMPILE:  50%|████████▌        | 3/6 [00:19<00:19,  6.46s/it, bs=4][DECODE] PRECOMPILE:  50%|████████▌        | 3/6 [00:19<00:19,  6.46s/it, bs=6][DECODE] PRECOMPILE:  67%|███████████▎     | 4/6 [00:25<00:12,  6.35s/it, bs=6][DECODE] PRECOMPILE:  67%|███████████▎     | 4/6 [00:25<00:12,  6.35s/it, bs=8][DECODE] PRECOMPILE:  83%|██████████████▏  | 5/6 [00:32<00:06,  6.54s/it, bs=8][DECODE] PRECOMPILE:  83%|█████████████▎  | 5/6 [00:32<00:06,  6.54s/it, bs=12][DECODE] PRECOMPILE: 100%|████████████████| 6/6 [00:37<00:00,  6.00s/it, bs=12]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=6)
+  Run 1/3: 13.13 sec (38.09 items/sec)
+  Run 2/3: 1.21 sec (413.32 items/sec)
+  Run 3/3: 1.20 sec (416.75 items/sec)
+  Throughput: 96.56 items/sec
+  Latency per item: 10.36 ms
+  Total time for 500 items: 5.18 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 172.25s (0:02:52)
+RESULT bs=6 mr=12 pads=1,2,4,6,8,12 thr=96.56 status=OK
+===== bs=7 mr=7 pads=1,2,4,7 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 169.66file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:49,  6.26it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 21.88it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.14it/s]Loading Regular Weights:  17%|██▌            | 53/310 [00:00<00:01, 149.14it/s]Loading Regular Weights:  59%|████████▎     | 183/310 [00:00<00:00, 500.94it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 415.70it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=7, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.60s/it, bs=7, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:28,  9.60s/it, bs=7, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:20, 10.39s/it, bs=7, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:20, 10.39s/it, bs=7, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.13s/it, bs=7, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.13s/it, bs=7, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:39<00:00,  9.77s/it, bs=7, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/4 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.55s/it, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.55s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.38s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.38s/it, bs=7][DECODE] PRECOMPILE: 100%|█████████████████| 4/4 [00:23<00:00,  5.63s/it, bs=7]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=7)
+  Run 1/3: 1.18 sec (422.82 items/sec)
+  Run 2/3: 1.26 sec (397.13 items/sec)
+  Run 3/3: 1.32 sec (379.66 items/sec)
+  Throughput: 399.09 items/sec
+  Latency per item: 2.51 ms
+  Total time for 500 items: 1.25 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 153.49s (0:02:33)
+RESULT bs=7 mr=7 pads=1,2,4,7 thr=399.09 status=OK
+===== bs=7 mr=10 pads=1,2,4,7,10 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 169.49file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:49,  6.29it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.95it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 29.11it/s]Loading Regular Weights:  11%|█▊              | 34/310 [00:00<00:02, 92.34it/s]Loading Regular Weights:  30%|████▌          | 93/310 [00:00<00:00, 246.21it/s]Loading Regular Weights:  48%|██████▊       | 150/310 [00:00<00:00, 344.70it/s]Loading Regular Weights:  67%|█████████▍    | 209/310 [00:00<00:00, 418.26it/s]Loading Regular Weights:  86%|████████████  | 266/310 [00:00<00:00, 463.61it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:01<00:00, 307.15it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|           | 0/4 [00:00<?, ?it/s, bs=10, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:10<00:32, 10.70s/it, bs=10, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:10<00:32, 10.70s/it, bs=10, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:21<00:21, 10.91s/it, bs=10, tokens=4096][EXTEND] PRECOMPILE:  50%|█ | 2/4 [00:21<00:21, 10.91s/it, bs=10, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:31<00:10, 10.54s/it, bs=10, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:31<00:10, 10.54s/it, bs=10, tokens=32768][EXTEND] PRECOMPILE: 100%|██| 4/4 [00:41<00:00, 10.09s/it, bs=10, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/5 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/5 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:26,  6.52s/it, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:26,  6.52s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.44s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.44s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.42s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.42s/it, bs=7][DECODE] PRECOMPILE:  80%|█████████████▌   | 4/5 [00:25<00:06,  6.49s/it, bs=7][DECODE] PRECOMPILE:  80%|████████████▊   | 4/5 [00:25<00:06,  6.49s/it, bs=10][DECODE] PRECOMPILE: 100%|████████████████| 5/5 [00:30<00:00,  5.95s/it, bs=10]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=7)
+  Run 1/3: 1.17 sec (425.80 items/sec)
+  Run 2/3: 1.16 sec (429.88 items/sec)
+  Run 3/3: 1.18 sec (424.90 items/sec)
+  Throughput: 426.85 items/sec
+  Latency per item: 2.34 ms
+  Total time for 500 items: 1.17 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 170.27s (0:02:50)
+RESULT bs=7 mr=10 pads=1,2,4,7,10 thr=426.85 status=OK
+===== bs=8 mr=8 pads=1,2,4,8 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 170.17file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:48,  6.32it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.79it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.60it/s]Loading Regular Weights:  11%|█▊              | 34/310 [00:00<00:03, 91.20it/s]Loading Regular Weights:  30%|████▌          | 94/310 [00:00<00:00, 246.99it/s]Loading Regular Weights:  50%|███████       | 155/310 [00:00<00:00, 354.72it/s]Loading Regular Weights:  75%|██████████▌   | 233/310 [00:00<00:00, 481.55it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 342.39it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|            | 0/4 [00:00<?, ?it/s, bs=8, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:29,  9.73s/it, bs=8, tokens=1024][EXTEND] PRECOMPILE:  25%|█   | 1/4 [00:09<00:29,  9.73s/it, bs=8, tokens=4096][EXTEND] PRECOMPILE:  50%|██  | 2/4 [00:20<00:20, 10.50s/it, bs=8, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:20<00:20, 10.50s/it, bs=8, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.24s/it, bs=8, tokens=16384][EXTEND] PRECOMPILE:  75%|██▎| 3/4 [00:30<00:10, 10.24s/it, bs=8, tokens=32768][EXTEND] PRECOMPILE: 100%|███| 4/4 [00:40<00:00,  9.92s/it, bs=8, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/4 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.52s/it, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.52s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.39s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.39s/it, bs=8][DECODE] PRECOMPILE: 100%|█████████████████| 4/4 [00:23<00:00,  5.64s/it, bs=8]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=8)
+  Run 1/3: 1.30 sec (385.96 items/sec)
+  Run 2/3: 11.17 sec (44.75 items/sec)
+  Run 3/3: 1.28 sec (391.12 items/sec)
+  Throughput: 109.12 items/sec
+  Latency per item: 9.16 ms
+  Total time for 500 items: 4.58 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 164.81s (0:02:44)
+RESULT bs=8 mr=8 pads=1,2,4,8 thr=109.12 status=OK
+===== bs=8 mr=12 pads=1,2,4,8,12 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 170.51file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:49,  6.29it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.93it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.91it/s]Loading Regular Weights:  11%|█▊              | 35/310 [00:00<00:02, 94.32it/s]Loading Regular Weights:  31%|████▌          | 95/310 [00:00<00:00, 249.22it/s]Loading Regular Weights:  50%|██████▉       | 154/310 [00:00<00:00, 351.70it/s]Loading Regular Weights:  68%|█████████▌    | 211/310 [00:00<00:00, 415.01it/s]Loading Regular Weights:  89%|████████████▍ | 276/310 [00:00<00:00, 481.93it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 310.16it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|           | 0/4 [00:00<?, ?it/s, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:11<00:33, 11.27s/it, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:11<00:33, 11.27s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:22<00:22, 11.12s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█ | 2/4 [00:22<00:22, 11.12s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:32<00:10, 10.67s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:32<00:10, 10.67s/it, bs=12, tokens=32768][EXTEND] PRECOMPILE: 100%|██| 4/4 [00:41<00:00, 10.16s/it, bs=12, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/5 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/5 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:25,  6.49s/it, bs=1][DECODE] PRECOMPILE:  20%|███▍             | 1/5 [00:06<00:25,  6.49s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.44s/it, bs=2][DECODE] PRECOMPILE:  40%|██████▊          | 2/5 [00:12<00:19,  6.44s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.40s/it, bs=4][DECODE] PRECOMPILE:  60%|██████████▏      | 3/5 [00:19<00:12,  6.40s/it, bs=8][DECODE] PRECOMPILE:  80%|█████████████▌   | 4/5 [00:25<00:06,  6.46s/it, bs=8][DECODE] PRECOMPILE:  80%|████████████▊   | 4/5 [00:25<00:06,  6.46s/it, bs=12][DECODE] PRECOMPILE: 100%|████████████████| 5/5 [00:30<00:00,  5.90s/it, bs=12]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=8)
+  Run 1/3: 1.19 sec (421.63 items/sec)
+  Run 2/3: 1.22 sec (411.31 items/sec)
+  Run 3/3: 1.25 sec (400.61 items/sec)
+  Throughput: 411.00 items/sec
+  Latency per item: 2.43 ms
+  Total time for 500 items: 1.22 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 189.62s (0:03:09)
+RESULT bs=8 mr=12 pads=1,2,4,8,12 thr=411.00 status=OK
+===== bs=10 mr=10 pads=1,2,4,10 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 165.85file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:49,  6.29it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.70it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.73it/s]Loading Regular Weights:  11%|█▊              | 35/310 [00:00<00:02, 94.10it/s]Loading Regular Weights:  31%|████▋          | 96/310 [00:00<00:00, 250.79it/s]Loading Regular Weights:  50%|███████       | 155/310 [00:00<00:00, 352.25it/s]Loading Regular Weights:  69%|█████████▋    | 214/310 [00:00<00:00, 422.82it/s]Loading Regular Weights:  88%|████████████▎ | 272/310 [00:00<00:00, 469.67it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:01<00:00, 306.55it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|           | 0/4 [00:00<?, ?it/s, bs=10, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:10<00:31, 10.56s/it, bs=10, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:10<00:31, 10.56s/it, bs=10, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:21<00:21, 10.71s/it, bs=10, tokens=4096][EXTEND] PRECOMPILE:  50%|█ | 2/4 [00:21<00:21, 10.71s/it, bs=10, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:31<00:10, 10.44s/it, bs=10, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:31<00:10, 10.44s/it, bs=10, tokens=32768][EXTEND] PRECOMPILE: 100%|██| 4/4 [00:40<00:00, 10.05s/it, bs=10, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/4 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.49s/it, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.49s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.41s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.41s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.40s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████    | 3/4 [00:19<00:06,  6.40s/it, bs=10][DECODE] PRECOMPILE: 100%|████████████████| 4/4 [00:23<00:00,  5.70s/it, bs=10]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=10)
+  Run 1/3: 1.06 sec (471.57 items/sec)
+  Run 2/3: 1.03 sec (484.77 items/sec)
+  Run 3/3: 1.03 sec (484.60 items/sec)
+  Throughput: 480.24 items/sec
+  Latency per item: 2.08 ms
+  Total time for 500 items: 1.04 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 197.24s (0:03:17)
+RESULT bs=10 mr=10 pads=1,2,4,10 thr=480.24 status=OK
+===== bs=12 mr=12 pads=1,2,4,12 =====
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+Scanning Metadata:   0%|                               | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████████████████| 1/1 [00:00<00:00, 170.66file/s]
+Loading Regular Weights:   0%|                         | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|                 | 1/310 [00:00<00:48,  6.34it/s]Loading Regular Weights:   2%|▎                | 6/310 [00:00<00:13, 22.80it/s]Loading Regular Weights:   4%|▌               | 11/310 [00:00<00:10, 28.83it/s]Loading Regular Weights:  13%|█▉             | 40/310 [00:00<00:02, 110.57it/s]Loading Regular Weights:  40%|█████▌        | 123/310 [00:00<00:00, 331.88it/s]Loading Regular Weights:  68%|█████████▍    | 210/310 [00:00<00:00, 495.10it/s]Loading Regular Weights:  96%|█████████████▍| 298/310 [00:00<00:00, 608.89it/s]Loading Regular Weights: 100%|██████████████| 310/310 [00:00<00:00, 363.17it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+[EXTEND] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|           | 0/4 [00:00<?, ?it/s, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:11<00:34, 11.39s/it, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|▊  | 1/4 [00:11<00:34, 11.39s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█▌ | 2/4 [00:22<00:22, 11.24s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█ | 2/4 [00:22<00:22, 11.24s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:32<00:10, 10.79s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|█▌| 3/4 [00:32<00:10, 10.79s/it, bs=12, tokens=32768][EXTEND] PRECOMPILE: 100%|██| 4/4 [00:42<00:00, 10.31s/it, bs=12, tokens=32768]                                                                               [DECODE] PRECOMPILE:   0%|                               | 0/4 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|                         | 0/4 [00:00<?, ?it/s, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.51s/it, bs=1][DECODE] PRECOMPILE:  25%|████▎            | 1/4 [00:06<00:19,  6.51s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=2][DECODE] PRECOMPILE:  50%|████████▌        | 2/4 [00:12<00:12,  6.43s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████▊    | 3/4 [00:19<00:06,  6.38s/it, bs=4][DECODE] PRECOMPILE:  75%|████████████    | 3/4 [00:19<00:06,  6.38s/it, bs=12][DECODE] PRECOMPILE: 100%|████████████████| 4/4 [00:23<00:00,  5.69s/it, bs=12]                                                                               [Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=12)
+  Run 1/3: 12.82 sec (39.00 items/sec)
+  Run 2/3: 0.98 sec (511.98 items/sec)
+  Run 3/3: 0.99 sec (505.42 items/sec)
+  Throughput: 101.45 items/sec
+  Latency per item: 9.86 ms
+  Total time for 500 items: 4.93 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 230.22s (0:03:50)
+RESULT bs=12 mr=12 pads=1,2,4,12 thr=101.45 status=OK

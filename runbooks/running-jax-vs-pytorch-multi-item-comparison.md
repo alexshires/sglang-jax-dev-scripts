@@ -2,7 +2,7 @@
 
 | | |
 |------------|------|
-| **Last Updated** | 2026-02-11 |
+| **Last Updated** | 2026-02-12 |
 | **Maintainer** | Engineering Team |
 | **Related** | [Methodology](../investigations/jax-vs-pytorch-multi-item-comparison-methodology.md), [Report Template](../reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) |
 
@@ -14,6 +14,33 @@ This runbook executes the cross-backend comparison for multi-item scoring with:
 
 Outputs are written under:
 - `reports/artifacts/jax-vs-pytorch-multi-item-20260211/`
+
+## Known TPU Limitation (Current)
+
+- On TPU, `multi_item_mask_impl=segment` currently fails at kernel lowering due dynamic int indexing in the segment mask path.
+- `multi_item_mask_impl=auto` can also fail if it selects segment mode.
+- Until segment mode is fixed, force dense mode in all JAX benchmark runs:
+  - `--multi-item-mask-impl dense`
+  - `--multi-item-segment-fallback-threshold 0`
+
+## TPU-Only Fast Validation (test_bench_multi_item_score.py)
+
+If you want a direct benchmark of the active JAX branch before full cross-backend matrix runs:
+
+```bash
+cd ~/work/sglang-jax
+source .venv/bin/activate
+
+MULTI_ITEM_BENCH_TIMED_RUNS=10 PYTHONPATH=python \
+pytest -q -s test/srt/test_bench_multi_item_score.py::TestMultiItemScorePerformance::test_benchmark_multi_item_packed
+
+MULTI_ITEM_BENCH_TIMED_RUNS=10 PYTHONPATH=python \
+pytest -q -s test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+```
+
+Expected range on TPU v6e-1 (`Qwen/Qwen3-0.6B`) after the benchmark tuning updates:
+- packed: ~52 items/sec
+- prefill+extend: ~500 items/sec
 
 ## One-Command Orchestrator (G4-only)
 
@@ -79,8 +106,8 @@ nohup python -m sgl_jax.launch_server \
   --tp-size 1 \
   --multi-item-scoring-delimiter 151643 \
   --multi-item-scoring-chunk-size 500 \
-  --multi-item-mask-impl auto \
-  --multi-item-segment-fallback-threshold 32768 \
+  --multi-item-mask-impl dense \
+  --multi-item-segment-fallback-threshold 0 \
   --disable-radix-cache \
   --chunked-prefill-size -1 \
   --attention-backend fa \
@@ -111,8 +138,8 @@ python investigations/scripts/run_score_matrix_jax.py \
   --timeout-sec 180 \
   --server-config-note "JAX portable run" \
   --jax-server-chunk-size 500 \
-  --jax-mask-impl auto \
-  --jax-segment-fallback-threshold 32768 \
+  --jax-mask-impl dense \
+  --jax-segment-fallback-threshold 0 \
   --output-json reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_portable_matrix.json \
   --output-markdown reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_portable_matrix.md
 ```
@@ -138,8 +165,8 @@ nohup python -m sgl_jax.launch_server \
   --tp-size 1 \
   --multi-item-scoring-delimiter 151643 \
   --multi-item-scoring-chunk-size 64 \
-  --multi-item-mask-impl auto \
-  --multi-item-segment-fallback-threshold 32768 \
+  --multi-item-mask-impl dense \
+  --multi-item-segment-fallback-threshold 0 \
   --disable-radix-cache \
   --chunked-prefill-size -1 \
   --attention-backend fa \
@@ -170,8 +197,8 @@ python investigations/scripts/run_score_matrix_jax.py \
   --timeout-sec 180 \
   --server-config-note "JAX best-native run" \
   --jax-server-chunk-size 64 \
-  --jax-mask-impl auto \
-  --jax-segment-fallback-threshold 32768 \
+  --jax-mask-impl dense \
+  --jax-segment-fallback-threshold 0 \
   --output-json reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_best_native_matrix.json \
   --output-markdown reports/artifacts/jax-vs-pytorch-multi-item-20260211/jax_best_native_matrix.md
 ```
@@ -295,3 +322,49 @@ The generated report includes:
 
 4. Reproducibility mismatch:
 - Regenerate canonical workload and verify checksum recorded in JSON.
+
+## Dense Baseline Scripts (JAX-only)
+
+For quick JAX-only dense baseline collection without the full cross-backend flow:
+
+### Smoke Test (quick validation)
+
+```bash
+export PROJECT=my-project
+export TPU_NAME=my-tpu
+export TPU_ZONE=us-east5-b
+
+./scripts/run_tpu_dense_smoke.sh
+```
+
+### Full Matrix Sweep
+
+```bash
+export PROJECT=my-project
+export TPU_NAME=my-tpu
+export TPU_ZONE=us-east5-b
+
+./scripts/run_tpu_dense_matrix.sh
+```
+
+### Collect Artifacts
+
+```bash
+# List available artifacts
+./scripts/collect_tpu_dense_artifacts.sh --list
+
+# Collect specific run
+ARTIFACT_SUBDIR=dense-matrix-20260212T120000Z ./scripts/collect_tpu_dense_artifacts.sh
+```
+
+### Validate Artifacts
+
+```bash
+# Validate matrix results
+python investigations/scripts/validate_score_artifacts.py --matrix reports/artifacts/*/matrix_results.json
+
+# Validate all artifacts in directory
+python investigations/scripts/validate_score_artifacts.py --all reports/artifacts/dense-matrix-*/ -v
+```
+
+See also: [Dense Baseline Ops Handoff](../handoffs/dense-baseline-ops-handoff.md)

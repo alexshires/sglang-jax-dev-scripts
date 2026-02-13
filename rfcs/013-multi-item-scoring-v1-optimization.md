@@ -62,6 +62,16 @@ Key components:
 3. **Position reset** at delimiter boundaries in schedule_batch.py
 4. **Score extraction** via scipy.softmax in main process
 
+### Known Blockers
+
+| Blocker | Status | Impact | Workaround |
+|---------|--------|--------|------------|
+| **Segment mask TPU lowering** | Open | Strategy 1 blocked | Use `--multi-item-mask-impl=dense` |
+
+**Segment mask issue:** The segment mode (`MULTI_ITEM_MASK_MODE_SEGMENT=2`) fails on TPU with `ValueError: Cannot do int indexing on TPU during kernel lowering`. Root cause: dynamic integer array indexing (gather) at `ragged_paged_attention.py:933` is not supported in Pallas kernels.
+
+See: [Investigation: Segment Mask TPU Lowering Issue](../investigations/segment-mask-tpu-lowering-issue.md)
+
 ### Known Bottlenecks
 
 There are **two orthogonal bottlenecks** that must both be addressed:
@@ -539,7 +549,32 @@ logger.info(f"Selected {algorithm.name} for query_len={query_len}, "
 
 ## Implementation Phases
 
-### Phase 1: Quick Wins (1 week)
+**Execution Model:** Phases 0-1 are sequential prerequisites. Phases 2-4 run in **parallel tracks** with strict interface boundaries. Phase 5 gates all promotions.
+
+```
+Phase 0 (Stability)     ─┬─→ Phase 2 (Segment Fix)    ─┬─→ Phase 5 (Hardening)
+                         │                              │
+Phase 1 (Quick Wins)    ─┼─→ Phase 3 (Investigation)  ─┤
+                         │                              │
+                         └─→ Phase 4 (Prefill+Extend) ─┘
+```
+
+### Phase 0: Stability/Baseline (Immediate)
+
+**Objective:** Lock runtime to `dense` mode, establish clean baseline for parallel optimization work.
+
+| Task | Action | Status |
+|------|--------|--------|
+| Default to dense | Set `--multi-item-mask-impl=dense` or threshold=0 | Pending |
+| Run TPU regression | Full test suite with dense mode | Pending |
+| Capture baseline artifacts | Latency, throughput, memory on canonical workload | Pending |
+| Document dense as production fallback | Update user docs | Pending |
+
+**Exit criteria:** All regression tests pass with dense mode on TPU v6e-1. Baseline artifacts committed.
+
+**Rationale:** Dense mode works. Segment mode has a TPU kernel lowering bug. Lock to dense so optimization work (Phases 2-4) doesn't block production stability.
+
+### Phase 1: Quick Wins
 
 | Task | Strategy | Effort | Expected Gain |
 |------|----------|--------|---------------|
@@ -693,6 +728,7 @@ Every optimization must pass before eligibility:
 
 | Date | Change |
 |------|--------|
+| 2026-02-12 | **Parallel track model:** Added Phase 0 (Stability) as prerequisite. Documented segment mask TPU lowering blocker. Added execution model diagram showing parallel tracks. Dense mode now explicit production fallback until segment fix lands. |
 | 2026-02-11 | **Major update:** Added Strategy 5 (Prefill+Extend) and Strategy 6 (Runtime Policy Selector). Promoted "Prefix Caching" from rejected alternative to first-class strategy. Added Phase 4 for prefill+extend implementation. Added precompile/warmup (4g). Updated success metrics with algorithm coverage and explicit correctness gates. Added flag-first rollout process. |
 | 2026-02-11 | Enhanced with dual-bottleneck analysis (compute + memory). Added vectorization (4a) and on-device mask generation (4b) strategies. Clarified Strategy 1 as "tile-skipping kernel" with early-exit semantics. Reordered incremental optimizations. |
 | 2026-02-11 | Initial draft |

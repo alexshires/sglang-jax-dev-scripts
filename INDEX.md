@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-02-13
 
 ---
 
@@ -113,11 +113,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Infrastructure optimizations: model pre-caching, warm runner pools
   - 4-tier implementation plan with cost analysis
 
-- **[RFC-013: Multi-Item Scoring v1.0 Optimization](rfcs/013-multi-item-scoring-v1-optimization.md)** ← **NEW**
-  - Status: Draft
+- **[RFC-013: Multi-Item Scoring v1.0 Optimization](rfcs/013-multi-item-scoring-v1-optimization.md)**
+  - Status: Draft (Updated 2026-02-12)
   - Performance roadmap from v0.1 (16.5x) to v1.0 (40x+ target)
-  - Optimization strategies: procedural mask, causal mode, splash attention
-  - Phased implementation with success metrics
+  - **Parallel track model:** Stability → Segment Fix / Prefill+Extend / Orchestration
+  - **Blocker:** [Segment mask TPU lowering issue](investigations/segment-mask-tpu-lowering-issue.md) (workaround: use dense mode)
   - Depends on: [PyTorch isolation investigation](investigations/pytorch-multi-item-isolation-semantics.md)
 
 ### Templates
@@ -182,11 +182,48 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Frozen PyTorch baseline policy with correctness gate
   - Shared canonical workload and schema contract
 
-- **[PyTorch Multi-Item Isolation Semantics](investigations/pytorch-multi-item-isolation-semantics.md)** ← **NEW**
+- **[PyTorch Multi-Item Isolation Semantics](investigations/pytorch-multi-item-isolation-semantics.md)**
   - Critical investigation: Does PyTorch enforce item isolation in multi-item scoring?
   - Test plan: order sensitivity, content contamination, scaling tests
   - Blocks RFC-013 Strategy 2 (causal mode) decision
   - Includes ready-to-run test script
+
+- **[Segment Mask TPU Kernel Lowering Issue](investigations/segment-mask-tpu-lowering-issue.md)** ← **NEW**
+  - Root cause: dynamic int array indexing (gather) in Pallas kernel not supported on TPU
+  - Location: `ragged_paged_attention.py:933`
+  - Workaround: `--multi-item-mask-impl=dense`
+  - Blocks RFC-013 Track 2 (Segment Kernel Fix)
+  - Fix options: pre-scatter, scalar loop, on-the-fly computation
+
+## Scripts
+
+### Benchmark Scripts
+
+- **[run_tpu_dense_smoke.sh](scripts/run_tpu_dense_smoke.sh)** ← **NEW**
+  - Quick smoke test for dense-mode multi-item scoring on TPU
+  - Single chunk size (32) validation
+  - Enforces `--multi-item-mask-impl=dense`
+
+- **[run_tpu_dense_matrix.sh](scripts/run_tpu_dense_matrix.sh)** ← **NEW**
+  - Full matrix sweep across all chunk sizes (1,2,4,8,16,32,64,128,256,500)
+  - Collects throughput, latency, and memory metrics
+  - Enforces dense-only mode for TPU stability
+
+- **[collect_tpu_dense_artifacts.sh](scripts/collect_tpu_dense_artifacts.sh)** ← **NEW**
+  - Downloads benchmark artifacts from TPU VM
+  - Supports listing available artifacts and selective collection
+
+- **[run_all_jax_vs_pytorch_multi_item.sh](scripts/run_all_jax_vs_pytorch_multi_item.sh)**
+  - End-to-end orchestrator for cross-backend comparison
+  - Creates TPU and GPU resources, runs benchmarks, collects artifacts
+  - **Note:** Uses dense-only mode due to TPU limitation
+
+### Validation Scripts
+
+- **[validate_score_artifacts.py](investigations/scripts/validate_score_artifacts.py)** ← **NEW**
+  - Validates JSON artifact files against expected schemas
+  - Supports workload, matrix, and comparison schemas
+  - CLI with verbose mode and JSON output
 
 ## Runbooks
 
@@ -249,6 +286,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Run-state snapshot for current cloud execution attempt
   - Documents TPU readiness and GPU quota/capacity blocker
   - Captures follow-up steps for unblocking full comparison
+
+- **[Multi-Item Prefill+Extend TPU Benchmark 2026-02-13](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md)** ← **NEW**
+  - Focused benchmark of `test/srt/test_bench_multi_item_score.py` on TPU v6e-1
+  - Stable result: 508.30 items/sec (prefill+extend) vs 52.35 items/sec (packed)
+  - Includes tuned benchmark profile and reproducible commands
 
 ## Test Plans
 
@@ -380,6 +422,7 @@ Runbook: Debugging
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
 - [JAX vs PyTorch Multi-Item Comparison (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) ← Cross-backend evaluation report
 - [JAX vs PyTorch Execution Status (2026-02-12)](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) ← TPU-ready, GPU-blocked snapshot
+- [Multi-Item Prefill+Extend TPU Benchmark (2026-02-13)](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md) ← Stable 508 items/sec run
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
@@ -441,6 +484,14 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-13:** Stable high-throughput prefill+extend benchmark on TPU v6e-1
+  - Added report: [multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md)
+  - `test/srt/test_bench_multi_item_score.py` benchmark outcome on `Qwen/Qwen3-0.6B`:
+    - Packed: 52.35 items/sec
+    - Prefill+extend: 508.30 items/sec
+    - Speedup: 9.71x
+  - Added reproducible raw artifacts under `reports/artifacts/prefill-extend-tpu-v6e1-20260213/`
 
 - **2026-02-12:** TPU-ready / GPU-blocked execution status documented
   - Added execution snapshot: [jax-vs-pytorch-multi-item-execution-status-2026-02-12.md](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md)

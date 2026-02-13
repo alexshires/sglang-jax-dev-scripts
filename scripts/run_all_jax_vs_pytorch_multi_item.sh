@@ -23,8 +23,13 @@ GPU_IMAGE_FAMILY="${GPU_IMAGE_FAMILY:-common-cu128-ubuntu-2204-nvidia-570}"
 MODEL="${MODEL:-Qwen/Qwen3-0.6B}"
 DELIM_TOKEN_ID="${DELIM_TOKEN_ID:-151643}"
 JAX_NATIVE_CHUNK_SIZE="${JAX_NATIVE_CHUNK_SIZE:-64}"
-JAX_MASK_IMPL="${JAX_MASK_IMPL:-auto}"
-JAX_SEGMENT_FALLBACK_THRESHOLD="${JAX_SEGMENT_FALLBACK_THRESHOLD:-32768}"
+
+# IMPORTANT: Dense-only mode required for TPU stability.
+# Known TPU Limitation: segment/auto mask modes fail with
+# "ValueError: Cannot do int indexing on TPU during kernel lowering"
+# See: investigations/segment-mask-tpu-lowering-issue.md
+JAX_MASK_IMPL="${JAX_MASK_IMPL:-dense}"
+JAX_SEGMENT_FALLBACK_THRESHOLD="${JAX_SEGMENT_FALLBACK_THRESHOLD:-0}"
 
 RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 ARTIFACT_SUBDIR="${ARTIFACT_SUBDIR:-jax-vs-pytorch-multi-item-${RUN_ID}}"
