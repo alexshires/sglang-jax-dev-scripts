@@ -2,7 +2,7 @@
 
 Quick reference for all design documents, decisions, and guides in this repository.
 
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-02-14
 
 ---
 
@@ -225,6 +225,28 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Supports workload, matrix, and comparison schemas
   - CLI with verbose mode and JSON output
 
+### Battletest Scripts
+
+- **[soak_runner.py](scripts/multi_item/soak_runner.py)** ← **NEW**
+  - Weighted mixed-load harness with deterministic seed and Poisson arrivals
+  - Emits per-request CSV/JSONL and run summary JSON
+
+- **[server_metrics_sampler.py](scripts/multi_item/server_metrics_sampler.py)** ← **NEW**
+  - Samples RSS/VSZ plus `/get_server_info` and optional `/metrics`
+  - Emits time-series artifacts and memory trend summaries
+
+- **[launch_mode_server.sh](scripts/multi_item/launch_mode_server.sh)** ← **NEW**
+  - Mode-specific launcher with process cleanup and health checks
+
+- **[run_mode_trials.sh](scripts/multi_item/run_mode_trials.sh)** ← **NEW**
+  - Restart + warmup + measured rerun orchestrator for single/packed/prefill+extend
+
+- **[run_phase4_chaos.sh](scripts/multi_item/run_phase4_chaos.sh)** ← **NEW**
+  - Automates phase-4 failure injection and recovery checks
+
+- **[run_single_item_regression_main_vs_feat.sh](scripts/multi_item/run_single_item_regression_main_vs_feat.sh)** ← **NEW**
+  - Runs same-profile single-item throughput comparison for `main` vs `feat`
+
 ## Runbooks
 
 - **[Debugging TPU Test Failures](runbooks/debugging-tpu-test-failures.md)**
@@ -292,6 +314,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Stable result: 525.87 items/sec (prefill+extend) vs 52.18 items/sec (packed)
   - Includes tuned benchmark profile and reproducible commands
 
+- **[Multi-Item Scoring v1 Battletest 2026-02-13 to 2026-02-17](reports/multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md)** ← **NEW**
+  - Pre-merge battletest evidence for PR #24 merge gate
+  - Includes correctness/stability/performance/failure-injection outcomes
+  - Includes criterion-by-criterion GO/NO-GO decision
+
 ## Test Plans
 
 - **[Test Plan 001: Shared Fixtures and Core Tests](test-plans/001-shared-fixtures-and-core-tests.md)**
@@ -335,6 +362,12 @@ Quick reference for all design documents, decisions, and guides in this reposito
 - `investigations/scripts/compare_score_matrix_results.py`
 - `investigations/scripts/render_jax_vs_pytorch_final_report.py`
 - `scripts/run_all_jax_vs_pytorch_multi_item.sh` (G4-only orchestrator)
+- `scripts/multi_item/soak_runner.py`
+- `scripts/multi_item/server_metrics_sampler.py`
+- `scripts/multi_item/launch_mode_server.sh`
+- `scripts/multi_item/run_mode_trials.sh`
+- `scripts/multi_item/run_phase4_chaos.sh`
+- `scripts/multi_item/run_single_item_regression_main_vs_feat.sh`
 
 ## Document Relationships
 
@@ -423,6 +456,7 @@ Runbook: Debugging
 - [JAX vs PyTorch Multi-Item Comparison (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) ← Cross-backend evaluation report
 - [JAX vs PyTorch Execution Status (2026-02-12)](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) ← TPU-ready, GPU-blocked snapshot
 - [Multi-Item Prefill+Extend TPU Benchmark (2026-02-13)](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md) ← Stable 526 items/sec run
+- [Multi-Item Scoring v1 Battletest (2026-02-13 to 2026-02-17)](reports/multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md) ← Pre-merge readiness gate
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
@@ -484,6 +518,17 @@ See [README.md](README.md) for document workflow and best practices.
 - **Deprecated:** No longer applicable
 
 ## Recent Updates
+
+- **2026-02-14:** Multi-item scoring v1 pre-merge battletest completed
+  - Added report: [multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md](reports/multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md)
+  - Added raw artifacts: `reports/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/`
+  - Added battletest harness scripts:
+    - `scripts/multi_item/soak_runner.py`
+    - `scripts/multi_item/server_metrics_sampler.py`
+    - `scripts/multi_item/launch_mode_server.sh`
+    - `scripts/multi_item/run_mode_trials.sh`
+    - `scripts/multi_item/run_phase4_chaos.sh`
+    - `scripts/multi_item/run_single_item_regression_main_vs_feat.sh`
 
 - **2026-02-13:** PR #24 description handoff added
   - Added handoff: [pr-24-description-update-2026-02-13.md](handoffs/pr-24-description-update-2026-02-13.md)
