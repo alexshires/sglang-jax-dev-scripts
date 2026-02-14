@@ -548,6 +548,18 @@ def main() -> None:
     parser.add_argument("--server-config-note", default="")
     parser.add_argument("--delimiter-token-id", type=int, default=151643)
     parser.add_argument("--jax-server-chunk-size", type=int)
+    parser.add_argument(
+        "--jax-mask-impl",
+        choices=["auto", "dense", "segment"],
+        default=None,
+        help="JAX server multi-item mask implementation used for this run.",
+    )
+    parser.add_argument(
+        "--jax-segment-fallback-threshold",
+        type=int,
+        default=None,
+        help="JAX server --multi-item-segment-fallback-threshold used for this run.",
+    )
     parser.add_argument("--correctness-threshold-max-abs", type=float, default=0.02)
     parser.add_argument("--correctness-threshold-mean-abs", type=float, default=0.01)
     args = parser.parse_args()
@@ -625,6 +637,8 @@ def main() -> None:
             "chunked_prefill_size": -1,
             "disable_radix_cache": True,
             "jax_multi_item_scoring_chunk_size": args.jax_server_chunk_size,
+            "jax_multi_item_mask_impl": args.jax_mask_impl,
+            "jax_multi_item_segment_fallback_threshold": args.jax_segment_fallback_threshold,
             "note": args.server_config_note,
         },
         "workload_ref": {

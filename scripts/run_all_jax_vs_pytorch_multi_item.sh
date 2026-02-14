@@ -24,6 +24,13 @@ MODEL="${MODEL:-Qwen/Qwen3-0.6B}"
 DELIM_TOKEN_ID="${DELIM_TOKEN_ID:-151643}"
 JAX_NATIVE_CHUNK_SIZE="${JAX_NATIVE_CHUNK_SIZE:-64}"
 
+# IMPORTANT: Dense-only mode required for TPU stability.
+# Known TPU Limitation: segment/auto mask modes fail with
+# "ValueError: Cannot do int indexing on TPU during kernel lowering"
+# See: investigations/segment-mask-tpu-lowering-issue.md
+JAX_MASK_IMPL="${JAX_MASK_IMPL:-dense}"
+JAX_SEGMENT_FALLBACK_THRESHOLD="${JAX_SEGMENT_FALLBACK_THRESHOLD:-0}"
+
 RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 ARTIFACT_SUBDIR="${ARTIFACT_SUBDIR:-jax-vs-pytorch-multi-item-${RUN_ID}}"
 
@@ -162,6 +169,8 @@ nohup python -m sgl_jax.launch_server \
   --tp-size 1 \
   --multi-item-scoring-delimiter "$DELIM_TOKEN_ID" \
   --multi-item-scoring-chunk-size 500 \
+  --multi-item-mask-impl "$JAX_MASK_IMPL" \
+  --multi-item-segment-fallback-threshold "$JAX_SEGMENT_FALLBACK_THRESHOLD" \
   --disable-radix-cache \
   --chunked-prefill-size -1 \
   --attention-backend fa \
@@ -186,6 +195,8 @@ python investigations/scripts/run_score_matrix_jax.py \
   --timeout-sec 180 \
   --server-config-note "JAX portable run" \
   --jax-server-chunk-size 500 \
+  --jax-mask-impl "$JAX_MASK_IMPL" \
+  --jax-segment-fallback-threshold "$JAX_SEGMENT_FALLBACK_THRESHOLD" \
   --output-json "reports/artifacts/$ARTIFACT_SUBDIR/jax_portable_matrix.json" \
   --output-markdown "reports/artifacts/$ARTIFACT_SUBDIR/jax_portable_matrix.md"
 
@@ -202,6 +213,8 @@ nohup python -m sgl_jax.launch_server \
   --tp-size 1 \
   --multi-item-scoring-delimiter "$DELIM_TOKEN_ID" \
   --multi-item-scoring-chunk-size "$JAX_NATIVE_CHUNK_SIZE" \
+  --multi-item-mask-impl "$JAX_MASK_IMPL" \
+  --multi-item-segment-fallback-threshold "$JAX_SEGMENT_FALLBACK_THRESHOLD" \
   --disable-radix-cache \
   --chunked-prefill-size -1 \
   --attention-backend fa \
@@ -226,13 +239,15 @@ python investigations/scripts/run_score_matrix_jax.py \
   --timeout-sec 180 \
   --server-config-note "JAX best-native run" \
   --jax-server-chunk-size "$JAX_NATIVE_CHUNK_SIZE" \
+  --jax-mask-impl "$JAX_MASK_IMPL" \
+  --jax-segment-fallback-threshold "$JAX_SEGMENT_FALLBACK_THRESHOLD" \
   --output-json "reports/artifacts/$ARTIFACT_SUBDIR/jax_best_native_matrix.json" \
   --output-markdown "reports/artifacts/$ARTIFACT_SUBDIR/jax_best_native_matrix.md"
 EOS
 
   gcloud compute tpus tpu-vm scp --project="$PROJECT" --zone="$TPU_ZONE" "$remote_script" "$TPU_NAME:~/run_mi_tpu.sh"
   gcloud compute tpus tpu-vm ssh "$TPU_NAME" --project="$PROJECT" --zone="$TPU_ZONE" \
-    --command "chmod +x ~/run_mi_tpu.sh && JAX_REPO_URL='$JAX_REPO_URL' ARTIFACT_SUBDIR='$ARTIFACT_SUBDIR' MODEL='$MODEL' DELIM_TOKEN_ID='$DELIM_TOKEN_ID' JAX_NATIVE_CHUNK_SIZE='$JAX_NATIVE_CHUNK_SIZE' bash ~/run_mi_tpu.sh"
+    --command "chmod +x ~/run_mi_tpu.sh && JAX_REPO_URL='$JAX_REPO_URL' ARTIFACT_SUBDIR='$ARTIFACT_SUBDIR' MODEL='$MODEL' DELIM_TOKEN_ID='$DELIM_TOKEN_ID' JAX_NATIVE_CHUNK_SIZE='$JAX_NATIVE_CHUNK_SIZE' JAX_MASK_IMPL='$JAX_MASK_IMPL' JAX_SEGMENT_FALLBACK_THRESHOLD='$JAX_SEGMENT_FALLBACK_THRESHOLD' bash ~/run_mi_tpu.sh"
 
   rm -f "$remote_script"
 }

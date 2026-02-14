@@ -7,6 +7,7 @@
 | **Question** | How well does `sglang-jax` multi-item scoring perform vs frozen PyTorch baseline? |
 | **Methodology** | [Investigation](../investigations/jax-vs-pytorch-multi-item-comparison-methodology.md) |
 | **Runbook** | [Execution guide](../runbooks/running-jax-vs-pytorch-multi-item-comparison.md) |
+| **Execution Status Update** | [2026-02-12 TPU-ready / GPU-blocked note](./jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) |
 
 ## Scope
 
@@ -15,6 +16,19 @@
 - Reports both:
   - portable view (same client workload contract)
   - best-native view (backend-native settings)
+
+## Known TPU Limitation
+
+**JAX runs must use dense mode only.** The segment mask mode (`--multi-item-mask-impl=segment` or `auto`) fails on TPU with:
+```
+ValueError: Cannot do int indexing on TPU during kernel lowering
+```
+
+All JAX benchmark commands use:
+- `--multi-item-mask-impl dense`
+- `--multi-item-segment-fallback-threshold 0`
+
+See: [Segment Mask TPU Lowering Issue](../investigations/segment-mask-tpu-lowering-issue.md)
 
 ## Workload Contract
 
@@ -105,3 +119,5 @@ Best-native winner:
 
 - This report template is intentionally pre-created on 2026-02-11 so results can be dropped in directly from generated JSON.
 - Comparison scripts enforce correctness thresholds before selecting winners.
+- Interim execution status (quota/capacity blockers and environment readiness) is tracked in `reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md`.
+- Current TPU known limitation: segment mask path is unstable at kernel lowering; benchmark runs are currently forced to dense mask mode until segment fix lands.

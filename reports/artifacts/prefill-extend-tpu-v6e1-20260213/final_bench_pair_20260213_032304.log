@@ -1,0 +1,62 @@
+=== PACKED ===
+[Benchmark] Loading model: /models/Qwen/Qwen3-0.6B
+[Benchmark] Engine initialized
+
+[Benchmark] Starting Multi-Item Packed (Items=500, Prompt=2000)
+  Run 1/10: 9.56 sec (52.30 items/sec)
+  Run 2/10: 9.55 sec (52.36 items/sec)
+  Run 3/10: 9.55 sec (52.36 items/sec)
+  Run 4/10: 9.55 sec (52.35 items/sec)
+  Run 5/10: 9.55 sec (52.35 items/sec)
+  Run 6/10: 9.55 sec (52.36 items/sec)
+  Run 7/10: 9.55 sec (52.34 items/sec)
+  Run 8/10: 9.55 sec (52.34 items/sec)
+  Run 9/10: 9.55 sec (52.34 items/sec)
+  Run 10/10: 9.55 sec (52.35 items/sec)
+  Throughput: 52.35 items/sec
+  Latency per item: 19.10 ms
+  Total time for 500 items: 9.55 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemScorePerformance::test_benchmark_multi_item_packed
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 230.89s (0:03:50)
+=== PREFILL_EXTEND ===
+[Benchmark] Loading model (prefill+extend): /models/Qwen/Qwen3-0.6B
+[Benchmark] Prefill+extend engine initialized
+
+[Benchmark] Starting Multi-Item Prefill+Extend (Items=500, Prompt=2000, ExtendBatch=12)
+  Run 1/10: 1.00 sec (501.85 items/sec)
+  Run 2/10: 0.98 sec (509.37 items/sec)
+  Run 3/10: 0.99 sec (506.11 items/sec)
+  Run 4/10: 0.97 sec (513.92 items/sec)
+  Run 5/10: 0.97 sec (513.23 items/sec)
+  Run 6/10: 0.97 sec (513.62 items/sec)
+  Run 7/10: 0.97 sec (516.79 items/sec)
+  Run 8/10: 0.99 sec (503.99 items/sec)
+  Run 9/10: 1.00 sec (501.60 items/sec)
+  Run 10/10: 0.99 sec (503.12 items/sec)
+  Throughput: 508.30 items/sec
+  Latency per item: 1.97 ms
+  Total time for 500 items: 0.98 sec
+
+.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93
+  /home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+    warnings.warn(
+
+test/srt/test_bench_multi_item_score.py::TestMultiItemPrefillExtendPerformance::test_benchmark_multi_item_prefill_extend
+  /home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/common_utils.py:648: DeprecationWarning: There is no current event loop
+    loop = asyncio.get_event_loop()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 272.69s (0:04:32)
