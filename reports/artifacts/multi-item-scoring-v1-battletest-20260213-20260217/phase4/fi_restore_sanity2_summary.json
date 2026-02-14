@@ -1,0 +1,85 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "2m",
+    "duration_seconds": 120.0,
+    "concurrency": 1,
+    "arrival_rate_requests_per_sec": 1.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "small": 1.0
+    },
+    "max_requests": 3
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase4/fi_restore_sanity2_requests.csv",
+    "requests_jsonl": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase4/fi_restore_sanity2_requests.jsonl",
+    "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase4/fi_restore_sanity2_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771042755.395146,
+    "ended_at_unix": 1771042757.488411,
+    "started_at_iso": "2026-02-14T04:19:15.395146+00:00",
+    "ended_at_iso": "2026-02-14T04:19:17.488411+00:00",
+    "actual_runtime_seconds": 2.093264638999244,
+    "scheduled_requests": 3,
+    "completed_requests": 3
+  },
+  "results": {
+    "requests_total": 3,
+    "requests_ok": 0,
+    "requests_error": 3,
+    "error_rate": 1.0,
+    "ok_items_total": 0,
+    "throughput_items_per_sec": 0.0,
+    "throughput_requests_per_sec": 0.0,
+    "latency_ms_all": {
+      "p50": 0.5112400103826076,
+      "p95": 16.989177983487025,
+      "p99": 18.453883581096306,
+      "mean": 6.587073323316872,
+      "min": 0.42991997906938195,
+      "max": 18.820059980498627
+    },
+    "latency_ms_ok_only": {
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "error_reason_counts": {
+      "connection_error": 3
+    },
+    "by_scenario": {
+      "small": {
+        "configured_item_count": 3,
+        "configured_weight": 1.0,
+        "requests_total": 3,
+        "requests_ok": 0,
+        "requests_error": 3,
+        "error_rate": 1.0,
+        "items_ok": 0,
+        "latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    },
+    "first_run_penalty": null
+  }
+}

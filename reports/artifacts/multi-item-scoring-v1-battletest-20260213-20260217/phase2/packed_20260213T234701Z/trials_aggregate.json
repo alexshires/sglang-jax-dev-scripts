@@ -1,0 +1,66 @@
+{
+  "mode": "packed",
+  "trial_count": 3,
+  "trials": [
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/packed_20260213T234701Z/trial_01_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 51.63651201368464,
+      "p50_latency_ms": 9602.749095996842,
+      "p95_latency_ms": 10050.585889205104,
+      "p99_latency_ms": 10301.030049835099,
+      "requests_total": 10,
+      "requests_error": 0
+    },
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/packed_20260213T234701Z/trial_02_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 52.116361003293186,
+      "p50_latency_ms": 9591.290504002245,
+      "p95_latency_ms": 9602.665226397221,
+      "p99_latency_ms": 9607.549154866138,
+      "requests_total": 10,
+      "requests_error": 0
+    },
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/packed_20260213T234701Z/trial_03_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 51.72010382000059,
+      "p50_latency_ms": 9591.685583509388,
+      "p95_latency_ms": 10006.286197657755,
+      "p99_latency_ms": 10266.64560033736,
+      "requests_total": 10,
+      "requests_error": 0
+    }
+  ],
+  "throughput_items_per_sec": {
+    "mean": 51.824325612326135,
+    "stddev": 0.20930105861135148,
+    "min": 51.63651201368464,
+    "max": 52.116361003293186
+  },
+  "p50_latency_ms": {
+    "mean": 9595.241727836159,
+    "stddev": 5.310960646265591,
+    "min": 9591.290504002245,
+    "max": 9602.749095996842
+  },
+  "p95_latency_ms": {
+    "mean": 9886.51243775336,
+    "stddev": 201.52343985053787,
+    "min": 9602.665226397221,
+    "max": 10050.585889205104
+  },
+  "p99_latency_ms": {
+    "mean": 10058.408268346198,
+    "stddev": 319.1144285339621,
+    "min": 9607.549154866138,
+    "max": 10301.030049835099
+  },
+  "error_rate": {
+    "mean": 0.0,
+    "stddev": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  }
+}

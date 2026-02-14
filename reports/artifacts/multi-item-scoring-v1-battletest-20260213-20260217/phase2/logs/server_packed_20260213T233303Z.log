@@ -1,0 +1,174 @@
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.entrypoints.engine:server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=32, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=1, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=True, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 4, 8, 16, 32], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=False, multi_item_extend_batch_size=32, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=False, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+[2026-02-13 23:33:08] server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=32, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=1, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=True, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 4, 8, 16, 32], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=False, multi_item_extend_batch_size=32, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=False, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-13 23:33:08] No quantization config found in HF config or user config
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-13 23:33:10] No quantization config found in HF config or user config
+INFO:sgl_jax.srt.constrained.llguidance_backend:Initialized GuidanceBackend with whitespace_pattern=None
+[2026-02-13 23:33:11] Initialized GuidanceBackend with whitespace_pattern=None
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-13 23:33:16] No quantization config found in HF config or user config
+INFO:sgl_jax.srt.precision_tracer:Precision tracer globally disabled
+[2026-02-13 23:33:16] Precision tracer globally disabled
+INFO:sgl_jax.srt.configs.model_config:KV heads distribution for GQA model: original_kv_heads=8, tp_size=1, each device gets 8 head(s), no replication needed, padding_strategy=replicate
+[2026-02-13 23:33:16] KV heads distribution for GQA model: original_kv_heads=8, tp_size=1, each device gets 8 head(s), no replication needed, padding_strategy=replicate
+INFO:sgl_jax.srt.models.qwen3:QWen3ForCausalLMModel config dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-13 23:33:16] QWen3ForCausalLMModel config dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.model_loader.loader:No quantization config found. Skipping quantization.
+[2026-02-13 23:33:17] No quantization config found. Skipping quantization.
+INFO:sgl_jax.srt.utils.weight_utils:Scanning metadata for 1 model files (single host only)...
+[2026-02-13 23:33:17] Scanning metadata for 1 model files (single host only)...
+Scanning Metadata:   0%|          | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████| 1/1 [00:00<00:00, 168.88file/s]
+INFO:sgl_jax.srt.utils.weight_utils:Starting parallel weight loading via JAX Lazy Loader...
+[2026-02-13 23:33:17] Starting parallel weight loading via JAX Lazy Loader...
+Loading Regular Weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|          | 1/310 [00:00<00:48,  6.32it/s]Loading Regular Weights:   2%|▏         | 6/310 [00:00<00:13, 22.36it/s]Loading Regular Weights:   4%|▎         | 11/310 [00:00<00:10, 28.36it/s]Loading Regular Weights:  11%|█▏        | 35/310 [00:00<00:02, 93.78it/s]Loading Regular Weights:  31%|███▏      | 97/310 [00:00<00:00, 255.01it/s]Loading Regular Weights:  50%|█████     | 156/310 [00:00<00:00, 354.18it/s]Loading Regular Weights:  70%|███████   | 218/310 [00:00<00:00, 434.04it/s]Loading Regular Weights:  89%|████████▉ | 277/310 [00:00<00:00, 476.79it/s]Loading Regular Weights: 100%|██████████| 310/310 [00:01<00:00, 308.99it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+INFO:sgl_jax.srt.utils.weight_utils:All weights loaded successfully.
+[2026-02-13 23:33:18] All weights loaded successfully.
+INFO:sgl_jax.srt.models.qwen3:Qwen3 weights loaded successfully!
+[2026-02-13 23:33:18] Qwen3 weights loaded successfully!
+INFO:sgl_jax.srt.model_executor.model_runner:ModelRunner kv_cache_dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-13 23:33:18] ModelRunner kv_cache_dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.model_executor.model_runner:TPU Memory profiling: available_device_memory=30.1GB, available_kv_cache=20.8GB, max_tokens=194379, cell_size=114688bytes
+[2026-02-13 23:33:18] TPU Memory profiling: available_device_memory=30.1GB, available_kv_cache=20.8GB, max_tokens=194379, cell_size=114688bytes
+INFO:sgl_jax.srt.model_executor.model_runner:ModelRunner max_total_num_tokens: 194379
+[2026-02-13 23:33:18] ModelRunner max_total_num_tokens: 194379
+INFO:sgl_jax.srt.mem_cache.memory_pool:Creating fused KV buffers for 28 layers
+[2026-02-13 23:33:18] Creating fused KV buffers for 28 layers
+INFO:sgl_jax.srt.mem_cache.memory_pool:Total fused KV cache memory per layer: 0.74 GB, dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-13 23:33:18] Total fused KV cache memory per layer: 0.74 GB, dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.mem_cache.memory_pool:Total time to create 28 buffers: 0.76 seconds
+[2026-02-13 23:33:19] Total time to create 28 buffers: 0.76 seconds
+INFO:sgl_jax.srt.mem_cache.memory_pool:JAX Fused KV Cache allocated. #tokens: 194379, Fused KV size: 20.76 GB
+[2026-02-13 23:33:19] JAX Fused KV Cache allocated. #tokens: 194379, Fused KV size: 20.76 GB
+INFO:sgl_jax.srt.managers.tp_worker:Max running requests constraints:
+[2026-02-13 23:33:19] Max running requests constraints:
+INFO:sgl_jax.srt.managers.tp_worker:  - Server limit: 32 (configured)
+[2026-02-13 23:33:19]   - Server limit: 32 (configured)
+INFO:sgl_jax.srt.managers.tp_worker:  - Token pool size: 33
+[2026-02-13 23:33:19]   - Token pool size: 33
+INFO:sgl_jax.srt.managers.tp_worker:  - Attention backend: 3 (context_len=40960, page_size=1)
+[2026-02-13 23:33:19]   - Attention backend: 3 (context_len=40960, page_size=1)
+INFO:sgl_jax.srt.managers.tp_worker:  → Final max_running_requests: 3
+[2026-02-13 23:33:19]   → Final max_running_requests: 3
+INFO:sgl_jax.srt.managers.scheduler:[Scheduler] Begins to run worker precompile.
+[2026-02-13 23:33:19] [Scheduler] Begins to run worker precompile.
+INFO:sgl_jax.srt.managers.tp_worker:[EXTEND] Begin to precompile bs_paddings=[3] token_paddings=[1024, 4096, 16384, 32768]
+[2026-02-13 23:33:19] [EXTEND] Begin to precompile bs_paddings=[3] token_paddings=[1024, 4096, 16384, 32768]
+[EXTEND] PRECOMPILE:   0%|          | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|          | 0/4 [00:00<?, ?it/s, bs=3, tokens=1024]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1024, pages_per_seq=40959.
+[2026-02-13 23:33:19] Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1024, pages_per_seq=40959.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=1024, bq=32.
+[2026-02-13 23:33:19] Using default block size: bkv_p=1024, bq=32.
+[EXTEND] PRECOMPILE:  25%|██▌       | 1/4 [00:09<00:27,  9.13s/it, bs=3, tokens=1024][EXTEND] PRECOMPILE:  25%|██▌       | 1/4 [00:09<00:27,  9.13s/it, bs=3, tokens=4096]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4096, pages_per_seq=40959.
+[2026-02-13 23:33:28] Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4096, pages_per_seq=40959.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=1024, bq=32.
+[2026-02-13 23:33:28] Using default block size: bkv_p=1024, bq=32.
+[EXTEND] PRECOMPILE:  50%|█████     | 2/4 [00:19<00:20, 10.06s/it, bs=3, tokens=4096][EXTEND] PRECOMPILE:  50%|█████     | 2/4 [00:19<00:20, 10.06s/it, bs=3, tokens=16384]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=16384, pages_per_seq=40959.
+[2026-02-13 23:33:39] Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=16384, pages_per_seq=40959.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=1024, bq=32.
+[2026-02-13 23:33:39] Using default block size: bkv_p=1024, bq=32.
+[EXTEND] PRECOMPILE:  75%|███████▌  | 3/4 [00:29<00:09,  9.90s/it, bs=3, tokens=16384][EXTEND] PRECOMPILE:  75%|███████▌  | 3/4 [00:29<00:09,  9.90s/it, bs=3, tokens=32768]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=32768, pages_per_seq=40959.
+[2026-02-13 23:33:49] Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=32768, pages_per_seq=40959.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=1024, bq=32.
+[2026-02-13 23:33:49] Using default block size: bkv_p=1024, bq=32.
+[EXTEND] PRECOMPILE: 100%|██████████| 4/4 [00:38<00:00,  9.70s/it, bs=3, tokens=32768]                                                                                      INFO:sgl_jax.srt.managers.tp_worker:[EXTEND] Precompile finished in 39 secs
+[2026-02-13 23:33:58] [EXTEND] Precompile finished in 39 secs
+INFO:sgl_jax.srt.managers.tp_worker:[DECODE] Begin to precompile bs_paddings=[1, 3]
+[2026-02-13 23:33:58] [DECODE] Begin to precompile bs_paddings=[1, 3]
+[DECODE] PRECOMPILE:   0%|          | 0/2 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|          | 0/2 [00:00<?, ?it/s, bs=1]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1, pages_per_seq=40959.
+[2026-02-13 23:33:58] Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1, pages_per_seq=40959.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=1024, bq=32.
+[2026-02-13 23:33:58] Using default block size: bkv_p=1024, bq=32.
+[DECODE] PRECOMPILE:  50%|█████     | 1/2 [00:06<00:06,  6.01s/it, bs=1][DECODE] PRECOMPILE:  50%|█████     | 1/2 [00:06<00:06,  6.01s/it, bs=3]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=3, pages_per_seq=40959.
+[2026-02-13 23:34:04] Tuned RPA block sizes not found for TPU v6e: page_size=1, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=3, pages_per_seq=40959.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=1024, bq=32.
+[2026-02-13 23:34:04] Using default block size: bkv_p=1024, bq=32.
+[DECODE] PRECOMPILE: 100%|██████████| 2/2 [00:10<00:00,  4.94s/it, bs=3]                                                                        INFO:sgl_jax.srt.managers.tp_worker:[DECODE] Precompile finished in 10 secs
+[2026-02-13 23:34:08] [DECODE] Precompile finished in 10 secs
+INFO:sgl_jax.srt.managers.scheduler:[Scheduler] Completes worker precompile.
+[2026-02-13 23:34:08] [Scheduler] Completes worker precompile.
+[2026-02-13 23:34:08] INFO:     Started server process [780804]
+[2026-02-13 23:34:08] INFO:     Waiting for application startup.
+INFO:sgl_jax.srt.entrypoints.http_server:The server is fired up and ready to roll!
+[2026-02-13 23:34:08] The server is fired up and ready to roll!
+[2026-02-13 23:34:08] INFO:     Application startup complete.
+[2026-02-13 23:34:08] INFO:     Uvicorn running on http://127.0.0.1:30000 (Press CTRL+C to quit)
+[2026-02-13 23:34:09] INFO:     127.0.0.1:43484 - "GET /health HTTP/1.1" 200 OK
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 1, #new-token: 12501, #cached-token: 0, token usage: 0.00, #running-req: 0, #queue-req: 1, 
+[2026-02-13 23:34:09] Prefill batch. #new-seq: 1, #new-token: 12501, #cached-token: 0, token usage: 0.00, #running-req: 0, #queue-req: 1, 
+ERROR:sgl_jax.srt.managers.tp_worker_overlap_thread:ModelWorkerClient hit an exception: Traceback (most recent call last):
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/tp_worker_overlap_thread.py", line 87, in forward_thread_func
+    self.forward_thread_func_()
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/tp_worker_overlap_thread.py", line 113, in forward_thread_func_
+    self.worker.forward_batch_generation(
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/tp_worker.py", line 534, in forward_batch_generation
+    logits_output, cache_miss_count, layers_topk_ids = self.model_runner.forward(
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 592, in forward
+    ret = self._forward_raw(forward_batch, logits_metadata)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 611, in _forward_raw
+    ret = self._forward(forward_batch, logits_metadata)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 549, in _forward
+    output, layers_kv_fused, _, layers_topk_ids = self.jitted_run_model(
+                                                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 229, in run_model_wrapper
+    return jitted_run_model(
+           ^^^^^^^^^^^^^^^^^
+jax.errors.JaxRuntimeError: INTERNAL: RET_CHECK failure (platforms/xla/service/jellyfish/bounds_check.cc:708) allocation_size_words <= std::numeric_limits<int32_t>::max() 2147483648 %s1 = inlined_call_operand.hbm [shape: s32[268435456,128], index: 1, kind: output, shape index: {}] /* operand 1 */ %1245 = dma.vmem_to_hbm [thread:$0]  /*vmem=*/%s1243, /*size_in_granules=*/16384, /*hbm=*/%s1240, /*dst_syncflagno=*/%s1232 /* 
+base_bounds: (33554432, 1)
+dynamic_base_bounds: (33554432, 1)
+window_bounds: (128, 1)
+iteration_bounds: (262144, 1)
+strides: (128, 1)
+pad_low: (0, 0)
+pad_high: (0, 0)
+element_size_in_bytes: 4096
+second_minor_factor: 1 */
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+
+[2026-02-13 23:38:35] ModelWorkerClient hit an exception: Traceback (most recent call last):
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/tp_worker_overlap_thread.py", line 87, in forward_thread_func
+    self.forward_thread_func_()
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/tp_worker_overlap_thread.py", line 113, in forward_thread_func_
+    self.worker.forward_batch_generation(
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/tp_worker.py", line 534, in forward_batch_generation
+    logits_output, cache_miss_count, layers_topk_ids = self.model_runner.forward(
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 592, in forward
+    ret = self._forward_raw(forward_batch, logits_metadata)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 611, in _forward_raw
+    ret = self._forward(forward_batch, logits_metadata)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 549, in _forward
+    output, layers_kv_fused, _, layers_topk_ids = self.jitted_run_model(
+                                                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/model_executor/model_runner.py", line 229, in run_model_wrapper
+    return jitted_run_model(
+           ^^^^^^^^^^^^^^^^^
+jax.errors.JaxRuntimeError: INTERNAL: RET_CHECK failure (platforms/xla/service/jellyfish/bounds_check.cc:708) allocation_size_words <= std::numeric_limits<int32_t>::max() 2147483648 %s1 = inlined_call_operand.hbm [shape: s32[268435456,128], index: 1, kind: output, shape index: {}] /* operand 1 */ %1245 = dma.vmem_to_hbm [thread:$0]  /*vmem=*/%s1243, /*size_in_granules=*/16384, /*hbm=*/%s1240, /*dst_syncflagno=*/%s1232 /* 
+base_bounds: (33554432, 1)
+dynamic_base_bounds: (33554432, 1)
+window_bounds: (128, 1)
+iteration_bounds: (262144, 1)
+strides: (128, 1)
+pad_low: (0, 0)
+pad_high: (0, 0)
+element_size_in_bytes: 4096
+second_minor_factor: 1 */
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+
+ERROR:sgl_jax.srt.managers.tokenizer_manager:Received sigquit from a child process. It usually means the child failed.
+[2026-02-13 23:38:35] Received sigquit from a child process. It usually means the child failed.
+ERROR:sgl_jax.srt.managers.tokenizer_manager:Dumping requests before crash. crash_dump_folder=None
+[2026-02-13 23:38:35] Dumping requests before crash. crash_dump_folder=None

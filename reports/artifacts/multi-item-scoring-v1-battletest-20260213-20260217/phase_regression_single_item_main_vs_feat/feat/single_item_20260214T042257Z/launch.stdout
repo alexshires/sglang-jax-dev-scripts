@@ -1,0 +1,6 @@
+READY_AFTER_SECONDS=67
+MODE=single_item
+PID=895345
+LOG=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/feat/logs/server_single_item_20260214T042257Z.log
+CMD=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/feat/logs/server_single_item_20260214T042257Z.cmd
+PID_FILE=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/feat/logs/server_single_item.pid

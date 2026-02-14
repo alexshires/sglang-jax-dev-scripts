@@ -1,0 +1,66 @@
+{
+  "mode": "single_item",
+  "trial_count": 3,
+  "trials": [
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/main/single_item_20260214T042007Z/trial_01_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 30.862494763205927,
+      "p50_latency_ms": 31.97615400131326,
+      "p95_latency_ms": 32.72972105187364,
+      "p99_latency_ms": 33.28401720908005,
+      "requests_total": 500,
+      "requests_error": 0
+    },
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/main/single_item_20260214T042007Z/trial_02_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 31.36622967535571,
+      "p50_latency_ms": 31.54194950184319,
+      "p95_latency_ms": 32.5727574978373,
+      "p99_latency_ms": 32.99525771057233,
+      "requests_total": 500,
+      "requests_error": 0
+    },
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/main/single_item_20260214T042007Z/trial_03_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 31.16638401802727,
+      "p50_latency_ms": 31.72799400635995,
+      "p95_latency_ms": 32.954510996933095,
+      "p99_latency_ms": 33.577268804074265,
+      "requests_total": 500,
+      "requests_error": 0
+    }
+  ],
+  "throughput_items_per_sec": {
+    "mean": 31.13170281886297,
+    "stddev": 0.20710593844897063,
+    "min": 30.862494763205927,
+    "max": 31.36622967535571
+  },
+  "p50_latency_ms": {
+    "mean": 31.7486991698388,
+    "stddev": 0.17786683162041572,
+    "min": 31.54194950184319,
+    "max": 31.97615400131326
+  },
+  "p95_latency_ms": {
+    "mean": 32.752329848881345,
+    "stddev": 0.15666801799680816,
+    "min": 32.5727574978373,
+    "max": 32.954510996933095
+  },
+  "p99_latency_ms": {
+    "mean": 33.28551457457555,
+    "stddev": 0.23760739300703485,
+    "min": 32.99525771057233,
+    "max": 33.577268804074265
+  },
+  "error_rate": {
+    "mean": 0.0,
+    "stddev": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  }
+}

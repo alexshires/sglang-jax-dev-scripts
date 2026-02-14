@@ -1,0 +1,85 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "2m",
+    "duration_seconds": 120.0,
+    "concurrency": 8,
+    "arrival_rate_requests_per_sec": 2.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "large": 1.0
+    },
+    "max_requests": null
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase25/ramp_c8_r2_requests.csv",
+    "requests_jsonl": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase25/ramp_c8_r2_requests.jsonl",
+    "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase25/ramp_c8_r2_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771028080.5919957,
+    "ended_at_unix": 1771028201.2666795,
+    "started_at_iso": "2026-02-14T00:14:40.591996+00:00",
+    "ended_at_iso": "2026-02-14T00:16:41.266680+00:00",
+    "actual_runtime_seconds": 120.6746833799989,
+    "scheduled_requests": 274,
+    "completed_requests": 274
+  },
+  "results": {
+    "requests_total": 274,
+    "requests_ok": 0,
+    "requests_error": 274,
+    "error_rate": 1.0,
+    "ok_items_total": 0,
+    "throughput_items_per_sec": 0.0,
+    "throughput_requests_per_sec": 0.0,
+    "latency_ms_all": {
+      "p50": 0.9860150166787207,
+      "p95": 1.06084099097643,
+      "p99": 1.5708750960766245,
+      "mean": 1.0619182154505655,
+      "min": 0.8020699897315353,
+      "max": 18.7240399827715
+    },
+    "latency_ms_ok_only": {
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "error_reason_counts": {
+      "connection_error": 274
+    },
+    "by_scenario": {
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 1.0,
+        "requests_total": 274,
+        "requests_ok": 0,
+        "requests_error": 274,
+        "error_rate": 1.0,
+        "items_ok": 0,
+        "latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    },
+    "first_run_penalty": null
+  }
+}

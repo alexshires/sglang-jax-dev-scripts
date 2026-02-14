@@ -1,0 +1,94 @@
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.entrypoints.engine:server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=12, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=64, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=False, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=True, multi_item_extend_batch_size=12, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=True, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+[2026-02-14 03:43:15] server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=12, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=64, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=False, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=True, multi_item_extend_batch_size=12, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=True, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 03:43:15] No quantization config found in HF config or user config
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 03:43:17] No quantization config found in HF config or user config
+INFO:sgl_jax.srt.constrained.llguidance_backend:Initialized GuidanceBackend with whitespace_pattern=None
+[2026-02-14 03:43:18] Initialized GuidanceBackend with whitespace_pattern=None
+ERROR:sgl_jax.srt.managers.scheduler:Scheduler hit an exception: Traceback (most recent call last):
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 802, in backends
+    backend = _init_backend(platform)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 886, in _init_backend
+    backend = registration.factory()
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 215, in tpu_client_timer_callback
+    client = make_tpu_client(
+             ^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 191, in make_tpu_client
+    _jax.initialize_pjrt_plugin('tpu')
+jax.errors.JaxRuntimeError: ABORTED: The TPU is already in use by process with pid 858477. Not attempting to load libtpu.so in this process.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/scheduler.py", line 1768, in run_scheduler_process
+    scheduler = Scheduler(server_args, port_args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/scheduler.py", line 261, in __init__
+    self.mesh = create_device_mesh(
+                ^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/mesh_utils.py", line 25, in create_device_mesh
+    devices = jax.devices()
+              ^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 1000, in devices
+    return get_backend(backend).devices()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 934, in get_backend
+    return _get_backend_uncached(platform)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 913, in _get_backend_uncached
+    bs = backends()
+         ^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 818, in backends
+    raise RuntimeError(err_msg)
+RuntimeError: Unable to initialize backend 'tpu': ABORTED: The TPU is already in use by process with pid 858477. Not attempting to load libtpu.so in this process. (set JAX_PLATFORMS='' to automatically choose an available backend)
+
+[2026-02-14 03:43:18] Scheduler hit an exception: Traceback (most recent call last):
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 802, in backends
+    backend = _init_backend(platform)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 886, in _init_backend
+    backend = registration.factory()
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 215, in tpu_client_timer_callback
+    client = make_tpu_client(
+             ^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 191, in make_tpu_client
+    _jax.initialize_pjrt_plugin('tpu')
+jax.errors.JaxRuntimeError: ABORTED: The TPU is already in use by process with pid 858477. Not attempting to load libtpu.so in this process.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/scheduler.py", line 1768, in run_scheduler_process
+    scheduler = Scheduler(server_args, port_args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/managers/scheduler.py", line 261, in __init__
+    self.mesh = create_device_mesh(
+                ^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/python/sgl_jax/srt/utils/mesh_utils.py", line 25, in create_device_mesh
+    devices = jax.devices()
+              ^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 1000, in devices
+    return get_backend(backend).devices()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 934, in get_backend
+    return _get_backend_uncached(platform)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 913, in _get_backend_uncached
+    bs = backends()
+         ^^^^^^^^^^
+  File "/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py", line 818, in backends
+    raise RuntimeError(err_msg)
+RuntimeError: Unable to initialize backend 'tpu': ABORTED: The TPU is already in use by process with pid 858477. Not attempting to load libtpu.so in this process. (set JAX_PLATFORMS='' to automatically choose an available backend)
+
+ERROR:sgl_jax.srt.entrypoints.engine:Received sigquit from a child process. It usually means the child failed.
+[2026-02-14 03:43:18] Received sigquit from a child process. It usually means the child failed.

@@ -1,0 +1,8 @@
+.................................
+=============================== warnings summary ===============================
+test/srt/test_score_api_edge_cases.py:383
+  /home/kanna/work/sglang-jax-bench-f9d3fb5/test/srt/test_score_api_edge_cases.py:383: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+33 passed, 7 deselected, 1 warning in 0.05s

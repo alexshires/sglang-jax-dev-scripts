@@ -1,0 +1,6 @@
+READY_AFTER_SECONDS=43
+MODE=single_item
+PID=779112
+LOG=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/logs/server_single_item_20260213T233035Z.log
+CMD=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/logs/server_single_item_20260213T233035Z.cmd
+PID_FILE=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/logs/server_single_item.pid

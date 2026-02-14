@@ -1,0 +1,4 @@
+request_id,scenario,expected_item_count,status,error_reason,latency_ms,started_at_unix,ended_at_unix,started_at_iso,ended_at_iso,http_status,response_item_count,response_label_count,timeout_s,error_excerpt
+0,large,500,error,connection_error,62384.777,1771026310.765917,1771026373.150694,2026-02-13T23:45:10.765917+00:00,2026-02-13T23:46:13.150694+00:00,,,,180.0,Remote end closed connection without response
+1,large,500,error,connection_error,1.137,1771026373.151234,1771026373.152371,2026-02-13T23:46:13.151234+00:00,2026-02-13T23:46:13.152371+00:00,,,,180.0,[Errno 111] Connection refused
+2,large,500,error,connection_error,0.853,1771026373.152594,1771026373.153447,2026-02-13T23:46:13.152594+00:00,2026-02-13T23:46:13.153447+00:00,,,,180.0,[Errno 111] Connection refused

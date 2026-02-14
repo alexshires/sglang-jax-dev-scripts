@@ -1,0 +1,6 @@
+READY_AFTER_SECONDS=135
+MODE=prefill_extend
+PID=819920
+LOG=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase3/logs/server_prefill_extend_20260214T010440Z.log
+CMD=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase3/logs/server_prefill_extend_20260214T010440Z.cmd
+PID_FILE=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase3/logs/server_prefill_extend.pid

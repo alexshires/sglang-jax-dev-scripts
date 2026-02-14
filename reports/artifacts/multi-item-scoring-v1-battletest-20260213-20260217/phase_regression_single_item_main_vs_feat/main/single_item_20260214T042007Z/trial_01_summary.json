@@ -1,0 +1,89 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "20m",
+    "duration_seconds": 1200.0,
+    "concurrency": 1,
+    "arrival_rate_requests_per_sec": 100.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "large": 1.0
+    },
+    "max_requests": 500
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/main/single_item_20260214T042007Z/trial_01_requests.csv",
+    "requests_jsonl": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/main/single_item_20260214T042007Z/trial_01_requests.jsonl",
+    "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/main/single_item_20260214T042007Z/trial_01_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771042929.0202417,
+    "ended_at_unix": 1771042945.221136,
+    "started_at_iso": "2026-02-14T04:22:09.020242+00:00",
+    "ended_at_iso": "2026-02-14T04:22:25.221136+00:00",
+    "actual_runtime_seconds": 16.200893797999015,
+    "scheduled_requests": 500,
+    "completed_requests": 500
+  },
+  "results": {
+    "requests_total": 500,
+    "requests_ok": 500,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "ok_items_total": 500,
+    "throughput_items_per_sec": 30.862494763205927,
+    "throughput_requests_per_sec": 30.862494763205927,
+    "latency_ms_all": {
+      "p50": 31.97615400131326,
+      "p95": 32.72972105187364,
+      "p99": 33.28401720908005,
+      "mean": 32.20700143586146,
+      "min": 31.171819020528346,
+      "max": 96.01834701607004
+    },
+    "latency_ms_ok_only": {
+      "p50": 31.97615400131326,
+      "p95": 32.72972105187364,
+      "p99": 33.28401720908005,
+      "mean": 32.20700143586146,
+      "min": 31.171819020528346,
+      "max": 96.01834701607004
+    },
+    "error_reason_counts": {},
+    "by_scenario": {
+      "large": {
+        "configured_item_count": 1,
+        "configured_weight": 1.0,
+        "requests_total": 500,
+        "requests_ok": 500,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 500,
+        "latency_ms": {
+          "p50": 31.97615400131326,
+          "p95": 32.72972105187364,
+          "p99": 33.28401720908005,
+          "mean": 32.20700143586146,
+          "min": 31.171819020528346,
+          "max": 96.01834701607004
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 20,
+      "steady_window_requests": 20,
+      "first_mean_latency_ms": 36.670964598306455,
+      "steady_mean_latency_ms": 32.34485519933514,
+      "ratio_first_over_steady": 1.133749536744262
+    }
+  }
+}

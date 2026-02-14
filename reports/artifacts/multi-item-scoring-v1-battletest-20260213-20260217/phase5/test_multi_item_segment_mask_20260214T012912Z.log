@@ -1,0 +1,316 @@
+.FF
+=================================== FAILURES ===================================
+____________ test_get_forward_metadata_selects_segment_mode_in_auto ____________
+
+    def backends() -> dict[str, xla_client.Client]:
+      global _backends
+      global _backend_errors
+      global _default_backend
+      global _at_fork_handler_installed
+    
+      _discover_and_register_pjrt_plugins()
+    
+      with _backend_lock:
+        if _backends:
+          return _backends
+    
+        # os.register_at_fork only exists on Unix.
+        if not _at_fork_handler_installed and hasattr(os, "register_at_fork"):
+          os.register_at_fork(before=_at_fork)
+          _at_fork_handler_installed = True
+    
+        if jax_platforms := config.jax_platforms.value:
+          platforms = []
+          # Allow platform aliases in the list of platforms.
+          for platform in jax_platforms.split(","):
+            platforms.extend(expand_platform_alias(platform))
+          priorities = range(len(platforms), 0, -1)
+          # If the user specified a list of platforms explicitly, always fail
+          # loudly.
+          fail_quietly_list = [False] * len(platforms)
+          platform_registrations = list(
+            zip(platforms, priorities, fail_quietly_list))
+        else:
+          platform_registrations = [
+              (platform, registration.priority, registration.fail_quietly)
+              for platform, registration
+              in _backend_factories.items()
+          ]
+        default_priority = -1000
+        for platform, priority, fail_quietly in platform_registrations:
+          try:
+            if platform == "cuda" and not hardware_utils.has_visible_nvidia_gpu():
+              continue
+    
+>           backend = _init_backend(platform)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:802: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:886: in _init_backend
+    backend = registration.factory()
+              ^^^^^^^^^^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:215: in tpu_client_timer_callback
+    client = make_tpu_client(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+library_path = '/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/libtpu/libtpu.so'
+options = {'ml_framework_name': 'JAX', 'ml_framework_version': '0.8.1'}
+
+    def make_tpu_client(
+        library_path: str | None = None, options: _NameValueMapping | None = None
+    ):
+      """Returns a TPU client. Defaults to allowing 32 in-flight computations."""
+      if not _jax.pjrt_plugin_loaded('tpu'):
+        c_api = xla_client.load_pjrt_plugin_dynamically(
+            "tpu", library_path or "libtpu.so"
+        )
+        _profiler.register_plugin_profiler(c_api)
+        assert _jax.pjrt_plugin_loaded('tpu')
+      if not _jax.pjrt_plugin_initialized('tpu'):
+>       _jax.initialize_pjrt_plugin('tpu')
+E       jax.errors.JaxRuntimeError: ABORTED: The TPU is already in use by process with pid 824272. Not attempting to load libtpu.so in this process.
+
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:191: JaxRuntimeError
+
+During handling of the above exception, another exception occurred:
+
+    def test_get_forward_metadata_selects_segment_mode_in_auto():
+>       attn = _build_flash_attn()
+               ^^^^^^^^^^^^^^^^^^^
+
+test/srt/test_multi_item_segment_mask.py:69: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test/srt/test_multi_item_segment_mask.py:32: in _build_flash_attn
+    mesh = jax.sharding.Mesh(np.array(jax.devices()[:1]), ("tensor",))
+                                      ^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:1000: in devices
+    return get_backend(backend).devices()
+           ^^^^^^^^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:934: in get_backend
+    return _get_backend_uncached(platform)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:913: in _get_backend_uncached
+    bs = backends()
+         ^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def backends() -> dict[str, xla_client.Client]:
+      global _backends
+      global _backend_errors
+      global _default_backend
+      global _at_fork_handler_installed
+    
+      _discover_and_register_pjrt_plugins()
+    
+      with _backend_lock:
+        if _backends:
+          return _backends
+    
+        # os.register_at_fork only exists on Unix.
+        if not _at_fork_handler_installed and hasattr(os, "register_at_fork"):
+          os.register_at_fork(before=_at_fork)
+          _at_fork_handler_installed = True
+    
+        if jax_platforms := config.jax_platforms.value:
+          platforms = []
+          # Allow platform aliases in the list of platforms.
+          for platform in jax_platforms.split(","):
+            platforms.extend(expand_platform_alias(platform))
+          priorities = range(len(platforms), 0, -1)
+          # If the user specified a list of platforms explicitly, always fail
+          # loudly.
+          fail_quietly_list = [False] * len(platforms)
+          platform_registrations = list(
+            zip(platforms, priorities, fail_quietly_list))
+        else:
+          platform_registrations = [
+              (platform, registration.priority, registration.fail_quietly)
+              for platform, registration
+              in _backend_factories.items()
+          ]
+        default_priority = -1000
+        for platform, priority, fail_quietly in platform_registrations:
+          try:
+            if platform == "cuda" and not hardware_utils.has_visible_nvidia_gpu():
+              continue
+    
+            backend = _init_backend(platform)
+            _backends[platform] = backend
+    
+            if priority > default_priority:
+              _default_backend = backend
+              default_priority = priority
+          except Exception as err:
+            err_msg = f"Unable to initialize backend '{platform}': {err}"
+            if fail_quietly:
+              _backend_errors[platform] = str(err)
+              logger.info(err_msg)
+            else:
+              if config.jax_platforms.value:
+                err_msg += " (set JAX_PLATFORMS='' to automatically choose an available backend)"
+              else:
+                err_msg += " (you may need to uninstall the failing plugin package, or set JAX_PLATFORMS=cpu to skip this backend.)"
+>             raise RuntimeError(err_msg)
+E             RuntimeError: Unable to initialize backend 'tpu': ABORTED: The TPU is already in use by process with pid 824272. Not attempting to load libtpu.so in this process. (set JAX_PLATFORMS='' to automatically choose an available backend)
+
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:818: RuntimeError
+___________ test_get_forward_metadata_selects_dense_mode_when_forced ___________
+
+    def backends() -> dict[str, xla_client.Client]:
+      global _backends
+      global _backend_errors
+      global _default_backend
+      global _at_fork_handler_installed
+    
+      _discover_and_register_pjrt_plugins()
+    
+      with _backend_lock:
+        if _backends:
+          return _backends
+    
+        # os.register_at_fork only exists on Unix.
+        if not _at_fork_handler_installed and hasattr(os, "register_at_fork"):
+          os.register_at_fork(before=_at_fork)
+          _at_fork_handler_installed = True
+    
+        if jax_platforms := config.jax_platforms.value:
+          platforms = []
+          # Allow platform aliases in the list of platforms.
+          for platform in jax_platforms.split(","):
+            platforms.extend(expand_platform_alias(platform))
+          priorities = range(len(platforms), 0, -1)
+          # If the user specified a list of platforms explicitly, always fail
+          # loudly.
+          fail_quietly_list = [False] * len(platforms)
+          platform_registrations = list(
+            zip(platforms, priorities, fail_quietly_list))
+        else:
+          platform_registrations = [
+              (platform, registration.priority, registration.fail_quietly)
+              for platform, registration
+              in _backend_factories.items()
+          ]
+        default_priority = -1000
+        for platform, priority, fail_quietly in platform_registrations:
+          try:
+            if platform == "cuda" and not hardware_utils.has_visible_nvidia_gpu():
+              continue
+    
+>           backend = _init_backend(platform)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:802: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:886: in _init_backend
+    backend = registration.factory()
+              ^^^^^^^^^^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:215: in tpu_client_timer_callback
+    client = make_tpu_client(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+library_path = '/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/libtpu/libtpu.so'
+options = {'ml_framework_name': 'JAX', 'ml_framework_version': '0.8.1'}
+
+    def make_tpu_client(
+        library_path: str | None = None, options: _NameValueMapping | None = None
+    ):
+      """Returns a TPU client. Defaults to allowing 32 in-flight computations."""
+      if not _jax.pjrt_plugin_loaded('tpu'):
+        c_api = xla_client.load_pjrt_plugin_dynamically(
+            "tpu", library_path or "libtpu.so"
+        )
+        _profiler.register_plugin_profiler(c_api)
+        assert _jax.pjrt_plugin_loaded('tpu')
+      if not _jax.pjrt_plugin_initialized('tpu'):
+>       _jax.initialize_pjrt_plugin('tpu')
+E       jax.errors.JaxRuntimeError: ABORTED: The TPU is already in use by process with pid 824272. Not attempting to load libtpu.so in this process.
+
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:191: JaxRuntimeError
+
+During handling of the above exception, another exception occurred:
+
+    def test_get_forward_metadata_selects_dense_mode_when_forced():
+>       attn = _build_flash_attn()
+               ^^^^^^^^^^^^^^^^^^^
+
+test/srt/test_multi_item_segment_mask.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test/srt/test_multi_item_segment_mask.py:32: in _build_flash_attn
+    mesh = jax.sharding.Mesh(np.array(jax.devices()[:1]), ("tensor",))
+                                      ^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:1000: in devices
+    return get_backend(backend).devices()
+           ^^^^^^^^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:934: in get_backend
+    return _get_backend_uncached(platform)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:913: in _get_backend_uncached
+    bs = backends()
+         ^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def backends() -> dict[str, xla_client.Client]:
+      global _backends
+      global _backend_errors
+      global _default_backend
+      global _at_fork_handler_installed
+    
+      _discover_and_register_pjrt_plugins()
+    
+      with _backend_lock:
+        if _backends:
+          return _backends
+    
+        # os.register_at_fork only exists on Unix.
+        if not _at_fork_handler_installed and hasattr(os, "register_at_fork"):
+          os.register_at_fork(before=_at_fork)
+          _at_fork_handler_installed = True
+    
+        if jax_platforms := config.jax_platforms.value:
+          platforms = []
+          # Allow platform aliases in the list of platforms.
+          for platform in jax_platforms.split(","):
+            platforms.extend(expand_platform_alias(platform))
+          priorities = range(len(platforms), 0, -1)
+          # If the user specified a list of platforms explicitly, always fail
+          # loudly.
+          fail_quietly_list = [False] * len(platforms)
+          platform_registrations = list(
+            zip(platforms, priorities, fail_quietly_list))
+        else:
+          platform_registrations = [
+              (platform, registration.priority, registration.fail_quietly)
+              for platform, registration
+              in _backend_factories.items()
+          ]
+        default_priority = -1000
+        for platform, priority, fail_quietly in platform_registrations:
+          try:
+            if platform == "cuda" and not hardware_utils.has_visible_nvidia_gpu():
+              continue
+    
+            backend = _init_backend(platform)
+            _backends[platform] = backend
+    
+            if priority > default_priority:
+              _default_backend = backend
+              default_priority = priority
+          except Exception as err:
+            err_msg = f"Unable to initialize backend '{platform}': {err}"
+            if fail_quietly:
+              _backend_errors[platform] = str(err)
+              logger.info(err_msg)
+            else:
+              if config.jax_platforms.value:
+                err_msg += " (set JAX_PLATFORMS='' to automatically choose an available backend)"
+              else:
+                err_msg += " (you may need to uninstall the failing plugin package, or set JAX_PLATFORMS=cpu to skip this backend.)"
+>             raise RuntimeError(err_msg)
+E             RuntimeError: Unable to initialize backend 'tpu': ABORTED: The TPU is already in use by process with pid 824272. Not attempting to load libtpu.so in this process. (set JAX_PLATFORMS='' to automatically choose an available backend)
+
+../sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/xla_bridge.py:818: RuntimeError
+=========================== short test summary info ============================
+FAILED test/srt/test_multi_item_segment_mask.py::test_get_forward_metadata_selects_segment_mode_in_auto
+FAILED test/srt/test_multi_item_segment_mask.py::test_get_forward_metadata_selects_dense_mode_when_forced
+2 failed, 1 passed in 1.77s

@@ -1,0 +1,1 @@
+python -m sgl_jax.launch_server --model-path /models/Qwen/Qwen3-0.6B --trust-remote-code --port 30000 --device tpu --dtype bfloat16 --attention-backend fa --mem-fraction-static 0.7 --page-size 64 --skip-server-warmup --max-running-requests 32 --chunked-prefill-size 4096 --precompile-token-paddings 1024 4096 --precompile-bs-paddings 1 4 8 16 32 

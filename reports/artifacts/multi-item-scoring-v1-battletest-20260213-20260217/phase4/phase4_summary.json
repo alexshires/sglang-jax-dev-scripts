@@ -1,0 +1,139 @@
+{
+  "artifact_dir": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase4",
+  "step_results": {
+    "kill_server_inflight": {
+      "load_summary": {
+        "requests_total": 1,
+        "requests_ok": 0,
+        "requests_error": 1,
+        "error_rate": 1.0,
+        "error_reason_counts": {
+          "connection_error": 1
+        },
+        "throughput_items_per_sec": 0.0,
+        "p99_latency_ms_ok": 0.0
+      },
+      "post_restart_summary": {
+        "requests_total": 5,
+        "requests_ok": 5,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "error_reason_counts": {},
+        "throughput_items_per_sec": 0.19742517130253848,
+        "p99_latency_ms_ok": 27953.02639663685
+      },
+      "client_failure_observed": true,
+      "recovery_ok": true
+    },
+    "kill_scheduler_subprocess": {
+      "load_summary": {
+        "requests_total": 80,
+        "requests_ok": 80,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "error_reason_counts": {},
+        "throughput_items_per_sec": 84.75028469643156,
+        "p99_latency_ms_ok": 65096.18908661352
+      },
+      "post_restart_summary": {
+        "requests_total": 5,
+        "requests_ok": 5,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "error_reason_counts": {},
+        "throughput_items_per_sec": 0.16905335544911299,
+        "p99_latency_ms_ok": 27962.31002973742
+      },
+      "failure_observed": false,
+      "recovery_ok": true
+    },
+    "restart_during_mixed_load": {
+      "load_summary": {
+        "requests_total": 80,
+        "requests_ok": 2,
+        "requests_error": 78,
+        "error_rate": 0.975,
+        "error_reason_counts": {
+          "connection_error": 78
+        },
+        "throughput_items_per_sec": 0.42759344853642645,
+        "p99_latency_ms_ok": 121.36177220294485
+      },
+      "post_restart_summary": {
+        "requests_total": 10,
+        "requests_ok": 10,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "error_reason_counts": {},
+        "throughput_items_per_sec": 0.26483891393052217,
+        "p99_latency_ms_ok": 27803.20667794411
+      },
+      "failure_observed": true,
+      "recovery_ok": true
+    },
+    "missing_cache_handle": {
+      "pytest_log": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase4/fi4_missing_cache_handle_pytest.log",
+      "test_passed": true
+    }
+  },
+  "summaries": {
+    "fi1_inflight_kill_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 0,
+      "requests_error": 1,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 1
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "fi1_recovery_summary.json": {
+      "requests_total": 5,
+      "requests_ok": 5,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 0.19742517130253848,
+      "p99_latency_ms_ok": 27953.02639663685
+    },
+    "fi2_scheduler_kill_load_summary.json": {
+      "requests_total": 80,
+      "requests_ok": 80,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 84.75028469643156,
+      "p99_latency_ms_ok": 65096.18908661352
+    },
+    "fi2_recovery_summary.json": {
+      "requests_total": 5,
+      "requests_ok": 5,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 0.16905335544911299,
+      "p99_latency_ms_ok": 27962.31002973742
+    },
+    "fi3_restart_during_load_summary.json": {
+      "requests_total": 80,
+      "requests_ok": 2,
+      "requests_error": 78,
+      "error_rate": 0.975,
+      "error_reason_counts": {
+        "connection_error": 78
+      },
+      "throughput_items_per_sec": 0.42759344853642645,
+      "p99_latency_ms_ok": 121.36177220294485
+    },
+    "fi3_post_restart_sanity_summary.json": {
+      "requests_total": 10,
+      "requests_ok": 10,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 0.26483891393052217,
+      "p99_latency_ms_ok": 27803.20667794411
+    }
+  }
+}

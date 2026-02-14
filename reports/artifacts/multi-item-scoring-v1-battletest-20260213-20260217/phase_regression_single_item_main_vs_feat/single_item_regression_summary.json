@@ -1,0 +1,8 @@
+{
+  "main_aggregate": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/main/single_item_20260214T042007Z/trials_aggregate.json",
+  "feat_aggregate": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase_regression_single_item_main_vs_feat/feat/single_item_20260214T042257Z/trials_aggregate.json",
+  "main_throughput_items_per_sec_mean": 31.13170281886297,
+  "feat_throughput_items_per_sec_mean": 30.313870003024913,
+  "regression_pct_feat_vs_main": -2.6270095811865577,
+  "criterion_pass_leq_5pct_drop": true
+}

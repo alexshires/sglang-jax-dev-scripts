@@ -1,0 +1,61 @@
+{
+  "config": {
+    "base_url": "http://127.0.0.1:30000",
+    "duration": "2h",
+    "duration_seconds": 7200.0,
+    "interval_seconds": 30.0,
+    "timeout_seconds": 5.0,
+    "warmup_minutes": 15.0,
+    "sample_server_info": true,
+    "sample_metrics_endpoint": true,
+    "stop_on_dead_pid": false,
+    "pid_pattern": "python -m sgl_jax.launch_server"
+  },
+  "counts": {
+    "samples": 240,
+    "server_info_ok_samples": 238,
+    "metrics_ok_samples": 0
+  },
+  "memory": {
+    "rss": {
+      "samples": 240,
+      "start_mb": 385.6328125,
+      "end_mb": 355.7578125,
+      "growth_mb": -29.875,
+      "growth_pct": -7.747006746216649,
+      "growth_mb_per_hour": -15.000000057456077,
+      "trend_mb_per_hour_after_warmup": -12.403736668710499
+    },
+    "vsz": {
+      "samples": 240,
+      "start_mb": 4228.53515625,
+      "end_mb": 4230.53515625,
+      "growth_mb": 2.0,
+      "growth_pct": 0.04729770301291911,
+      "growth_mb_per_hour": 1.0041841042648418,
+      "trend_mb_per_hour_after_warmup": 0.0
+    }
+  },
+  "queue": {
+    "waiting_queue_max": 12,
+    "waiting_queue_mean": 0.3277310924369748,
+    "running_batch_max": 0,
+    "running_batch_mean": 0.0
+  },
+  "metrics_endpoint": {
+    "unique_metric_names": []
+  },
+  "run": {
+    "started_at_unix": 1771031979.99826,
+    "ended_at_unix": 1771039179.9995477,
+    "started_at_iso": "2026-02-14T01:19:39.998260+00:00",
+    "ended_at_iso": "2026-02-14T03:19:39.999548+00:00",
+    "actual_runtime_seconds": 7200.001287698746,
+    "resolved_pid": 824178
+  },
+  "artifacts": {
+    "samples_csv": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase3/long_soak_metrics_samples.csv",
+    "samples_jsonl": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase3/long_soak_metrics_samples.jsonl",
+    "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase3/long_soak_metrics_summary.json"
+  }
+}

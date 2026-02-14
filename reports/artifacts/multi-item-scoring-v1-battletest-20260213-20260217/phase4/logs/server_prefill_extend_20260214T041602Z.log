@@ -1,0 +1,148 @@
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.entrypoints.engine:server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=12, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=64, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=False, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=True, multi_item_extend_batch_size=12, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=True, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+[2026-02-14 04:16:06] server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=12, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=64, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=False, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=True, multi_item_extend_batch_size=12, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=True, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 04:16:06] No quantization config found in HF config or user config
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 04:16:08] No quantization config found in HF config or user config
+INFO:sgl_jax.srt.constrained.llguidance_backend:Initialized GuidanceBackend with whitespace_pattern=None
+[2026-02-14 04:16:09] Initialized GuidanceBackend with whitespace_pattern=None
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 04:16:14] No quantization config found in HF config or user config
+INFO:sgl_jax.srt.precision_tracer:Precision tracer globally disabled
+[2026-02-14 04:16:15] Precision tracer globally disabled
+INFO:sgl_jax.srt.configs.model_config:KV heads distribution for GQA model: original_kv_heads=8, tp_size=1, each device gets 8 head(s), no replication needed, padding_strategy=replicate
+[2026-02-14 04:16:15] KV heads distribution for GQA model: original_kv_heads=8, tp_size=1, each device gets 8 head(s), no replication needed, padding_strategy=replicate
+INFO:sgl_jax.srt.models.qwen3:QWen3ForCausalLMModel config dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-14 04:16:15] QWen3ForCausalLMModel config dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.model_loader.loader:No quantization config found. Skipping quantization.
+[2026-02-14 04:16:15] No quantization config found. Skipping quantization.
+INFO:sgl_jax.srt.utils.weight_utils:Scanning metadata for 1 model files (single host only)...
+[2026-02-14 04:16:15] Scanning metadata for 1 model files (single host only)...
+Scanning Metadata:   0%|          | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████| 1/1 [00:00<00:00, 164.94file/s]
+INFO:sgl_jax.srt.utils.weight_utils:Starting parallel weight loading via JAX Lazy Loader...
+[2026-02-14 04:16:15] Starting parallel weight loading via JAX Lazy Loader...
+Loading Regular Weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|          | 1/310 [00:00<00:51,  5.94it/s]Loading Regular Weights:   2%|▏         | 6/310 [00:00<00:13, 22.17it/s]Loading Regular Weights:   4%|▎         | 11/310 [00:00<00:10, 28.50it/s]Loading Regular Weights:  14%|█▎        | 42/310 [00:00<00:02, 116.19it/s]Loading Regular Weights:  49%|████▊     | 151/310 [00:00<00:00, 415.48it/s]Loading Regular Weights:  85%|████████▌ | 265/310 [00:00<00:00, 634.51it/s]Loading Regular Weights: 100%|██████████| 310/310 [00:00<00:00, 395.03it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+INFO:sgl_jax.srt.utils.weight_utils:All weights loaded successfully.
+[2026-02-14 04:16:16] All weights loaded successfully.
+INFO:sgl_jax.srt.models.qwen3:Qwen3 weights loaded successfully!
+[2026-02-14 04:16:16] Qwen3 weights loaded successfully!
+INFO:sgl_jax.srt.model_executor.model_runner:ModelRunner kv_cache_dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-14 04:16:16] ModelRunner kv_cache_dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.model_executor.model_runner:TPU Memory profiling: available_device_memory=30.1GB, available_kv_cache=20.8GB, max_tokens=194379, cell_size=114688bytes
+[2026-02-14 04:16:16] TPU Memory profiling: available_device_memory=30.1GB, available_kv_cache=20.8GB, max_tokens=194379, cell_size=114688bytes
+INFO:sgl_jax.srt.model_executor.model_runner:ModelRunner max_total_num_tokens: 194368
+[2026-02-14 04:16:16] ModelRunner max_total_num_tokens: 194368
+INFO:sgl_jax.srt.mem_cache.memory_pool:Creating fused KV buffers for 28 layers
+[2026-02-14 04:16:16] Creating fused KV buffers for 28 layers
+INFO:sgl_jax.srt.mem_cache.memory_pool:Total fused KV cache memory per layer: 0.74 GB, dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-14 04:16:16] Total fused KV cache memory per layer: 0.74 GB, dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.mem_cache.memory_pool:Total time to create 28 buffers: 0.75 seconds
+[2026-02-14 04:16:17] Total time to create 28 buffers: 0.75 seconds
+INFO:sgl_jax.srt.mem_cache.memory_pool:JAX Fused KV Cache allocated. #tokens: 194368, Fused KV size: 20.77 GB
+[2026-02-14 04:16:17] JAX Fused KV Cache allocated. #tokens: 194368, Fused KV size: 20.77 GB
+INFO:sgl_jax.srt.managers.tp_worker:Max running requests constraints:
+[2026-02-14 04:16:17] Max running requests constraints:
+INFO:sgl_jax.srt.managers.tp_worker:  - Server limit: 12 (configured)
+[2026-02-14 04:16:17]   - Server limit: 12 (configured)
+INFO:sgl_jax.srt.managers.tp_worker:  - Token pool size: 13
+[2026-02-14 04:16:17]   - Token pool size: 13
+INFO:sgl_jax.srt.managers.tp_worker:  - Attention backend: 204 (context_len=40960, page_size=64)
+[2026-02-14 04:16:17]   - Attention backend: 204 (context_len=40960, page_size=64)
+INFO:sgl_jax.srt.managers.tp_worker:  → Final max_running_requests: 12
+[2026-02-14 04:16:17]   → Final max_running_requests: 12
+INFO:sgl_jax.srt.managers.scheduler:[Scheduler] Begins to run worker precompile.
+[2026-02-14 04:16:17] [Scheduler] Begins to run worker precompile.
+INFO:sgl_jax.srt.managers.tp_worker:[EXTEND] Begin to precompile bs_paddings=[12] token_paddings=[1024, 4096, 16384, 32768]
+[2026-02-14 04:16:17] [EXTEND] Begin to precompile bs_paddings=[12] token_paddings=[1024, 4096, 16384, 32768]
+[EXTEND] PRECOMPILE:   0%|          | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|          | 0/4 [00:00<?, ?it/s, bs=12, tokens=1024]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1024, pages_per_seq=640.
+[2026-02-14 04:16:17] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1024, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:16:17] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE:  25%|██▌       | 1/4 [00:11<00:33, 11.30s/it, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|██▌       | 1/4 [00:11<00:33, 11.30s/it, bs=12, tokens=4096]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4096, pages_per_seq=640.
+[2026-02-14 04:16:29] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4096, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:16:29] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE:  50%|█████     | 2/4 [00:22<00:22, 11.18s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█████     | 2/4 [00:22<00:22, 11.18s/it, bs=12, tokens=16384]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=16384, pages_per_seq=640.
+[2026-02-14 04:16:40] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=16384, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:16:40] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE:  75%|███████▌  | 3/4 [00:32<00:10, 10.59s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|███████▌  | 3/4 [00:32<00:10, 10.59s/it, bs=12, tokens=32768]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=32768, pages_per_seq=640.
+[2026-02-14 04:16:50] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=32768, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:16:50] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE: 100%|██████████| 4/4 [00:41<00:00, 10.15s/it, bs=12, tokens=32768]                                                                                       INFO:sgl_jax.srt.managers.tp_worker:[EXTEND] Precompile finished in 42 secs
+[2026-02-14 04:16:59] [EXTEND] Precompile finished in 42 secs
+INFO:sgl_jax.srt.managers.tp_worker:[DECODE] Begin to precompile bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+[2026-02-14 04:16:59] [DECODE] Begin to precompile bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+[DECODE] PRECOMPILE:   0%|          | 0/12 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|          | 0/12 [00:00<?, ?it/s, bs=1]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1, pages_per_seq=640.
+[2026-02-14 04:16:59] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:16:59] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:   8%|▊         | 1/12 [00:06<01:12,  6.63s/it, bs=1][DECODE] PRECOMPILE:   8%|▊         | 1/12 [00:06<01:12,  6.63s/it, bs=2]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=2, pages_per_seq=640.
+[2026-02-14 04:17:06] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=2, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:06] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  17%|█▋        | 2/12 [00:13<01:04,  6.49s/it, bs=2][DECODE] PRECOMPILE:  17%|█▋        | 2/12 [00:13<01:04,  6.49s/it, bs=3]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=3, pages_per_seq=640.
+[2026-02-14 04:17:12] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=3, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:12] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  25%|██▌       | 3/12 [00:19<00:58,  6.44s/it, bs=3][DECODE] PRECOMPILE:  25%|██▌       | 3/12 [00:19<00:58,  6.44s/it, bs=4]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4, pages_per_seq=640.
+[2026-02-14 04:17:18] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:18] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  33%|███▎      | 4/12 [00:25<00:50,  6.32s/it, bs=4][DECODE] PRECOMPILE:  33%|███▎      | 4/12 [00:25<00:50,  6.32s/it, bs=5]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=5, pages_per_seq=640.
+[2026-02-14 04:17:24] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=5, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:24] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  42%|████▏     | 5/12 [00:32<00:44,  6.40s/it, bs=5][DECODE] PRECOMPILE:  42%|████▏     | 5/12 [00:32<00:44,  6.40s/it, bs=6]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=6, pages_per_seq=640.
+[2026-02-14 04:17:31] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=6, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:31] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  50%|█████     | 6/12 [00:38<00:38,  6.35s/it, bs=6][DECODE] PRECOMPILE:  50%|█████     | 6/12 [00:38<00:38,  6.35s/it, bs=7]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=7, pages_per_seq=640.
+[2026-02-14 04:17:37] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=7, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:37] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  58%|█████▊    | 7/12 [00:45<00:32,  6.54s/it, bs=7][DECODE] PRECOMPILE:  58%|█████▊    | 7/12 [00:45<00:32,  6.54s/it, bs=8]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=8, pages_per_seq=640.
+[2026-02-14 04:17:44] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=8, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:44] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  67%|██████▋   | 8/12 [00:51<00:26,  6.58s/it, bs=8][DECODE] PRECOMPILE:  67%|██████▋   | 8/12 [00:51<00:26,  6.58s/it, bs=9]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=9, pages_per_seq=640.
+[2026-02-14 04:17:51] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=9, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:51] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  75%|███████▌  | 9/12 [00:59<00:20,  6.97s/it, bs=9][DECODE] PRECOMPILE:  75%|███████▌  | 9/12 [00:59<00:20,  6.97s/it, bs=10]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=10, pages_per_seq=640.
+[2026-02-14 04:17:59] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=10, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:17:59] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  83%|████████▎ | 10/12 [01:07<00:14,  7.16s/it, bs=10][DECODE] PRECOMPILE:  83%|████████▎ | 10/12 [01:07<00:14,  7.16s/it, bs=11]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=11, pages_per_seq=640.
+[2026-02-14 04:18:06] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=11, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:18:06] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  92%|█████████▏| 11/12 [01:16<00:07,  7.64s/it, bs=11][DECODE] PRECOMPILE:  92%|█████████▏| 11/12 [01:16<00:07,  7.64s/it, bs=12]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=12, pages_per_seq=640.
+[2026-02-14 04:18:15] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=12, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 04:18:15] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE: 100%|██████████| 12/12 [01:20<00:00,  6.74s/it, bs=12]                                                                           INFO:sgl_jax.srt.managers.tp_worker:[DECODE] Precompile finished in 81 secs
+[2026-02-14 04:18:20] [DECODE] Precompile finished in 81 secs
+INFO:sgl_jax.srt.managers.scheduler:[Scheduler] Completes worker precompile.
+[2026-02-14 04:18:20] [Scheduler] Completes worker precompile.
+[2026-02-14 04:18:20] INFO:     Started server process [886339]
+[2026-02-14 04:18:20] INFO:     Waiting for application startup.
+INFO:sgl_jax.srt.entrypoints.http_server:The server is fired up and ready to roll!
+[2026-02-14 04:18:20] INFO:     Application startup complete.
+[2026-02-14 04:18:20] The server is fired up and ready to roll!
+[2026-02-14 04:18:20] INFO:     Uvicorn running on http://127.0.0.1:30000 (Press CTRL+C to quit)
+[2026-02-14 04:18:20] INFO:     127.0.0.1:59160 - "GET /health HTTP/1.1" 200 OK
+[2026-02-14 04:18:27] INFO:     Shutting down
+[2026-02-14 04:18:27] INFO:     Waiting for application shutdown.
+[2026-02-14 04:18:27] INFO:     Application shutdown complete.
+[2026-02-14 04:18:27] INFO:     Finished server process [886339]
+/usr/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

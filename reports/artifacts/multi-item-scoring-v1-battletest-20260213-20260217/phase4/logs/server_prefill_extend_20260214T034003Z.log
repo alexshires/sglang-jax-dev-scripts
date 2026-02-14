@@ -1,0 +1,664 @@
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.entrypoints.engine:server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=12, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=64, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=False, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=True, multi_item_extend_batch_size=12, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=True, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+[2026-02-14 03:40:10] server_args=ServerArgs(model_path='/models/Qwen/Qwen3-0.6B', tokenizer_path='/models/Qwen/Qwen3-0.6B', tokenizer_mode='auto', skip_tokenizer_init=False, load_format='auto', model_loader_extra_config='{}', trust_remote_code=True, context_length=None, is_embedding=False, revision=None, model_impl='auto', model_layer_nums=None, host='127.0.0.1', port=30000, skip_server_warmup=True, warmups=None, dtype='bfloat16', quantization=None, quantization_param_path=None, quantization_config_path=None, kv_cache_dtype='auto', mem_fraction_static=0.7, max_running_requests=12, max_total_tokens=None, max_prefill_tokens=32768, chunked_prefill_size=-1, enable_mixed_chunk=False, schedule_policy='fcfs', schedule_conservativeness=1.0, page_size=64, swa_full_tokens_ratio=0.8, disable_hybrid_swa_memory=False, device='tpu', device_indexes=None, tp_size=1, ep_size=1, stream_interval=1, stream_output=False, random_seed=42, constrained_json_whitespace_pattern=None, constrained_json_disable_any_whitespace=False, watchdog_timeout=300, dist_timeout=None, download_dir=None, sleep_on_idle=False, dp_size=1, log_level='info', log_level_http=None, log_requests=False, log_requests_level=0, crash_dump_folder=None, show_time_cost=False, bucket_time_to_first_token=None, bucket_inter_token_latency=None, bucket_e2e_request_latency=None, decode_log_interval=40, enable_request_time_stats_logging=False, kv_events_config=None, api_key=None, served_model_name='/models/Qwen/Qwen3-0.6B', file_storage_path='sglang_storage', enable_cache_report=False, reasoning_parser=None, tool_call_parser=None, dist_init_addr=None, nnodes=1, node_rank=0, json_model_override_args='{}', preferred_sampling_params=None, disable_radix_cache=False, allow_auto_truncate=False, enable_tokenizer_batch_encode=False, disable_overlap_schedule=False, enable_precision_tracer=False, attention_backend='fa', moe_backend='epmoe', grammar_backend='llguidance', max_seq_len=4096, precompile_token_paddings=[1024, 4096, 16384], precompile_bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], disable_precompile=False, speculative_algorithm=None, speculative_draft_model_path=None, speculative_draft_model_revision=None, speculative_num_steps=4, speculative_eagle_topk=5, speculative_num_draft_tokens=4, speculative_accept_threshold_single=1.0, speculative_accept_threshold_acc=1.0, enable_deterministic_sampling=False, enable_single_process=False, enable_nan_detection=False, use_sort_for_toppk_minp=False, multi_item_scoring_delimiter=151643, max_multi_item_seq_len=32768, max_multi_item_count=512, multi_item_scoring_chunk_size=500, multi_item_mask_impl='dense', multi_item_segment_fallback_threshold=0, multi_item_enable_prefill_extend=True, multi_item_extend_batch_size=12, multi_item_prefill_extend_cache_timeout=60.0, enable_scoring_cache=True, enable_lora=False, max_lora_rank=None, lora_target_modules=None, lora_paths=None, max_loaded_loras=None, max_loras_per_batch=8, lora_eviction_policy='lru', enable_static_lora=False, lora_scaling=None, enable_engine_loop_run_forever_daemon=False, multimodal=False, enable_return_routed_experts=False)
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 03:40:10] No quantization config found in HF config or user config
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+/home/kanna/work/sglang-jax/.venv/lib/python3.12/site-packages/jax/_src/cloud_tpu_init.py:93: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 03:40:12] No quantization config found in HF config or user config
+INFO:sgl_jax.srt.constrained.llguidance_backend:Initialized GuidanceBackend with whitespace_pattern=None
+[2026-02-14 03:40:13] Initialized GuidanceBackend with whitespace_pattern=None
+INFO:sgl_jax.srt.configs.model_config:No quantization config found in HF config or user config
+[2026-02-14 03:40:18] No quantization config found in HF config or user config
+INFO:sgl_jax.srt.precision_tracer:Precision tracer globally disabled
+[2026-02-14 03:40:18] Precision tracer globally disabled
+INFO:sgl_jax.srt.configs.model_config:KV heads distribution for GQA model: original_kv_heads=8, tp_size=1, each device gets 8 head(s), no replication needed, padding_strategy=replicate
+[2026-02-14 03:40:18] KV heads distribution for GQA model: original_kv_heads=8, tp_size=1, each device gets 8 head(s), no replication needed, padding_strategy=replicate
+INFO:sgl_jax.srt.models.qwen3:QWen3ForCausalLMModel config dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-14 03:40:18] QWen3ForCausalLMModel config dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.model_loader.loader:No quantization config found. Skipping quantization.
+[2026-02-14 03:40:19] No quantization config found. Skipping quantization.
+INFO:sgl_jax.srt.utils.weight_utils:Scanning metadata for 1 model files (single host only)...
+[2026-02-14 03:40:19] Scanning metadata for 1 model files (single host only)...
+Scanning Metadata:   0%|          | 0/1 [00:00<?, ?file/s]Scanning Metadata: 100%|██████████| 1/1 [00:00<00:00, 167.93file/s]
+INFO:sgl_jax.srt.utils.weight_utils:Starting parallel weight loading via JAX Lazy Loader...
+[2026-02-14 03:40:19] Starting parallel weight loading via JAX Lazy Loader...
+Loading Regular Weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading Regular Weights:   0%|          | 1/310 [00:00<00:49,  6.28it/s]Loading Regular Weights:   2%|▏         | 6/310 [00:00<00:13, 22.95it/s]Loading Regular Weights:   4%|▎         | 11/310 [00:00<00:10, 28.86it/s]Loading Regular Weights:  12%|█▏        | 37/310 [00:00<00:02, 101.50it/s]Loading Regular Weights:  32%|███▏      | 100/310 [00:00<00:00, 264.72it/s]Loading Regular Weights:  53%|█████▎    | 165/310 [00:00<00:00, 380.31it/s]Loading Regular Weights:  74%|███████▎  | 228/310 [00:00<00:00, 455.26it/s]Loading Regular Weights:  94%|█████████▍| 292/310 [00:00<00:00, 510.77it/s]Loading Regular Weights: 100%|██████████| 310/310 [00:00<00:00, 322.28it/s]
+Loading MoE Weights: 0it [00:00, ?it/s]Loading MoE Weights: 0it [00:00, ?it/s]
+INFO:sgl_jax.srt.utils.weight_utils:All weights loaded successfully.
+[2026-02-14 03:40:20] All weights loaded successfully.
+INFO:sgl_jax.srt.models.qwen3:Qwen3 weights loaded successfully!
+[2026-02-14 03:40:20] Qwen3 weights loaded successfully!
+INFO:sgl_jax.srt.model_executor.model_runner:ModelRunner kv_cache_dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-14 03:40:20] ModelRunner kv_cache_dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.model_executor.model_runner:TPU Memory profiling: available_device_memory=30.1GB, available_kv_cache=20.8GB, max_tokens=194379, cell_size=114688bytes
+[2026-02-14 03:40:20] TPU Memory profiling: available_device_memory=30.1GB, available_kv_cache=20.8GB, max_tokens=194379, cell_size=114688bytes
+INFO:sgl_jax.srt.model_executor.model_runner:ModelRunner max_total_num_tokens: 194368
+[2026-02-14 03:40:20] ModelRunner max_total_num_tokens: 194368
+INFO:sgl_jax.srt.mem_cache.memory_pool:Creating fused KV buffers for 28 layers
+[2026-02-14 03:40:20] Creating fused KV buffers for 28 layers
+INFO:sgl_jax.srt.mem_cache.memory_pool:Total fused KV cache memory per layer: 0.74 GB, dtype: <class 'jax.numpy.bfloat16'>
+[2026-02-14 03:40:20] Total fused KV cache memory per layer: 0.74 GB, dtype: <class 'jax.numpy.bfloat16'>
+INFO:sgl_jax.srt.mem_cache.memory_pool:Total time to create 28 buffers: 0.75 seconds
+[2026-02-14 03:40:21] Total time to create 28 buffers: 0.75 seconds
+INFO:sgl_jax.srt.mem_cache.memory_pool:JAX Fused KV Cache allocated. #tokens: 194368, Fused KV size: 20.77 GB
+[2026-02-14 03:40:21] JAX Fused KV Cache allocated. #tokens: 194368, Fused KV size: 20.77 GB
+INFO:sgl_jax.srt.managers.tp_worker:Max running requests constraints:
+[2026-02-14 03:40:21] Max running requests constraints:
+INFO:sgl_jax.srt.managers.tp_worker:  - Server limit: 12 (configured)
+[2026-02-14 03:40:21]   - Server limit: 12 (configured)
+INFO:sgl_jax.srt.managers.tp_worker:  - Token pool size: 13
+[2026-02-14 03:40:21]   - Token pool size: 13
+INFO:sgl_jax.srt.managers.tp_worker:  - Attention backend: 204 (context_len=40960, page_size=64)
+[2026-02-14 03:40:21]   - Attention backend: 204 (context_len=40960, page_size=64)
+INFO:sgl_jax.srt.managers.tp_worker:  → Final max_running_requests: 12
+[2026-02-14 03:40:21]   → Final max_running_requests: 12
+INFO:sgl_jax.srt.managers.scheduler:[Scheduler] Begins to run worker precompile.
+[2026-02-14 03:40:21] [Scheduler] Begins to run worker precompile.
+INFO:sgl_jax.srt.managers.tp_worker:[EXTEND] Begin to precompile bs_paddings=[12] token_paddings=[1024, 4096, 16384, 32768]
+[2026-02-14 03:40:21] [EXTEND] Begin to precompile bs_paddings=[12] token_paddings=[1024, 4096, 16384, 32768]
+[EXTEND] PRECOMPILE:   0%|          | 0/4 [00:00<?, ?it/s][EXTEND] PRECOMPILE:   0%|          | 0/4 [00:00<?, ?it/s, bs=12, tokens=1024]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1024, pages_per_seq=640.
+[2026-02-14 03:40:21] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1024, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:40:21] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE:  25%|██▌       | 1/4 [00:11<00:33, 11.26s/it, bs=12, tokens=1024][EXTEND] PRECOMPILE:  25%|██▌       | 1/4 [00:11<00:33, 11.26s/it, bs=12, tokens=4096]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4096, pages_per_seq=640.
+[2026-02-14 03:40:32] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4096, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:40:32] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE:  50%|█████     | 2/4 [00:22<00:22, 11.15s/it, bs=12, tokens=4096][EXTEND] PRECOMPILE:  50%|█████     | 2/4 [00:22<00:22, 11.15s/it, bs=12, tokens=16384]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=16384, pages_per_seq=640.
+[2026-02-14 03:40:43] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=16384, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:40:43] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE:  75%|███████▌  | 3/4 [00:32<00:10, 10.62s/it, bs=12, tokens=16384][EXTEND] PRECOMPILE:  75%|███████▌  | 3/4 [00:32<00:10, 10.62s/it, bs=12, tokens=32768]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=32768, pages_per_seq=640.
+[2026-02-14 03:40:53] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=32768, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:40:53] Using default block size: bkv_p=16, bq=32.
+[EXTEND] PRECOMPILE: 100%|██████████| 4/4 [00:41<00:00, 10.08s/it, bs=12, tokens=32768]                                                                                       INFO:sgl_jax.srt.managers.tp_worker:[EXTEND] Precompile finished in 42 secs
+[2026-02-14 03:41:02] [EXTEND] Precompile finished in 42 secs
+INFO:sgl_jax.srt.managers.tp_worker:[DECODE] Begin to precompile bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+[2026-02-14 03:41:02] [DECODE] Begin to precompile bs_paddings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+[DECODE] PRECOMPILE:   0%|          | 0/12 [00:00<?, ?it/s][DECODE] PRECOMPILE:   0%|          | 0/12 [00:00<?, ?it/s, bs=1]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1, pages_per_seq=640.
+[2026-02-14 03:41:02] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=1, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:02] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:   8%|▊         | 1/12 [00:06<01:11,  6.51s/it, bs=1][DECODE] PRECOMPILE:   8%|▊         | 1/12 [00:06<01:11,  6.51s/it, bs=2]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=2, pages_per_seq=640.
+[2026-02-14 03:41:09] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=2, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:09] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  17%|█▋        | 2/12 [00:12<01:04,  6.43s/it, bs=2][DECODE] PRECOMPILE:  17%|█▋        | 2/12 [00:12<01:04,  6.43s/it, bs=3]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=3, pages_per_seq=640.
+[2026-02-14 03:41:15] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=3, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:15] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  25%|██▌       | 3/12 [00:19<00:57,  6.40s/it, bs=3][DECODE] PRECOMPILE:  25%|██▌       | 3/12 [00:19<00:57,  6.40s/it, bs=4]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4, pages_per_seq=640.
+[2026-02-14 03:41:22] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=4, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:22] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  33%|███▎      | 4/12 [00:25<00:50,  6.28s/it, bs=4][DECODE] PRECOMPILE:  33%|███▎      | 4/12 [00:25<00:50,  6.28s/it, bs=5]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=5, pages_per_seq=640.
+[2026-02-14 03:41:28] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=5, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:28] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  42%|████▏     | 5/12 [00:31<00:44,  6.37s/it, bs=5][DECODE] PRECOMPILE:  42%|████▏     | 5/12 [00:31<00:44,  6.37s/it, bs=6]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=6, pages_per_seq=640.
+[2026-02-14 03:41:34] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=6, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:34] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  50%|█████     | 6/12 [00:38<00:37,  6.29s/it, bs=6][DECODE] PRECOMPILE:  50%|█████     | 6/12 [00:38<00:37,  6.29s/it, bs=7]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=7, pages_per_seq=640.
+[2026-02-14 03:41:40] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=7, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:40] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  58%|█████▊    | 7/12 [00:44<00:32,  6.49s/it, bs=7][DECODE] PRECOMPILE:  58%|█████▊    | 7/12 [00:44<00:32,  6.49s/it, bs=8]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=8, pages_per_seq=640.
+[2026-02-14 03:41:47] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=8, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:47] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  67%|██████▋   | 8/12 [00:51<00:26,  6.52s/it, bs=8][DECODE] PRECOMPILE:  67%|██████▋   | 8/12 [00:51<00:26,  6.52s/it, bs=9]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=9, pages_per_seq=640.
+[2026-02-14 03:41:54] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=9, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:41:54] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  75%|███████▌  | 9/12 [00:59<00:20,  6.93s/it, bs=9][DECODE] PRECOMPILE:  75%|███████▌  | 9/12 [00:59<00:20,  6.93s/it, bs=10]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=10, pages_per_seq=640.
+[2026-02-14 03:42:02] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=10, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:42:02] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  83%|████████▎ | 10/12 [01:06<00:14,  7.15s/it, bs=10][DECODE] PRECOMPILE:  83%|████████▎ | 10/12 [01:06<00:14,  7.15s/it, bs=11]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=11, pages_per_seq=640.
+[2026-02-14 03:42:09] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=11, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:42:09] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE:  92%|█████████▏| 11/12 [01:15<00:07,  7.66s/it, bs=11][DECODE] PRECOMPILE:  92%|█████████▏| 11/12 [01:15<00:07,  7.66s/it, bs=12]INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=12, pages_per_seq=640.
+[2026-02-14 03:42:18] Tuned RPA block sizes not found for TPU v6e: page_size=64, actual_num_q_heads=16, actual_num_kv_heads=8, head_dim=128, max_num_tokens=12, pages_per_seq=640.
+INFO:sgl_jax.srt.kernels.ragged_paged_attention.tuned_block_sizes:Using default block size: bkv_p=16, bq=32.
+[2026-02-14 03:42:18] Using default block size: bkv_p=16, bq=32.
+[DECODE] PRECOMPILE: 100%|██████████| 12/12 [01:20<00:00,  6.76s/it, bs=12]                                                                           INFO:sgl_jax.srt.managers.tp_worker:[DECODE] Precompile finished in 80 secs
+[2026-02-14 03:42:23] [DECODE] Precompile finished in 80 secs
+INFO:sgl_jax.srt.managers.scheduler:[Scheduler] Completes worker precompile.
+[2026-02-14 03:42:23] [Scheduler] Completes worker precompile.
+[2026-02-14 03:42:23] INFO:     Started server process [858379]
+[2026-02-14 03:42:23] INFO:     Waiting for application startup.
+INFO:sgl_jax.srt.entrypoints.http_server:The server is fired up and ready to roll!
+[2026-02-14 03:42:23] INFO:     Application startup complete.
+[2026-02-14 03:42:23] The server is fired up and ready to roll!
+[2026-02-14 03:42:23] INFO:     Uvicorn running on http://127.0.0.1:30000 (Press CTRL+C to quit)
+[2026-02-14 03:42:23] INFO:     127.0.0.1:52192 - "GET /health HTTP/1.1" 200 OK
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 1, #new-token: 2048, #cached-token: 0, token usage: 0.00, #running-req: 0, #queue-req: 1, 
+[2026-02-14 03:42:24] Prefill batch. #new-seq: 1, #new-token: 2048, #cached-token: 0, token usage: 0.00, #running-req: 0, #queue-req: 1, 
+INFO:sgl_jax.srt.managers.scheduler_output_processor_mixin:Prefill batch. #bid: 2, #cache_miss: 1
+[2026-02-14 03:42:27] Prefill batch. #bid: 2, #cache_miss: 1
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 1, #new-token: 64, #cached-token: 1984, token usage: 0.01, #running-req: 0, #queue-req: 1, 
+[2026-02-14 03:42:27] Prefill batch. #new-seq: 1, #new-token: 64, #cached-token: 1984, token usage: 0.01, #running-req: 0, #queue-req: 1, 
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 12, #new-token: 768, #cached-token: 23808, token usage: 0.01, #running-req: 0, #queue-req: 12, 
+[2026-02-14 03:42:27] Prefill batch. #new-seq: 12, #new-token: 768, #cached-token: 23808, token usage: 0.01, #running-req: 0, #queue-req: 12, 
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 1, #new-token: 64, #cached-token: 1984, token usage: 0.01, #running-req: 0, #queue-req: 12, 
+[2026-02-14 03:42:35] Prefill batch. #new-seq: 1, #new-token: 64, #cached-token: 1984, token usage: 0.01, #running-req: 0, #queue-req: 12, 
+WARNING:sgl_jax.srt.managers.tokenizer_manager:SIGTERM received. signum=None frame=None. Draining requests and shutting down...
+[2026-02-14 03:42:40] SIGTERM received. signum=None frame=None. Draining requests and shutting down...
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 24
+[2026-02-14 03:42:44] Gracefully exiting... remaining number of requests 24
+INFO:sgl_jax.srt.managers.scheduler_output_processor_mixin:Prefill batch. #bid: 6, #cache_miss: 2
+[2026-02-14 03:42:48] Prefill batch. #bid: 6, #cache_miss: 2
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 11, #new-token: 704, #cached-token: 21824, token usage: 0.01, #running-req: 0, #queue-req: 11, 
+[2026-02-14 03:42:48] Prefill batch. #new-seq: 11, #new-token: 704, #cached-token: 21824, token usage: 0.01, #running-req: 0, #queue-req: 11, 
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 24
+[2026-02-14 03:42:49] Gracefully exiting... remaining number of requests 24
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 24
+[2026-02-14 03:42:54] Gracefully exiting... remaining number of requests 24
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 24
+[2026-02-14 03:42:59] Gracefully exiting... remaining number of requests 24
+INFO:sgl_jax.srt.managers.scheduler_output_processor_mixin:Prefill batch. #bid: 8, #cache_miss: 2
+[2026-02-14 03:43:00] Prefill batch. #bid: 8, #cache_miss: 2
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 2, #new-token: 128, #cached-token: 3968, token usage: 0.01, #running-req: 0, #queue-req: 12, 
+[2026-02-14 03:43:00] Prefill batch. #new-seq: 2, #new-token: 128, #cached-token: 3968, token usage: 0.01, #running-req: 0, #queue-req: 12, 
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 23
+[2026-02-14 03:43:04] Gracefully exiting... remaining number of requests 23
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 23
+[2026-02-14 03:43:09] Gracefully exiting... remaining number of requests 23
+INFO:sgl_jax.srt.managers.scheduler_output_processor_mixin:Prefill batch. #bid: 10, #cache_miss: 2
+[2026-02-14 03:43:12] Prefill batch. #bid: 10, #cache_miss: 2
+INFO:sgl_jax.srt.managers.scheduler_metrics_mixin:Prefill batch. #new-seq: 10, #new-token: 640, #cached-token: 19840, token usage: 0.01, #running-req: 0, #queue-req: 10, 
+[2026-02-14 03:43:12] Prefill batch. #new-seq: 10, #new-token: 640, #cached-token: 19840, token usage: 0.01, #running-req: 0, #queue-req: 10, 
+[2026-02-14 03:43:13] INFO:     127.0.0.1:59120 - "GET /health HTTP/1.1" 200 OK
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 13
+[2026-02-14 03:43:14] Gracefully exiting... remaining number of requests 13
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:19] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:24] Gracefully exiting... remaining number of requests 14
+WARNING:sgl_jax.srt.entrypoints.engine:Child process unexpectedly failed with exitcode=9. pid=858477
+[2026-02-14 03:43:26] Child process unexpectedly failed with exitcode=9. pid=858477
+WARNING:sgl_jax.srt.entrypoints.engine:Child process pid=858477 frame=<frame at 0x742159ddc4f0, file '/usr/lib/python3.12/asyncio/runners.py', line 118, code run>
+[2026-02-14 03:43:26] Child process pid=858477 frame=<frame at 0x742159ddc4f0, file '/usr/lib/python3.12/asyncio/runners.py', line 118, code run>
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:29] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:34] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:39] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:44] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:49] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:54] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:43:59] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:44:04] Gracefully exiting... remaining number of requests 14
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 14
+[2026-02-14 03:44:09] Gracefully exiting... remaining number of requests 14
+ERROR:sgl_jax.srt.managers.tokenizer_manager:Timed out releasing prefill+extend cache handle=92e1c1b7a6e647bbad47e2de2d2609c9 (timeout=60.00s).
+[2026-02-14 03:44:12] Timed out releasing prefill+extend cache handle=92e1c1b7a6e647bbad47e2de2d2609c9 (timeout=60.00s).
+WARNING:sgl_jax.srt.managers.tokenizer_manager:Prefill+extend cache handle=92e1c1b7a6e647bbad47e2de2d2609c9 was not cleanly released.
+[2026-02-14 03:44:12] Prefill+extend cache handle=92e1c1b7a6e647bbad47e2de2d2609c9 was not cleanly released.
+[2026-02-14 03:44:12] INFO:     127.0.0.1:52210 - "POST /v1/score HTTP/1.1" 200 OK
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:14] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:19] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:24] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:29] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:34] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:39] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:44] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:49] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:54] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:44:59] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:45:04] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:45:09] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:45:14] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:45:19] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 15
+[2026-02-14 03:45:24] Gracefully exiting... remaining number of requests 15
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:45:29] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:45:34] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:45:39] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:45:44] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:45:49] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:45:54] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:45:59] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:46:04] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 16
+[2026-02-14 03:46:09] Gracefully exiting... remaining number of requests 16
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:14] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:19] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:24] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:29] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:34] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:39] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:44] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:49] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:54] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:46:59] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:04] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:09] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:14] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:19] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:24] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:29] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:34] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:39] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:44] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:49] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:54] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:47:59] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:04] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:09] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:14] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:19] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:24] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:29] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:34] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:39] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:44] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:49] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:54] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:48:59] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:04] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:09] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:14] Gracefully exiting... remaining number of requests 17
+WARNING:sgl_jax.srt.managers.tokenizer_manager:SIGTERM received. signum=None frame=None. Draining requests and shutting down...
+[2026-02-14 03:49:14] SIGTERM received. signum=None frame=None. Draining requests and shutting down...
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:19] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:24] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:29] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:34] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:39] Gracefully exiting... remaining number of requests 17
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:44] Gracefully exiting... remaining number of requests 17
+[2026-02-14 03:49:47] INFO:     127.0.0.1:54008 - "GET /health HTTP/1.1" 200 OK
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:49:49] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:49:54] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:49:59] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:04] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:09] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:14] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:19] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:24] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:29] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:34] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:39] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:44] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:49] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:54] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:50:59] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:04] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:09] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:14] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:19] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:24] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:29] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:34] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:39] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:44] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:49] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:54] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:51:59] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:04] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:09] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:14] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:19] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:24] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:29] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:34] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:39] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 18
+[2026-02-14 03:52:44] Gracefully exiting... remaining number of requests 18
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:52:49] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:52:54] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:52:59] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:04] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:09] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:14] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:19] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:24] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:29] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:34] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:39] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:44] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:49] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:54] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:53:59] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:04] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:09] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:14] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:19] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:24] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:29] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:34] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:39] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:44] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:49] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:54] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:54:59] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:04] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:09] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:14] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:19] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:24] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:29] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:34] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:39] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:44] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:49] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:54] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:55:59] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 19
+[2026-02-14 03:56:04] Gracefully exiting... remaining number of requests 19
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:09] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:14] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:19] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:24] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:29] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:34] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:39] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:44] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:49] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:54] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:56:59] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:04] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:09] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:14] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:19] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:24] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:29] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:34] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:39] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:44] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:49] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:54] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:57:59] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:04] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:09] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:14] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:19] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:24] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:29] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:34] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:39] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:44] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:49] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:54] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:58:59] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 20
+[2026-02-14 03:59:04] Gracefully exiting... remaining number of requests 20
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:09] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:14] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:19] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:24] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:29] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:34] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:39] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:44] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:49] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:54] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 03:59:59] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:04] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:09] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:14] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:19] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:24] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:29] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:34] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:39] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:44] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:49] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:54] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:00:59] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:04] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:09] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:14] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:19] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:24] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:29] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:34] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:39] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:44] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:49] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:54] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:01:59] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:04] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:09] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:14] Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:16] INFO:     127.0.0.1:45572 - "GET /health HTTP/1.1" 200 OK
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:19] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:24] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:29] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:34] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:39] Gracefully exiting... remaining number of requests 21
+INFO:sgl_jax.srt.managers.tokenizer_manager:Gracefully exiting... remaining number of requests 21
+[2026-02-14 04:02:44] Gracefully exiting... remaining number of requests 21
+/usr/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

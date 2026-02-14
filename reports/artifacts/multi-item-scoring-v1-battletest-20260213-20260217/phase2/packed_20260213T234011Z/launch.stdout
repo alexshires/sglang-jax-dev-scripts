@@ -1,0 +1,6 @@
+READY_AFTER_SECONDS=86
+MODE=packed
+PID=782864
+LOG=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/logs/server_packed_20260213T234011Z.log
+CMD=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/logs/server_packed_20260213T234011Z.cmd
+PID_FILE=/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/logs/server_packed.pid

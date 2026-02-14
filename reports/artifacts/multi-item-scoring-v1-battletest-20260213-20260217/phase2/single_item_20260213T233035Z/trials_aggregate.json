@@ -1,0 +1,66 @@
+{
+  "mode": "single_item",
+  "trial_count": 3,
+  "trials": [
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/single_item_20260213T233035Z/trial_01_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 35.39604811320462,
+      "p50_latency_ms": 27.680803992552683,
+      "p95_latency_ms": 28.68464147031773,
+      "p99_latency_ms": 29.812316512397942,
+      "requests_total": 500,
+      "requests_error": 0
+    },
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/single_item_20260213T233035Z/trial_02_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 35.91180255989072,
+      "p50_latency_ms": 27.466449988423847,
+      "p95_latency_ms": 28.056698049476836,
+      "p99_latency_ms": 29.057173502806105,
+      "requests_total": 500,
+      "requests_error": 0
+    },
+    {
+      "summary_json": "/home/kanna/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/phase2/single_item_20260213T233035Z/trial_03_summary.json",
+      "error_rate": 0.0,
+      "throughput_items_per_sec": 35.75570237437134,
+      "p50_latency_ms": 27.592639497015625,
+      "p95_latency_ms": 28.112869027245324,
+      "p99_latency_ms": 28.55561381118605,
+      "requests_total": 500,
+      "requests_error": 0
+    }
+  ],
+  "throughput_items_per_sec": {
+    "mean": 35.687851015822226,
+    "stddev": 0.215952953922593,
+    "min": 35.39604811320462,
+    "max": 35.91180255989072
+  },
+  "p50_latency_ms": {
+    "mean": 27.57996449266405,
+    "stddev": 0.08796742417130173,
+    "min": 27.466449988423847,
+    "max": 27.680803992552683
+  },
+  "p95_latency_ms": {
+    "mean": 28.28473618234663,
+    "stddev": 0.2837040408551405,
+    "min": 28.056698049476836,
+    "max": 28.68464147031773
+  },
+  "p99_latency_ms": {
+    "mean": 29.141701275463365,
+    "stddev": 0.5165166199785606,
+    "min": 28.55561381118605,
+    "max": 29.812316512397942
+  },
+  "error_rate": {
+    "mean": 0.0,
+    "stddev": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  }
+}
