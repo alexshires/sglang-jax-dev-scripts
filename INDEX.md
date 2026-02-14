@@ -289,6 +289,14 @@ Quick reference for all design documents, decisions, and guides in this reposito
 - `investigations/scripts/render_jax_vs_pytorch_final_report.py`
 - `scripts/run_all_jax_vs_pytorch_multi_item.sh` (G4-only orchestrator)
 
+## Tools
+
+- **[Scoring API Interactive Visualizer](tools/scoring-visualizer/README.md)** ← **NEW**
+  - Build-step-free web explainer for scoring internals
+  - Side-by-side packed vs prefill+extend conceptual flow
+  - Deterministic replay, timeline metrics, and buffer-layout view
+  - Offline embedded dataset + JSON upload/endpoint fetch support
+
 ## Document Relationships
 
 ### Score API Design Chain

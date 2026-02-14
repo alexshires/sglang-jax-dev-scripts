@@ -1,0 +1,350 @@
+{
+  "dataset_version": "1.0.0",
+  "generated_on": "2026-02-14",
+  "source": {
+    "kind": "derived-benchmark-sample",
+    "derived_from": [
+      {
+        "path": "reports/multi_item_scoring_large_scale_eval_20260211.md",
+        "note": "Packed throughput baselines on TPU v6e for Qwen/Qwen3-0.6B"
+      },
+      {
+        "path": "reports/multi_item_scoring_large_scale_eval_20260210.md",
+        "note": "Latency-per-item and chunk-size sensitivity"
+      },
+      {
+        "path": "rfcs/013-multi-item-scoring-v1-optimization.md",
+        "note": "Expected prefill+extend range for long-query and short-item workloads"
+      }
+    ],
+    "assumptions": [
+      "Sample request size is 8 items; latencies are scaled to a presentation-friendly replay while preserving mode ratios.",
+      "Prefill+extend values model cache warm behavior after the first prefix prefill in the request flow."
+    ],
+    "environment": {
+      "model": "Qwen/Qwen3-0.6B",
+      "device": "TPU v6e-1",
+      "dtype": "bfloat16"
+    }
+  },
+  "example": {
+    "request_id": "rerank-support-docs-0007",
+    "query_text": "Rank these candidate snippets for the question: 'How does JAX TPU score API isolate attention across packed items while keeping high throughput?'",
+    "items": [
+      {
+        "id": "item_1",
+        "text": "Packed mode uses one extend pass with block-diagonal custom_mask so each item only attends to itself plus query tokens."
+      },
+      {
+        "id": "item_2",
+        "text": "Prefill+extend computes query KV cache once and reuses it across item extends; this reduces repeated prefix attention cost."
+      },
+      {
+        "id": "item_3",
+        "text": "Chunk size controls packed throughput and memory pressure; larger chunks can increase items/sec until memory limits."
+      },
+      {
+        "id": "item_4",
+        "text": "If delimiters are misaligned, extracted scores can drift because boundary logprobs are read from wrong positions."
+      },
+      {
+        "id": "item_5",
+        "text": "Disable radix cache for packed multi-item correctness in current rollout constraints."
+      },
+      {
+        "id": "item_6",
+        "text": "Score extraction gathers token logprobs at delimiter boundaries and maps them to label_token_ids."
+      },
+      {
+        "id": "item_7",
+        "text": "Very long static prefixes reduce packed efficiency because shared context still dominates the compute graph."
+      },
+      {
+        "id": "item_8",
+        "text": "Prefill+extend mode shifts cost toward one cache creation stage and many cheap extend stages."
+      }
+    ],
+    "label_token_ids": [
+      24561,
+      12032
+    ],
+    "label_names": [
+      "relevant",
+      "not_relevant"
+    ]
+  },
+  "modes": {
+    "packed": {
+      "title": "Packed multi-item",
+      "cache": {
+        "supported": false,
+        "status": "not_applicable",
+        "hits": 0,
+        "misses": 0
+      },
+      "summary_metrics": {
+        "total_latency_ms": 171.2,
+        "items_per_sec": 46.7,
+        "compiler_cache": "warm"
+      },
+      "stages": [
+        {
+          "id": "input_tokenization",
+          "name": "Input / tokenization",
+          "latency_ms": 6.4,
+          "status": "active",
+          "description": "Tokenize query, items, and label token ids into request tensors.",
+          "reused": "Tokenizer vocabulary tables and tokenizer process stay hot across requests.",
+          "recomputed": "Token IDs for all 8 items are recomputed for this request.",
+          "throughput_impact": "Small fixed cost; visible mainly on low-item batches."
+        },
+        {
+          "id": "prefix_query_handling",
+          "name": "Prefix / query handling",
+          "latency_ms": 18.1,
+          "status": "active",
+          "description": "Build one packed sequence layout with delimiter boundaries and offsets.",
+          "reused": "Delimiter token IDs and prefix template logic are reused.",
+          "recomputed": "Packed offsets and prefix positions are rebuilt per request.",
+          "throughput_impact": "Moderate setup overhead that scales with number of packed items."
+        },
+        {
+          "id": "cache_creation",
+          "name": "Cache creation",
+          "latency_ms": 0.0,
+          "status": "skipped",
+          "description": "Packed mode does not create a reusable query KV cache.",
+          "reused": "No prefix cache is produced in this flow.",
+          "recomputed": "Query attention work is included inside the packed extend compute.",
+          "throughput_impact": "Skipping cache creation avoids this stage, but removes cache reuse opportunities."
+        },
+        {
+          "id": "extend_batch_processing",
+          "name": "Extend batch processing",
+          "latency_ms": 122.8,
+          "status": "active",
+          "description": "Run the main JAX extend forward pass over the packed sequence.",
+          "reused": "Compiled extend kernels and static model weights are reused.",
+          "recomputed": "Attention math for full packed token graph is recomputed this request.",
+          "throughput_impact": "Dominant stage; larger chunks increase utilization until memory becomes limiting."
+        },
+        {
+          "id": "attention_isolation",
+          "name": "Attention isolation concept",
+          "latency_ms": 16.7,
+          "status": "active",
+          "description": "Apply block-diagonal masking so each item cannot attend to other items.",
+          "reused": "Masking kernel path is reused from compiled execution variants.",
+          "recomputed": "Mask values and item boundaries are rebuilt each request.",
+          "throughput_impact": "Isolation introduces mask overhead but preserves correctness under batching."
+        },
+        {
+          "id": "score_extraction",
+          "name": "Score extraction",
+          "latency_ms": 7.2,
+          "status": "active",
+          "description": "Read boundary logprobs and project them to label_token_ids.",
+          "reused": "Extraction operators and label schema are reused.",
+          "recomputed": "Per-item boundary lookups are recomputed for this packed request.",
+          "throughput_impact": "Low overhead; mostly memory-bound gather operations."
+        }
+      ],
+      "events": [
+        {
+          "id": "tokenize_inputs",
+          "stage_id": "input_tokenization",
+          "label": "Tokenize request",
+          "duration_ms": 6.4,
+          "active_components": ["tokenizer", "request_parser"],
+          "parallel_items": []
+        },
+        {
+          "id": "build_packed_layout",
+          "stage_id": "prefix_query_handling",
+          "label": "Build packed layout",
+          "duration_ms": 18.1,
+          "active_components": ["packed_sequence_builder", "delimiter_offsets"],
+          "parallel_items": []
+        },
+        {
+          "id": "skip_cache_creation",
+          "stage_id": "cache_creation",
+          "label": "Cache stage bypass",
+          "duration_ms": 0.0,
+          "active_components": ["packed_mode_router"],
+          "parallel_items": []
+        },
+        {
+          "id": "run_packed_extend",
+          "stage_id": "extend_batch_processing",
+          "label": "Packed extend forward",
+          "duration_ms": 122.8,
+          "active_components": ["tpu_extend_kernel", "packed_tensor_buffer"],
+          "parallel_items": [1, 2, 3, 4, 5, 6, 7, 8]
+        },
+        {
+          "id": "apply_block_mask",
+          "stage_id": "attention_isolation",
+          "label": "Block mask isolation",
+          "duration_ms": 16.7,
+          "active_components": ["block_mask_builder", "ragged_attention"],
+          "parallel_items": [1, 2, 3, 4, 5, 6, 7, 8]
+        },
+        {
+          "id": "extract_item_scores",
+          "stage_id": "score_extraction",
+          "label": "Extract label scores",
+          "duration_ms": 7.2,
+          "active_components": ["logprob_gather", "label_projection"],
+          "parallel_items": [1, 2, 3, 4, 5, 6, 7, 8]
+        }
+      ],
+      "scores": [
+        { "item_id": "item_1", "relevant": 0.91, "not_relevant": 0.09 },
+        { "item_id": "item_2", "relevant": 0.95, "not_relevant": 0.05 },
+        { "item_id": "item_3", "relevant": 0.86, "not_relevant": 0.14 },
+        { "item_id": "item_4", "relevant": 0.68, "not_relevant": 0.32 },
+        { "item_id": "item_5", "relevant": 0.61, "not_relevant": 0.39 },
+        { "item_id": "item_6", "relevant": 0.89, "not_relevant": 0.11 },
+        { "item_id": "item_7", "relevant": 0.83, "not_relevant": 0.17 },
+        { "item_id": "item_8", "relevant": 0.93, "not_relevant": 0.07 }
+      ]
+    },
+    "prefill_extend": {
+      "title": "Prefill+extend multi-item",
+      "cache": {
+        "supported": true,
+        "status": "miss_then_hit",
+        "hits": 7,
+        "misses": 1
+      },
+      "summary_metrics": {
+        "total_latency_ms": 30.8,
+        "items_per_sec": 259.7,
+        "compiler_cache": "warm"
+      },
+      "stages": [
+        {
+          "id": "input_tokenization",
+          "name": "Input / tokenization",
+          "latency_ms": 5.8,
+          "status": "active",
+          "description": "Tokenize query and items once before split prefill and extend passes.",
+          "reused": "Tokenizer process and vocabulary stay hot.",
+          "recomputed": "Token IDs for all items are still computed every request.",
+          "throughput_impact": "Small fixed overhead; similar to packed mode."
+        },
+        {
+          "id": "prefix_query_handling",
+          "name": "Prefix / query handling",
+          "latency_ms": 3.1,
+          "status": "active",
+          "description": "Prepare a single query prefix payload for prefill.",
+          "reused": "Prefix layout metadata is reused in extend scheduling.",
+          "recomputed": "Query metadata is regenerated on each incoming request.",
+          "throughput_impact": "Cheaper than packed layout because query is represented once."
+        },
+        {
+          "id": "cache_creation",
+          "name": "Cache creation",
+          "latency_ms": 8.9,
+          "status": "active",
+          "description": "Run query prefill once and store KV cache for downstream extends.",
+          "reused": "Created KV cache is reused by each item extend in this request.",
+          "recomputed": "First touch is a miss that materializes cache entries.",
+          "throughput_impact": "Front-loads one cache build so later item extends become much cheaper."
+        },
+        {
+          "id": "extend_batch_processing",
+          "name": "Extend batch processing",
+          "latency_ms": 9.2,
+          "status": "active",
+          "description": "Execute short item extends against shared prefix KV cache.",
+          "reused": "Query KV cache and compiled extend kernels are reused across all item extends.",
+          "recomputed": "Only item-tail attention is recomputed per item.",
+          "throughput_impact": "Main throughput win: avoids recomputing long-prefix attention for each item."
+        },
+        {
+          "id": "attention_isolation",
+          "name": "Attention isolation concept",
+          "latency_ms": 1.7,
+          "status": "active",
+          "description": "Isolation is maintained by per-item extend contexts over shared prefix cache.",
+          "reused": "Prefix KV pages are shared read-only.",
+          "recomputed": "Per-item attention windows are evaluated independently.",
+          "throughput_impact": "Lower overhead than packed block masks for long-query, short-item workloads."
+        },
+        {
+          "id": "score_extraction",
+          "name": "Score extraction",
+          "latency_ms": 2.1,
+          "status": "active",
+          "description": "Collect per-item boundary scores and map to labels.",
+          "reused": "Label projection logic is reused.",
+          "recomputed": "Boundary gathers run per item extend output.",
+          "throughput_impact": "Small terminal stage; does not dominate total latency."
+        }
+      ],
+      "events": [
+        {
+          "id": "tokenize_inputs",
+          "stage_id": "input_tokenization",
+          "label": "Tokenize request",
+          "duration_ms": 5.8,
+          "active_components": ["tokenizer", "request_parser"],
+          "parallel_items": []
+        },
+        {
+          "id": "prepare_prefix_prefill",
+          "stage_id": "prefix_query_handling",
+          "label": "Prepare query prefill",
+          "duration_ms": 3.1,
+          "active_components": ["prefix_planner", "prefill_router"],
+          "parallel_items": []
+        },
+        {
+          "id": "create_prefix_cache",
+          "stage_id": "cache_creation",
+          "label": "Create KV cache",
+          "duration_ms": 8.9,
+          "active_components": ["prefill_kernel", "kv_cache_store"],
+          "parallel_items": []
+        },
+        {
+          "id": "run_cached_extends",
+          "stage_id": "extend_batch_processing",
+          "label": "Run batched extends",
+          "duration_ms": 9.2,
+          "active_components": ["extend_kernel", "kv_cache_reader"],
+          "parallel_items": [1, 2, 3, 4, 5, 6, 7, 8]
+        },
+        {
+          "id": "isolate_extend_windows",
+          "stage_id": "attention_isolation",
+          "label": "Isolate extend windows",
+          "duration_ms": 1.7,
+          "active_components": ["window_router", "attention_window_guard"],
+          "parallel_items": [1, 2, 3, 4, 5, 6, 7, 8]
+        },
+        {
+          "id": "extract_item_scores",
+          "stage_id": "score_extraction",
+          "label": "Extract label scores",
+          "duration_ms": 2.1,
+          "active_components": ["logprob_gather", "label_projection"],
+          "parallel_items": [1, 2, 3, 4, 5, 6, 7, 8]
+        }
+      ],
+      "scores": [
+        { "item_id": "item_1", "relevant": 0.91, "not_relevant": 0.09 },
+        { "item_id": "item_2", "relevant": 0.96, "not_relevant": 0.04 },
+        { "item_id": "item_3", "relevant": 0.87, "not_relevant": 0.13 },
+        { "item_id": "item_4", "relevant": 0.69, "not_relevant": 0.31 },
+        { "item_id": "item_5", "relevant": 0.60, "not_relevant": 0.40 },
+        { "item_id": "item_6", "relevant": 0.90, "not_relevant": 0.10 },
+        { "item_id": "item_7", "relevant": 0.84, "not_relevant": 0.16 },
+        { "item_id": "item_8", "relevant": 0.94, "not_relevant": 0.06 }
+      ]
+    }
+  }
+}

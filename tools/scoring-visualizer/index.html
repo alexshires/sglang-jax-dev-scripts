@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JAX TPU Scoring API Visual Explainer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" id="appRoot">
+      <header class="hero panel">
+        <p class="eyebrow">Interactive Internal Walkthrough</p>
+        <h1>JAX TPU Scoring API: Packed vs Prefill+Extend</h1>
+        <p class="hero-copy">
+          One fixed request replayed through two execution modes, with explicit
+          stage timings and
+          <button class="term" data-term="kv_cache" type="button">KV cache</button>,
+          <button class="term" data-term="block_mask" type="button">block mask</button>,
+          <button class="term" data-term="prefill" type="button">prefill</button>,
+          and
+          <button class="term" data-term="extend" type="button">extend</button>
+          semantics.
+        </p>
+        <p class="hero-note">
+          Comparison is conceptual and benchmark-derived for docs visualization,
+          not a live runtime trace.
+        </p>
+        <p class="source-pill" id="sourceSummary">Loading dataset...</p>
+      </header>
+
+      <section class="panel controls-panel" aria-label="Controls">
+        <div class="controls-block">
+          <h2>Mode</h2>
+          <div class="segmented" role="radiogroup" aria-label="Scoring mode">
+            <button
+              class="segmented-btn is-selected"
+              data-mode="packed"
+              role="radio"
+              aria-checked="true"
+              type="button"
+            >
+              Packed
+            </button>
+            <button
+              class="segmented-btn"
+              data-mode="prefill_extend"
+              role="radio"
+              aria-checked="false"
+              type="button"
+            >
+              Prefill+extend
+            </button>
+          </div>
+        </div>
+
+        <div class="controls-block">
+          <h2>Replay</h2>
+          <div class="replay-row">
+            <button id="playPauseBtn" type="button">Play</button>
+            <button id="stepBackBtn" type="button">Step -</button>
+            <button id="stepForwardBtn" type="button">Step +</button>
+            <button id="resetBtn" type="button">Reset</button>
+          </div>
+          <label class="speed-control" for="speedSlider">
+            Speed
+            <input
+              id="speedSlider"
+              type="range"
+              min="0.25"
+              max="2.5"
+              step="0.25"
+              value="1"
+            />
+            <span id="speedValue">1.00x</span>
+          </label>
+        </div>
+
+        <div class="controls-block data-block">
+          <h2>Data Source</h2>
+          <div class="data-row">
+            <label class="file-label" for="jsonUpload">Upload JSON</label>
+            <input id="jsonUpload" type="file" accept="application/json,.json" />
+          </div>
+          <div class="data-row">
+            <input
+              id="endpointInput"
+              type="url"
+              placeholder="Optional endpoint URL returning JSON"
+              aria-label="JSON endpoint URL"
+            />
+            <button id="fetchEndpointBtn" type="button">Fetch</button>
+            <button id="reloadSampleBtn" type="button">Sample</button>
+          </div>
+          <p class="data-status" id="dataStatus" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="panel request-panel" aria-label="Request example">
+        <h2>Fixed Example Request</h2>
+        <p id="queryText" class="query-text"></p>
+        <div class="label-row">
+          <span>label_token_ids:</span>
+          <code id="labelTokenIds"></code>
+        </div>
+        <div id="itemList" class="item-list"></div>
+      </section>
+
+      <section class="panel pipeline-panel" aria-label="Pipeline visualization">
+        <div class="pipeline-header">
+          <h2>Execution Flow</h2>
+          <div class="segmented" role="tablist" aria-label="Visualization view">
+            <button
+              class="segmented-btn is-selected"
+              data-view="timeline"
+              role="tab"
+              aria-selected="true"
+              type="button"
+            >
+              Timeline
+            </button>
+            <button
+              class="segmented-btn"
+              data-view="buffer"
+              role="tab"
+              aria-selected="false"
+              type="button"
+            >
+              Buffer View
+            </button>
+          </div>
+        </div>
+
+        <div id="timelineView" class="view-pane">
+          <div class="timeline-meta">
+            <span id="activeStageLabel">Stage: -</span>
+            <span id="replayClock">0.0 / 0.0 ms</span>
+          </div>
+          <div class="timeline-wrap" aria-label="Replay timeline">
+            <div class="timeline-progress" id="timelineProgress"></div>
+            <div class="timeline-track" id="timelineTrack"></div>
+          </div>
+          <div id="stageCards" class="stage-cards"></div>
+        </div>
+
+        <div id="bufferView" class="view-pane is-hidden" aria-label="Buffer layout">
+          <p class="buffer-caption">
+            Physical layout view of tokens in TPU buffers for the current mode.
+          </p>
+          <div class="buffer-grid" id="bufferGrid"></div>
+          <p class="buffer-note" id="bufferNote"></p>
+        </div>
+      </section>
+
+      <section class="panel metrics-panel" aria-label="Metrics panel">
+        <h2>Latency and Throughput</h2>
+        <div class="metric-summary">
+          <article>
+            <p>Total latency</p>
+            <strong id="metricTotalLatency">-</strong>
+          </article>
+          <article>
+            <p>
+              <button class="term inline-term" data-term="items_per_sec" type="button">
+                items/sec
+              </button>
+            </p>
+            <strong id="metricItemsPerSec">-</strong>
+          </article>
+          <article>
+            <p>
+              <button class="term inline-term" data-term="cache_hit" type="button">
+                Cache hit/miss
+              </button>
+            </p>
+            <strong id="metricCacheBadge">-</strong>
+          </article>
+          <article>
+            <p>Compiler cache</p>
+            <strong id="metricCompilerCache">-</strong>
+          </article>
+        </div>
+        <div id="stageMetrics" class="stage-metrics"></div>
+      </section>
+
+      <section class="panel explain-panel" aria-label="Explainability overlays">
+        <h2>Explainability Overlays</h2>
+        <div class="overlay-toggle" role="radiogroup" aria-label="Overlay selector">
+          <button
+            class="overlay-btn is-selected"
+            data-overlay="reused"
+            role="radio"
+            aria-checked="true"
+            type="button"
+          >
+            What is reused?
+          </button>
+          <button
+            class="overlay-btn"
+            data-overlay="recomputed"
+            role="radio"
+            aria-checked="false"
+            type="button"
+          >
+            What is recomputed?
+          </button>
+          <button
+            class="overlay-btn"
+            data-overlay="throughput_impact"
+            role="radio"
+            aria-checked="false"
+            type="button"
+          >
+            Why this impacts throughput
+          </button>
+        </div>
+        <h3 id="overlayStageName">-</h3>
+        <p id="overlayText">-</p>
+      </section>
+
+      <section class="panel score-panel" aria-label="Score extraction output">
+        <h2>Extracted Item Scores</h2>
+        <div id="scoreRows" class="score-rows"></div>
+      </section>
+
+      <footer class="footer">
+        Keyboard: <kbd>Space</kbd> play/pause, <kbd>→</kbd> step forward,
+        <kbd>←</kbd> step back, <kbd>R</kbd> reset, <kbd>1</kbd>/<kbd>2</kbd> mode,
+        <kbd>T</kbd>/<kbd>B</kbd> timeline or buffer view.
+      </footer>
+    </main>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
