@@ -1,0 +1,112 @@
+{
+  "artifact_dir": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v3",
+  "summaries": {
+    "gate_sanity_small_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 1,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 0.10667884242656625,
+      "p99_latency_ms_ok": 28120.47638100921
+    },
+    "gate_sanity_medium_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 1,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 0.49481738964861105,
+      "p99_latency_ms_ok": 60627.14317700011
+    },
+    "gate_sanity_full_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 1,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 8.083911036265816,
+      "p99_latency_ms_ok": 61849.92972301552
+    },
+    "gate_c2_nlte100_10m_summary.json": {
+      "requests_total": 1200,
+      "requests_ok": 1200,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 32.32446180092472,
+      "p99_latency_ms_ok": 146.48818431800464
+    },
+    "gate_bench_large_5m_summary.json": {
+      "requests_total": 120,
+      "requests_ok": 120,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 480.14190430348384,
+      "p99_latency_ms_ok": 1097.9669942508917
+    },
+    "gate_recovery_scheduler_kill_load_summary.json": {
+      "requests_total": 80,
+      "requests_ok": 14,
+      "requests_error": 66,
+      "error_rate": 0.825,
+      "error_reason_counts": {
+        "http_error": 66
+      },
+      "throughput_items_per_sec": 15.169127427603515,
+      "p99_latency_ms_ok": 1481.2041255424265
+    },
+    "gate_recovery_post_kill_no_restart_summary.json": {
+      "requests_total": 10,
+      "requests_ok": 0,
+      "requests_error": 10,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "http_error": 10
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_recovery_post_scheduler_restart_summary.json": {
+      "requests_total": 10,
+      "requests_ok": 10,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 0.26441070978542286,
+      "p99_latency_ms_ok": 28047.37172033463
+    },
+    "gate_recovery_server_kill_inflight_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 0,
+      "requests_error": 1,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 1
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_recovery_post_server_restart_summary.json": {
+      "requests_total": 5,
+      "requests_ok": 5,
+      "requests_error": 0,
+      "error_rate": 0.0,
+      "error_reason_counts": {},
+      "throughput_items_per_sec": 0.28738726284912786,
+      "p99_latency_ms_ok": 27904.80250315857
+    }
+  },
+  "checks": {
+    "sanity_small_ok": true,
+    "sanity_medium_ok": true,
+    "sanity_full_ok": true,
+    "c2_nlte100_p99_le_500ms": true,
+    "bench_throughput_ge_400": true,
+    "scheduler_kill_failure_observed": true,
+    "scheduler_post_restart_ok": true,
+    "server_kill_failure_observed": true,
+    "server_post_restart_ok": true
+  }
+}

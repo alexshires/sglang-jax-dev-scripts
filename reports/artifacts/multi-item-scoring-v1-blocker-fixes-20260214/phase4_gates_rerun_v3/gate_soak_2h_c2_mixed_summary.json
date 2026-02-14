@@ -1,0 +1,125 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "2h",
+    "duration_seconds": 7200.0,
+    "concurrency": 2,
+    "arrival_rate_requests_per_sec": 2.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "small": 0.4,
+      "medium": 0.4,
+      "large": 0.2
+    },
+    "max_requests": null
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v3/gate_soak_2h_c2_mixed_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v3/gate_soak_2h_c2_mixed_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v3/gate_soak_2h_c2_mixed_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771086269.4950967,
+    "ended_at_unix": 1771093469.573249,
+    "started_at_iso": "2026-02-14T16:24:29.495097+00:00",
+    "ended_at_iso": "2026-02-14T18:24:29.573249+00:00",
+    "actual_runtime_seconds": 7200.078152217,
+    "scheduled_requests": 14403,
+    "completed_requests": 14403
+  },
+  "results": {
+    "requests_total": 14403,
+    "requests_ok": 14403,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "ok_items_total": 1661832,
+    "throughput_items_per_sec": 230.80749470591508,
+    "throughput_requests_per_sec": 2.000394953430488,
+    "latency_ms_all": {
+      "p50": 104.20431700185873,
+      "p95": 1507.24930181168,
+      "p99": 1576.4912116219057,
+      "mean": 357.80638915839995,
+      "min": 49.97436801204458,
+      "max": 50627.605179994134
+    },
+    "latency_ms_ok_only": {
+      "p50": 104.20431700185873,
+      "p95": 1507.24930181168,
+      "p99": 1576.4912116219057,
+      "mean": 357.80638915839995,
+      "min": 49.97436801204458,
+      "max": 50627.605179994134
+    },
+    "error_reason_counts": {},
+    "by_scenario": {
+      "small": {
+        "configured_item_count": 3,
+        "configured_weight": 0.4,
+        "requests_total": 5684,
+        "requests_ok": 5684,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 17052,
+        "latency_ms": {
+          "p50": 58.84811849682592,
+          "p95": 74.24333116941852,
+          "p99": 79.32007699069804,
+          "mean": 73.89964500762903,
+          "min": 49.97436801204458,
+          "max": 48001.265792001504
+        }
+      },
+      "medium": {
+        "configured_item_count": 30,
+        "configured_weight": 0.4,
+        "requests_total": 5776,
+        "requests_ok": 5776,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 173280,
+        "latency_ms": {
+          "p50": 119.38495250069536,
+          "p95": 151.6388887539506,
+          "p99": 159.3872620142065,
+          "mean": 139.9853486734357,
+          "min": 89.38738799770363,
+          "max": 48791.497614991385
+        }
+      },
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 0.2,
+        "requests_total": 2943,
+        "requests_ok": 2943,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 1471500,
+        "latency_ms": {
+          "p50": 1258.1321310135536,
+          "p95": 1575.2552988793468,
+          "p99": 1607.3450659884838,
+          "mean": 1333.6338657449223,
+          "min": 942.7812689973507,
+          "max": 50627.605179994134
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 20,
+      "steady_window_requests": 20,
+      "first_mean_latency_ms": 9979.165887046838,
+      "steady_mean_latency_ms": 307.61462615191704,
+      "ratio_first_over_steady": 32.440479218691564
+    }
+  }
+}

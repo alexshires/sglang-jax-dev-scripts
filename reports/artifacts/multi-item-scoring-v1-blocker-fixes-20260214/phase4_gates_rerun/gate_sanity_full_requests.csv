@@ -1,0 +1,2 @@
+request_id,scenario,expected_item_count,status,error_reason,latency_ms,started_at_unix,ended_at_unix,started_at_iso,ended_at_iso,http_status,response_item_count,response_label_count,timeout_s,error_excerpt
+0,large,500,error,connection_error,19.52,1771081857.001794,1771081857.021315,2026-02-14T15:10:57.001794+00:00,2026-02-14T15:10:57.021315+00:00,,,,180.0,[Errno 111] Connection refused

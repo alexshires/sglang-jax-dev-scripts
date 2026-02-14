@@ -1,0 +1,125 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "10m",
+    "duration_seconds": 600.0,
+    "concurrency": 2,
+    "arrival_rate_requests_per_sec": 2.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "small": 0.4,
+      "medium": 0.4,
+      "large": 0.2
+    },
+    "max_requests": null
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro/c2_mixed_10m_baseline_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro/c2_mixed_10m_baseline_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro/c2_mixed_10m_baseline_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771059813.266062,
+    "ended_at_unix": 1771060414.0458183,
+    "started_at_iso": "2026-02-14T09:03:33.266062+00:00",
+    "ended_at_iso": "2026-02-14T09:13:34.045818+00:00",
+    "actual_runtime_seconds": 600.7797559559986,
+    "scheduled_requests": 1209,
+    "completed_requests": 1209
+  },
+  "results": {
+    "requests_total": 1209,
+    "requests_ok": 1209,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "ok_items_total": 139508,
+    "throughput_items_per_sec": 232.21155276446706,
+    "throughput_requests_per_sec": 2.012384718383467,
+    "latency_ms_all": {
+      "p50": 102.7706770109944,
+      "p95": 1499.9698569939937,
+      "p99": 1553.2569214026446,
+      "mean": 334.66940170772256,
+      "min": 48.64730799454264,
+      "max": 1605.5341360042803
+    },
+    "latency_ms_ok_only": {
+      "p50": 102.7706770109944,
+      "p95": 1499.9698569939937,
+      "p99": 1553.2569214026446,
+      "mean": 334.66940170772256,
+      "min": 48.64730799454264,
+      "max": 1605.5341360042803
+    },
+    "error_reason_counts": {},
+    "by_scenario": {
+      "small": {
+        "configured_item_count": 3,
+        "configured_weight": 0.4,
+        "requests_total": 476,
+        "requests_ok": 476,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 1428,
+        "latency_ms": {
+          "p50": 56.97923350089695,
+          "p95": 73.74683298257878,
+          "p99": 76.47680799709633,
+          "mean": 62.53295974999651,
+          "min": 48.64730799454264,
+          "max": 120.79885700950399
+        }
+      },
+      "medium": {
+        "configured_item_count": 30,
+        "configured_weight": 0.4,
+        "requests_total": 486,
+        "requests_ok": 486,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 14580,
+        "latency_ms": {
+          "p50": 119.55586199474055,
+          "p95": 151.43700849148445,
+          "p99": 157.93385916913394,
+          "mean": 123.80725549547856,
+          "min": 86.62246700259857,
+          "max": 202.36520501202904
+        }
+      },
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 0.2,
+        "requests_total": 247,
+        "requests_ok": 247,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 123500,
+        "latency_ms": {
+          "p50": 1237.9806460230611,
+          "p95": 1552.6755010010675,
+          "p99": 1590.8878370077582,
+          "mean": 1274.0052293637073,
+          "min": 904.0615549893118,
+          "max": 1605.5341360042803
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 20,
+      "steady_window_requests": 20,
+      "first_mean_latency_ms": 224.75323780090548,
+      "steady_mean_latency_ms": 283.6795106937643,
+      "ratio_first_over_steady": 0.7922787135780472
+    }
+  }
+}

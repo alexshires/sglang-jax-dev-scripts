@@ -1,0 +1,125 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "10m",
+    "duration_seconds": 600.0,
+    "concurrency": 2,
+    "arrival_rate_requests_per_sec": 2.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "small": 0.4,
+      "medium": 0.4,
+      "large": 0.2
+    },
+    "max_requests": null
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro_clean/c2_mixed_10m_baseline_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro_clean/c2_mixed_10m_baseline_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro_clean/c2_mixed_10m_baseline_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771062230.4402685,
+    "ended_at_unix": 1771062831.2197895,
+    "started_at_iso": "2026-02-14T09:43:50.440269+00:00",
+    "ended_at_iso": "2026-02-14T09:53:51.219790+00:00",
+    "actual_runtime_seconds": 600.779520799988,
+    "scheduled_requests": 1209,
+    "completed_requests": 1209
+  },
+  "results": {
+    "requests_total": 1209,
+    "requests_ok": 1209,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "ok_items_total": 139508,
+    "throughput_items_per_sec": 232.21164365628422,
+    "throughput_requests_per_sec": 2.012385506067377,
+    "latency_ms_all": {
+      "p50": 104.06819800846279,
+      "p95": 1510.331422003219,
+      "p99": 1570.4731403826738,
+      "mean": 338.58345588681215,
+      "min": 49.8803690134082,
+      "max": 1645.9297300025355
+    },
+    "latency_ms_ok_only": {
+      "p50": 104.06819800846279,
+      "p95": 1510.331422003219,
+      "p99": 1570.4731403826738,
+      "mean": 338.58345588681215,
+      "min": 49.8803690134082,
+      "max": 1645.9297300025355
+    },
+    "error_reason_counts": {},
+    "by_scenario": {
+      "small": {
+        "configured_item_count": 3,
+        "configured_weight": 0.4,
+        "requests_total": 476,
+        "requests_ok": 476,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 1428,
+        "latency_ms": {
+          "p50": 56.82000899105333,
+          "p95": 74.78205623920076,
+          "p99": 79.05240549735026,
+          "mean": 63.02385490684586,
+          "min": 49.8803690134082,
+          "max": 174.83656597323716
+        }
+      },
+      "medium": {
+        "configured_item_count": 30,
+        "configured_weight": 0.4,
+        "requests_total": 486,
+        "requests_ok": 486,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 14580,
+        "latency_ms": {
+          "p50": 121.36826751520857,
+          "p95": 152.46702101285337,
+          "p99": 158.44887849816587,
+          "mean": 125.42149515337705,
+          "min": 95.01659800298512,
+          "max": 188.79878497682512
+        }
+      },
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 0.2,
+        "requests_total": 247,
+        "requests_ok": 247,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 123500,
+        "latency_ms": {
+          "p50": 1265.4408689995762,
+          "p95": 1570.0861009885557,
+          "p99": 1593.5491632012418,
+          "mean": 1289.041281728567,
+          "min": 887.1536790102255,
+          "max": 1645.9297300025355
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 20,
+      "steady_window_requests": 20,
+      "first_mean_latency_ms": 228.16928900574567,
+      "steady_mean_latency_ms": 283.2028525925125,
+      "ratio_first_over_steady": 0.8056744023480862
+    }
+  }
+}

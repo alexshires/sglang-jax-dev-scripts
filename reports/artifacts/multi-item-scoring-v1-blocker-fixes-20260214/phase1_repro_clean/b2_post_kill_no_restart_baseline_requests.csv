@@ -1,0 +1,6 @@
+request_id,scenario,expected_item_count,status,error_reason,latency_ms,started_at_unix,ended_at_unix,started_at_iso,ended_at_iso,http_status,response_item_count,response_label_count,timeout_s,error_excerpt
+0,small,3,error,connection_error,18.715,1771063721.91482,1771063721.933535,2026-02-14T10:08:41.914820+00:00,2026-02-14T10:08:41.933535+00:00,,,,180.0,[Errno 111] Connection refused
+1,small,3,error,connection_error,0.512,1771063722.677846,1771063722.67836,2026-02-14T10:08:42.677846+00:00,2026-02-14T10:08:42.678360+00:00,,,,180.0,[Errno 111] Connection refused
+2,small,3,error,connection_error,0.44,1771063722.96016,1771063722.9606,2026-02-14T10:08:42.960160+00:00,2026-02-14T10:08:42.960600+00:00,,,,180.0,[Errno 111] Connection refused
+3,small,3,error,connection_error,0.44,1771063723.107265,1771063723.107705,2026-02-14T10:08:43.107265+00:00,2026-02-14T10:08:43.107705+00:00,,,,180.0,[Errno 111] Connection refused
+4,small,3,error,connection_error,0.653,1771063723.197368,1771063723.198022,2026-02-14T10:08:43.197368+00:00,2026-02-14T10:08:43.198022+00:00,,,,180.0,[Errno 111] Connection refused

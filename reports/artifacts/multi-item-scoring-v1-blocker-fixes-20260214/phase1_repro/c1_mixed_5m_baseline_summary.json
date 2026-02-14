@@ -1,0 +1,125 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "5m",
+    "duration_seconds": 300.0,
+    "concurrency": 1,
+    "arrival_rate_requests_per_sec": 1.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "small": 0.4,
+      "medium": 0.4,
+      "large": 0.2
+    },
+    "max_requests": null
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro/c1_mixed_5m_baseline_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro/c1_mixed_5m_baseline_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase1_repro/c1_mixed_5m_baseline_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771059510.9853575,
+    "ended_at_unix": 1771059813.1747766,
+    "started_at_iso": "2026-02-14T08:58:30.985358+00:00",
+    "ended_at_iso": "2026-02-14T09:03:33.174777+00:00",
+    "actual_runtime_seconds": 302.18941848300165,
+    "scheduled_requests": 332,
+    "completed_requests": 332
+  },
+  "results": {
+    "requests_total": 332,
+    "requests_ok": 332,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "ok_items_total": 34715,
+    "throughput_items_per_sec": 114.87827791677869,
+    "throughput_requests_per_sec": 1.0986486610505697,
+    "latency_ms_all": {
+      "p50": 100.89064799831249,
+      "p95": 1009.6085204946576,
+      "p99": 1024.5694618072594,
+      "mean": 247.84984626191533,
+      "min": 50.320289010414854,
+      "max": 1080.2291379950475
+    },
+    "latency_ms_ok_only": {
+      "p50": 100.89064799831249,
+      "p95": 1009.6085204946576,
+      "p99": 1024.5694618072594,
+      "mean": 247.84984626191533,
+      "min": 50.320289010414854,
+      "max": 1080.2291379950475
+    },
+    "error_reason_counts": {},
+    "by_scenario": {
+      "small": {
+        "configured_item_count": 3,
+        "configured_weight": 0.4,
+        "requests_total": 145,
+        "requests_ok": 145,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 435,
+        "latency_ms": {
+          "p50": 55.42378898826428,
+          "p95": 56.66498019709252,
+          "p99": 57.556292050285265,
+          "mean": 55.17608067582779,
+          "min": 50.320289010414854,
+          "max": 58.73262800741941
+        }
+      },
+      "medium": {
+        "configured_item_count": 30,
+        "configured_weight": 0.4,
+        "requests_total": 126,
+        "requests_ok": 126,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 3780,
+        "latency_ms": {
+          "p50": 102.58232800697442,
+          "p95": 105.16056774213212,
+          "p99": 116.25807551899925,
+          "mean": 102.99652035044144,
+          "min": 98.12837801291607,
+          "max": 162.66756699769758
+        }
+      },
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 0.2,
+        "requests_total": 61,
+        "requests_ok": 61,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 30500,
+        "latency_ms": {
+          "p50": 1002.3874799953774,
+          "p95": 1025.319420004962,
+          "p99": 1050.9556845994666,
+          "mean": 1005.0500933902498,
+          "min": 978.3203410042915,
+          "max": 1080.2291379950475
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 20,
+      "steady_window_requests": 20,
+      "first_mean_latency_ms": 165.7839302017237,
+      "steady_mean_latency_ms": 124.69563714839751,
+      "ratio_first_over_steady": 1.329508666004312
+    }
+  }
+}

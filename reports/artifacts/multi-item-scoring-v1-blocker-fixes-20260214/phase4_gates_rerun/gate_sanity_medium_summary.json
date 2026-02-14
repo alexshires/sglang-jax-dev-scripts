@@ -1,0 +1,85 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "2m",
+    "duration_seconds": 120.0,
+    "concurrency": 1,
+    "arrival_rate_requests_per_sec": 1.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "medium": 1.0
+    },
+    "max_requests": 1
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun/gate_sanity_medium_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun/gate_sanity_medium_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun/gate_sanity_medium_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771081856.8877256,
+    "ended_at_unix": 1771081856.9077559,
+    "started_at_iso": "2026-02-14T15:10:56.887726+00:00",
+    "ended_at_iso": "2026-02-14T15:10:56.907756+00:00",
+    "actual_runtime_seconds": 0.02003000897821039,
+    "scheduled_requests": 1,
+    "completed_requests": 1
+  },
+  "results": {
+    "requests_total": 1,
+    "requests_ok": 0,
+    "requests_error": 1,
+    "error_rate": 1.0,
+    "ok_items_total": 0,
+    "throughput_items_per_sec": 0.0,
+    "throughput_requests_per_sec": 0.0,
+    "latency_ms_all": {
+      "p50": 18.73386002262123,
+      "p95": 18.73386002262123,
+      "p99": 18.73386002262123,
+      "mean": 18.73386002262123,
+      "min": 18.73386002262123,
+      "max": 18.73386002262123
+    },
+    "latency_ms_ok_only": {
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "error_reason_counts": {
+      "connection_error": 1
+    },
+    "by_scenario": {
+      "medium": {
+        "configured_item_count": 30,
+        "configured_weight": 1.0,
+        "requests_total": 1,
+        "requests_ok": 0,
+        "requests_error": 1,
+        "error_rate": 1.0,
+        "items_ok": 0,
+        "latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    },
+    "first_run_penalty": null
+  }
+}

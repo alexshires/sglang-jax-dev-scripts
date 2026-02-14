@@ -1,0 +1,6 @@
+request_id,scenario,expected_item_count,status,error_reason,latency_ms,started_at_unix,ended_at_unix,started_at_iso,ended_at_iso,http_status,response_item_count,response_label_count,timeout_s,error_excerpt
+0,small,3,error,connection_error,24031.323,1771082939.437823,1771082963.469146,2026-02-14T15:28:59.437823+00:00,2026-02-14T15:29:23.469146+00:00,,,,180.0,Remote end closed connection without response
+1,small,3,error,connection_error,0.423,1771082963.469625,1771082963.470048,2026-02-14T15:29:23.469625+00:00,2026-02-14T15:29:23.470048+00:00,,,,180.0,[Errno 111] Connection refused
+2,small,3,error,connection_error,0.263,1771082963.47027,1771082963.470533,2026-02-14T15:29:23.470270+00:00,2026-02-14T15:29:23.470533+00:00,,,,180.0,[Errno 111] Connection refused
+3,small,3,error,connection_error,0.263,1771082963.470707,1771082963.47097,2026-02-14T15:29:23.470707+00:00,2026-02-14T15:29:23.470970+00:00,,,,180.0,[Errno 111] Connection refused
+4,small,3,error,connection_error,0.247,1771082963.471159,1771082963.471407,2026-02-14T15:29:23.471159+00:00,2026-02-14T15:29:23.471407+00:00,,,,180.0,[Errno 111] Connection refused

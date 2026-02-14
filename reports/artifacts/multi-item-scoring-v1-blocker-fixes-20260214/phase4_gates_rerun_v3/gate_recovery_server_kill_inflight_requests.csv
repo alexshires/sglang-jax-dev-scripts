@@ -1,0 +1,2 @@
+request_id,scenario,expected_item_count,status,error_reason,latency_ms,started_at_unix,ended_at_unix,started_at_iso,ended_at_iso,http_status,response_item_count,response_label_count,timeout_s,error_excerpt
+0,large,500,error,connection_error,172.522,1771086043.46342,1771086043.635941,2026-02-14T16:20:43.463420+00:00,2026-02-14T16:20:43.635941+00:00,,,,180.0,Remote end closed connection without response

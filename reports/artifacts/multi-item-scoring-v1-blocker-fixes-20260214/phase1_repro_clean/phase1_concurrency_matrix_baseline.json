@@ -1,0 +1,35 @@
+[
+  {
+    "scenario": "c1_mixed_5m_baseline",
+    "requests_total": 332,
+    "requests_ok": 332,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "p50_ms": 99.7814419970382,
+    "p95_ms": 1029.8458059944096,
+    "p99_ms": 1053.4483205049764,
+    "items_per_sec": 114.87811702780365
+  },
+  {
+    "scenario": "c2_mixed_10m_baseline",
+    "requests_total": 1209,
+    "requests_ok": 1209,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "p50_ms": 104.06819800846279,
+    "p95_ms": 1510.331422003219,
+    "p99_ms": 1570.4731403826738,
+    "items_per_sec": 232.21164365628422
+  },
+  {
+    "scenario": "c4_mixed_10m_baseline",
+    "requests_total": 2366,
+    "requests_ok": 2,
+    "requests_error": 2364,
+    "error_rate": 0.9991546914623838,
+    "p50_ms": 88.74791298876517,
+    "p95_ms": 118.40894659108017,
+    "p99_ms": 121.04548291128594,
+    "items_per_sec": 0.05498552191682485
+  }
+]

@@ -1,0 +1,127 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "2m",
+    "duration_seconds": 120.0,
+    "concurrency": 2,
+    "arrival_rate_requests_per_sec": 2.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "small": 0.4,
+      "medium": 0.4,
+      "large": 0.2
+    },
+    "max_requests": 240
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase3_c3_tuning/mr6_eb8_c2_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase3_c3_tuning/mr6_eb8_c2_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase3_c3_tuning/mr6_eb8_c2_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771065661.3319597,
+    "ended_at_unix": 1771065763.1628408,
+    "started_at_iso": "2026-02-14T10:41:01.331960+00:00",
+    "ended_at_iso": "2026-02-14T10:42:43.162841+00:00",
+    "actual_runtime_seconds": 101.83088083998882,
+    "scheduled_requests": 240,
+    "completed_requests": 240
+  },
+  "results": {
+    "requests_total": 240,
+    "requests_ok": 154,
+    "requests_error": 86,
+    "error_rate": 0.35833333333333334,
+    "ok_items_total": 15863,
+    "throughput_items_per_sec": 155.77789241483833,
+    "throughput_requests_per_sec": 1.5123113806899768,
+    "latency_ms_all": {
+      "p50": 77.571183006512,
+      "p95": 2409.0347200093674,
+      "p99": 2473.865916421928,
+      "mean": 339.1170023964757,
+      "min": 0.2764899982139468,
+      "max": 2486.311115004355
+    },
+    "latency_ms_ok_only": {
+      "p50": 135.36924701475073,
+      "p95": 2439.5183335072943,
+      "p99": 2479.53121460916,
+      "mean": 513.3546017089182,
+      "min": 50.62969899154268,
+      "max": 2486.311115004355
+    },
+    "error_reason_counts": {
+      "connection_error": 86
+    },
+    "by_scenario": {
+      "small": {
+        "configured_item_count": 3,
+        "configured_weight": 0.4,
+        "requests_total": 103,
+        "requests_ok": 71,
+        "requests_error": 32,
+        "error_rate": 0.3106796116504854,
+        "items_ok": 213,
+        "latency_ms": {
+          "p50": 77.47893800842576,
+          "p95": 87.23477300372906,
+          "p99": 89.86534199502785,
+          "mean": 72.58617687227637,
+          "min": 50.62969899154268,
+          "max": 90.06251799291931
+        }
+      },
+      "medium": {
+        "configured_item_count": 30,
+        "configured_weight": 0.4,
+        "requests_total": 91,
+        "requests_ok": 55,
+        "requests_error": 36,
+        "error_rate": 0.3956043956043956,
+        "items_ok": 1650,
+        "latency_ms": {
+          "p50": 190.63514602021314,
+          "p95": 197.59271600632928,
+          "p99": 201.69537640700582,
+          "mean": 174.05162369567816,
+          "min": 127.57130700629205,
+          "max": 203.9292159897741
+        }
+      },
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 0.2,
+        "requests_total": 46,
+        "requests_ok": 28,
+        "requests_error": 18,
+        "error_rate": 0.391304347826087,
+        "items_ok": 14000,
+        "latency_ms": {
+          "p50": 2378.3140079904115,
+          "p95": 2480.300243003876,
+          "p99": 2485.0919194714515,
+          "mean": 2297.505385784981,
+          "min": 1761.480412009405,
+          "max": 2486.311115004355
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 20,
+      "steady_window_requests": 20,
+      "first_mean_latency_ms": 330.4642993491143,
+      "steady_mean_latency_ms": 523.4930111517315,
+      "ratio_first_over_steady": 0.6312678341627966
+    }
+  }
+}

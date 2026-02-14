@@ -1,0 +1,126 @@
+{
+  "artifact_dir": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun",
+  "summaries": {
+    "gate_sanity_small_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 0,
+      "requests_error": 1,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 1
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_sanity_medium_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 0,
+      "requests_error": 1,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 1
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_sanity_full_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 0,
+      "requests_error": 1,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 1
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_c2_nlte100_10m_summary.json": {
+      "requests_total": 1200,
+      "requests_ok": 0,
+      "requests_error": 1200,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 1200
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_bench_large_5m_summary.json": {
+      "requests_total": 120,
+      "requests_ok": 0,
+      "requests_error": 120,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 120
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_recovery_scheduler_kill_load_summary.json": {
+      "requests_total": 80,
+      "requests_ok": 0,
+      "requests_error": 80,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 80
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_recovery_post_kill_no_restart_summary.json": {
+      "requests_total": 10,
+      "requests_ok": 0,
+      "requests_error": 10,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 10
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_recovery_post_scheduler_restart_summary.json": {
+      "requests_total": 10,
+      "requests_ok": 0,
+      "requests_error": 10,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 10
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_recovery_server_kill_inflight_summary.json": {
+      "requests_total": 1,
+      "requests_ok": 0,
+      "requests_error": 1,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 1
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    },
+    "gate_recovery_post_server_restart_summary.json": {
+      "requests_total": 5,
+      "requests_ok": 0,
+      "requests_error": 5,
+      "error_rate": 1.0,
+      "error_reason_counts": {
+        "connection_error": 5
+      },
+      "throughput_items_per_sec": 0.0,
+      "p99_latency_ms_ok": 0.0
+    }
+  },
+  "checks": {
+    "sanity_small_ok": false,
+    "sanity_medium_ok": false,
+    "sanity_full_ok": false,
+    "c2_nlte100_p99_le_500ms": true,
+    "bench_throughput_ge_400": false,
+    "scheduler_kill_failure_observed": true,
+    "scheduler_post_restart_ok": false,
+    "server_kill_failure_observed": true,
+    "server_post_restart_ok": false
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "scheduler_kill_load": {
+    "requests_total": 60,
+    "requests_ok": 2,
+    "requests_error": 58,
+    "error_rate": 0.9666666666666667,
+    "error_reason_counts": {
+      "http_error": 58
+    },
+    "p99_ms": 119.72655560763087
+  },
+  "post_kill_no_restart": {
+    "requests_total": 5,
+    "requests_ok": 0,
+    "requests_error": 5,
+    "error_rate": 1.0,
+    "error_reason_counts": {
+      "http_error": 5
+    },
+    "p99_ms": 0.0
+  },
+  "post_restart_sanity": {
+    "requests_total": 10,
+    "requests_ok": 10,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "error_reason_counts": {},
+    "p99_ms": 27563.86485663621
+  },
+  "server_kill_inflight": {
+    "requests_total": 1,
+    "requests_ok": 0,
+    "requests_error": 1,
+    "error_rate": 1.0,
+    "error_reason_counts": {
+      "connection_error": 1
+    },
+    "p99_ms": 0.0
+  },
+  "post_server_kill_restart_sanity": {
+    "requests_total": 5,
+    "requests_ok": 5,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "error_reason_counts": {},
+    "p99_ms": 27830.264367366908
+  }
+}

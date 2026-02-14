@@ -1,0 +1,127 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "2m",
+    "duration_seconds": 120.0,
+    "concurrency": 2,
+    "arrival_rate_requests_per_sec": 0.8,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "small": 0.4,
+      "medium": 0.4,
+      "large": 0.2
+    },
+    "max_requests": 80
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v3/gate_recovery_scheduler_kill_load_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v3/gate_recovery_scheduler_kill_load_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v3/gate_recovery_scheduler_kill_load_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771085706.8941321,
+    "ended_at_unix": 1771085784.0903988,
+    "started_at_iso": "2026-02-14T16:15:06.894132+00:00",
+    "ended_at_iso": "2026-02-14T16:16:24.090399+00:00",
+    "actual_runtime_seconds": 77.19626627099933,
+    "scheduled_requests": 80,
+    "completed_requests": 80
+  },
+  "results": {
+    "requests_total": 80,
+    "requests_ok": 14,
+    "requests_error": 66,
+    "error_rate": 0.825,
+    "ok_items_total": 1171,
+    "throughput_items_per_sec": 15.169127427603515,
+    "throughput_requests_per_sec": 0.18135592142309923,
+    "latency_ms_all": {
+      "p50": 20.706539507955313,
+      "p95": 210.71041950344448,
+      "p99": 3954.670966781268,
+      "mean": 165.83295471318706,
+      "min": 17.42801902582869,
+      "max": 4022.771588002797
+    },
+    "latency_ms_ok_only": {
+      "p50": 88.46071849984583,
+      "p95": 1440.9006836416665,
+      "p99": 1481.2041255424265,
+      "mean": 279.94586200137354,
+      "min": 55.12563799857162,
+      "max": 1491.2799860176165
+    },
+    "error_reason_counts": {
+      "http_error": 66
+    },
+    "by_scenario": {
+      "small": {
+        "configured_item_count": 3,
+        "configured_weight": 0.4,
+        "requests_total": 35,
+        "requests_ok": 7,
+        "requests_error": 28,
+        "error_rate": 0.8,
+        "items_ok": 21,
+        "latency_ms": {
+          "p50": 57.61157799861394,
+          "p95": 71.00060269876849,
+          "p99": 71.20947973278817,
+          "mean": 60.70098828890228,
+          "min": 55.12563799857162,
+          "max": 71.26169899129309
+        }
+      },
+      "medium": {
+        "configured_item_count": 30,
+        "configured_weight": 0.4,
+        "requests_total": 32,
+        "requests_ok": 5,
+        "requests_error": 27,
+        "error_rate": 0.84375,
+        "items_ok": 150,
+        "latency_ms": {
+          "p50": 106.01045799558051,
+          "p95": 142.81099700019695,
+          "p99": 146.47525300388224,
+          "mean": 117.8563594003208,
+          "min": 105.65973800839856,
+          "max": 147.39131700480357
+        }
+      },
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 0.2,
+        "requests_total": 13,
+        "requests_ok": 2,
+        "requests_error": 11,
+        "error_rate": 0.8461538461538461,
+        "items_ok": 1000,
+        "latency_ms": {
+          "p50": 1452.526676497655,
+          "p95": 1487.4046550656203,
+          "p99": 1490.5049198272172,
+          "mean": 1452.526676497655,
+          "min": 1413.7733669776935,
+          "max": 1491.2799860176165
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 14,
+      "steady_window_requests": 14,
+      "first_mean_latency_ms": 279.94586200137354,
+      "steady_mean_latency_ms": 279.94586200137354,
+      "ratio_first_over_steady": 1.0
+    }
+  }
+}

@@ -113,11 +113,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Infrastructure optimizations: model pre-caching, warm runner pools
   - 4-tier implementation plan with cost analysis
 
-- **[RFC-013: Multi-Item Scoring v1.0 Optimization](rfcs/013-multi-item-scoring-v1-optimization.md)**
-  - Status: Draft (Updated 2026-02-12)
+- **[RFC-013: Multi-Item Scoring v1.0 Optimization](rfcs/013-multi-item-scoring-v1-optimization.md)** ← **NEW**
+  - Status: Draft
   - Performance roadmap from v0.1 (16.5x) to v1.0 (40x+ target)
-  - **Parallel track model:** Stability → Segment Fix / Prefill+Extend / Orchestration
-  - **Track 2 update:** [Segment mask TPU lowering issue](investigations/segment-mask-tpu-lowering-issue.md) resolved on TPU (2026-02-13)
+  - Optimization strategies: procedural mask, causal mode, splash attention
+  - Phased implementation with success metrics
   - Depends on: [PyTorch isolation investigation](investigations/pytorch-multi-item-isolation-semantics.md)
 
 ### Templates
@@ -182,70 +182,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Frozen PyTorch baseline policy with correctness gate
   - Shared canonical workload and schema contract
 
-- **[PyTorch Multi-Item Isolation Semantics](investigations/pytorch-multi-item-isolation-semantics.md)**
+- **[PyTorch Multi-Item Isolation Semantics](investigations/pytorch-multi-item-isolation-semantics.md)** ← **NEW**
   - Critical investigation: Does PyTorch enforce item isolation in multi-item scoring?
   - Test plan: order sensitivity, content contamination, scaling tests
   - Blocks RFC-013 Strategy 2 (causal mode) decision
   - Includes ready-to-run test script
-
-- **[Segment Mask TPU Kernel Lowering Issue](investigations/segment-mask-tpu-lowering-issue.md)** ← **NEW**
-  - Root cause: dynamic int array indexing (gather) in Pallas kernel not supported on TPU
-  - Location: `ragged_paged_attention.py:933`
-  - Workaround: `--multi-item-mask-impl=dense`
-  - Blocks RFC-013 Track 2 (Segment Kernel Fix)
-  - Fix options: pre-scatter, scalar loop, on-the-fly computation
-
-## Scripts
-
-### Benchmark Scripts
-
-- **[run_tpu_dense_smoke.sh](scripts/run_tpu_dense_smoke.sh)** ← **NEW**
-  - Quick smoke test for dense-mode multi-item scoring on TPU
-  - Single chunk size (32) validation
-  - Enforces `--multi-item-mask-impl=dense`
-
-- **[run_tpu_dense_matrix.sh](scripts/run_tpu_dense_matrix.sh)** ← **NEW**
-  - Full matrix sweep across all chunk sizes (1,2,4,8,16,32,64,128,256,500)
-  - Collects throughput, latency, and memory metrics
-  - Enforces dense-only mode for TPU stability
-
-- **[collect_tpu_dense_artifacts.sh](scripts/collect_tpu_dense_artifacts.sh)** ← **NEW**
-  - Downloads benchmark artifacts from TPU VM
-  - Supports listing available artifacts and selective collection
-
-- **[run_all_jax_vs_pytorch_multi_item.sh](scripts/run_all_jax_vs_pytorch_multi_item.sh)**
-  - End-to-end orchestrator for cross-backend comparison
-  - Creates TPU and GPU resources, runs benchmarks, collects artifacts
-  - **Note:** Uses dense-only mode due to TPU limitation
-
-### Validation Scripts
-
-- **[validate_score_artifacts.py](investigations/scripts/validate_score_artifacts.py)** ← **NEW**
-  - Validates JSON artifact files against expected schemas
-  - Supports workload, matrix, and comparison schemas
-  - CLI with verbose mode and JSON output
-
-### Battletest Scripts
-
-- **[soak_runner.py](scripts/multi_item/soak_runner.py)** ← **NEW**
-  - Weighted mixed-load harness with deterministic seed and Poisson arrivals
-  - Emits per-request CSV/JSONL and run summary JSON
-
-- **[server_metrics_sampler.py](scripts/multi_item/server_metrics_sampler.py)** ← **NEW**
-  - Samples RSS/VSZ plus `/get_server_info` and optional `/metrics`
-  - Emits time-series artifacts and memory trend summaries
-
-- **[launch_mode_server.sh](scripts/multi_item/launch_mode_server.sh)** ← **NEW**
-  - Mode-specific launcher with process cleanup and health checks
-
-- **[run_mode_trials.sh](scripts/multi_item/run_mode_trials.sh)** ← **NEW**
-  - Restart + warmup + measured rerun orchestrator for single/packed/prefill+extend
-
-- **[run_phase4_chaos.sh](scripts/multi_item/run_phase4_chaos.sh)** ← **NEW**
-  - Automates phase-4 failure injection and recovery checks
-
-- **[run_single_item_regression_main_vs_feat.sh](scripts/multi_item/run_single_item_regression_main_vs_feat.sh)** ← **NEW**
-  - Runs same-profile single-item throughput comparison for `main` vs `feat`
 
 ## Runbooks
 
@@ -284,6 +225,11 @@ Quick reference for all design documents, decisions, and guides in this reposito
 
 ## Reports
 
+- **[Multi-Item Scoring v1 Blocker Fixes 2026-02-14](reports/multi-item-scoring-v1-blocker-fixes-2026-02-14.md)** ← **NEW**
+  - Addendum for PR #24 pre-merge blocker closure (`B2`, `C3`)
+  - Includes deterministic repro, fix set, and required gate reruns
+  - Artifacts: `reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/`
+
 - **[Profiling Session 2026-02-05](reports/profiling-session-2026-02-05.md)** ← **NEW**
   - End-to-end profiling of sglang-jax on TPU v6e
   - TinyLlama 1.1B model, 15 generate requests
@@ -308,16 +254,6 @@ Quick reference for all design documents, decisions, and guides in this reposito
   - Run-state snapshot for current cloud execution attempt
   - Documents TPU readiness and GPU quota/capacity blocker
   - Captures follow-up steps for unblocking full comparison
-
-- **[Multi-Item Prefill+Extend TPU Benchmark 2026-02-13](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md)** ← **NEW**
-  - Focused benchmark of `test/srt/test_bench_multi_item_score.py` on TPU v6e-1
-  - Stable result: 525.87 items/sec (prefill+extend) vs 52.18 items/sec (packed)
-  - Includes tuned benchmark profile and reproducible commands
-
-- **[Multi-Item Scoring v1 Battletest 2026-02-13 to 2026-02-17](reports/multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md)** ← **NEW**
-  - Pre-merge battletest evidence for PR #24 merge gate
-  - Includes correctness/stability/performance/failure-injection outcomes
-  - Includes criterion-by-criterion GO/NO-GO decision
 
 ## Test Plans
 
@@ -362,12 +298,6 @@ Quick reference for all design documents, decisions, and guides in this reposito
 - `investigations/scripts/compare_score_matrix_results.py`
 - `investigations/scripts/render_jax_vs_pytorch_final_report.py`
 - `scripts/run_all_jax_vs_pytorch_multi_item.sh` (G4-only orchestrator)
-- `scripts/multi_item/soak_runner.py`
-- `scripts/multi_item/server_metrics_sampler.py`
-- `scripts/multi_item/launch_mode_server.sh`
-- `scripts/multi_item/run_mode_trials.sh`
-- `scripts/multi_item/run_phase4_chaos.sh`
-- `scripts/multi_item/run_single_item_regression_main_vs_feat.sh`
 
 ## Document Relationships
 
@@ -455,8 +385,6 @@ Runbook: Debugging
 - [RFC-011: Comprehensive Profiling Framework](rfcs/011-profiling-design.md) ← NEW: Profiling guides
 - [JAX vs PyTorch Multi-Item Comparison (2026-02-11)](reports/jax-vs-pytorch-multi-item-comparison-2026-02-11.md) ← Cross-backend evaluation report
 - [JAX vs PyTorch Execution Status (2026-02-12)](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md) ← TPU-ready, GPU-blocked snapshot
-- [Multi-Item Prefill+Extend TPU Benchmark (2026-02-13)](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md) ← Stable 526 items/sec run
-- [Multi-Item Scoring v1 Battletest (2026-02-13 to 2026-02-17)](reports/multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md) ← Pre-merge readiness gate
 - [Multi-Item Scoring TPU Validation (2026-02-07)](reports/multi-item-scoring-tpu-validation-2026-02-07.md) ← RFC-008 rollout evidence
 - [Multi-Item Mask/Chunk Ablation (2026-02-07)](reports/multi-item-mask-chunk-ablation-2026-02-07.md) ← RFC-008 follow-up experiment
 - [v1/ Infrastructure Assessment](investigations/v1-infrastructure-assessment.md)
@@ -519,29 +447,14 @@ See [README.md](README.md) for document workflow and best practices.
 
 ## Recent Updates
 
-- **2026-02-14:** Multi-item scoring v1 pre-merge battletest completed
-  - Added report: [multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md](reports/multi-item-scoring-v1-battletest-2026-02-13-to-2026-02-17.md)
-  - Added raw artifacts: `reports/artifacts/multi-item-scoring-v1-battletest-20260213-20260217/`
-  - Added battletest harness scripts:
-    - `scripts/multi_item/soak_runner.py`
-    - `scripts/multi_item/server_metrics_sampler.py`
-    - `scripts/multi_item/launch_mode_server.sh`
-    - `scripts/multi_item/run_mode_trials.sh`
-    - `scripts/multi_item/run_phase4_chaos.sh`
-    - `scripts/multi_item/run_single_item_regression_main_vs_feat.sh`
-
-- **2026-02-13:** PR #24 description handoff added
-  - Added handoff: [pr-24-description-update-2026-02-13.md](handoffs/pr-24-description-update-2026-02-13.md)
-  - Includes ready-to-paste PR summary, benchmark table, and validation evidence
-
-- **2026-02-13:** Stable high-throughput prefill+extend benchmark on TPU v6e-1
-  - Added report: [multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md](reports/multi-item-prefill-extend-tpu-v6e1-benchmark-2026-02-13.md)
-  - `test/srt/test_bench_multi_item_score.py` benchmark outcome on `Qwen/Qwen3-0.6B`:
-    - Single-item sequential: 10.34 items/sec
-    - Packed: 52.18 items/sec
-    - Prefill+extend: 525.87 items/sec
-    - Prefill+extend vs packed: 10.08x
-  - Added reproducible raw artifacts under `reports/artifacts/prefill-extend-tpu-v6e1-20260213/`
+- **2026-02-14:** PR #24 blocker fixes validated (B2/C3) with full gate rerun
+  - Added addendum report: [multi-item-scoring-v1-blocker-fixes-2026-02-14.md](reports/multi-item-scoring-v1-blocker-fixes-2026-02-14.md)
+  - Added artifacts root: `reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/`
+  - Final validation highlights:
+    - Recovery gate: explicit fault-time failures (`http_error`) + clean restart recovery
+    - Concurrency gate (`C=2`, `N<=100`): p99 `146.49 ms`
+    - Soak (2h): error rate `0.0`
+    - Benchmark spot-check: `480.14 items/sec`
 
 - **2026-02-12:** TPU-ready / GPU-blocked execution status documented
   - Added execution snapshot: [jax-vs-pytorch-multi-item-execution-status-2026-02-12.md](reports/jax-vs-pytorch-multi-item-execution-status-2026-02-12.md)

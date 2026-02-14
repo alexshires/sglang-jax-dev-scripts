@@ -1,0 +1,89 @@
+{
+  "config": {
+    "url": "http://127.0.0.1:30000/v1/score",
+    "model": "/models/Qwen/Qwen3-0.6B",
+    "duration": "2m",
+    "duration_seconds": 120.0,
+    "concurrency": 1,
+    "arrival_rate_requests_per_sec": 1.0,
+    "seed": 20260213,
+    "query_tokens": 2000,
+    "tokens_per_item": 20,
+    "label_token_ids": [
+      9834,
+      902
+    ],
+    "apply_softmax": true,
+    "validate_score_vector_length": true,
+    "mix": {
+      "large": 1.0
+    },
+    "max_requests": 1
+  },
+  "artifacts": {
+    "requests_csv": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v2/gate_sanity_full_requests.csv",
+    "requests_jsonl": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v2/gate_sanity_full_requests.jsonl",
+    "summary_json": "/home/kanna/work/blocker-fix-20260214/sglang-jax-dev-scripts-clean/reports/artifacts/multi-item-scoring-v1-blocker-fixes-20260214/phase4_gates_rerun_v2/gate_sanity_full_summary.json"
+  },
+  "run": {
+    "started_at_unix": 1771083302.591601,
+    "ended_at_unix": 1771083376.63067,
+    "started_at_iso": "2026-02-14T15:35:02.591601+00:00",
+    "ended_at_iso": "2026-02-14T15:36:16.630670+00:00",
+    "actual_runtime_seconds": 74.03906885097967,
+    "scheduled_requests": 1,
+    "completed_requests": 1
+  },
+  "results": {
+    "requests_total": 1,
+    "requests_ok": 1,
+    "requests_error": 0,
+    "error_rate": 0.0,
+    "ok_items_total": 500,
+    "throughput_items_per_sec": 6.753191359096679,
+    "throughput_requests_per_sec": 0.013506382718193358,
+    "latency_ms_all": {
+      "p50": 74037.84843100584,
+      "p95": 74037.84843100584,
+      "p99": 74037.84843100584,
+      "mean": 74037.84843100584,
+      "min": 74037.84843100584,
+      "max": 74037.84843100584
+    },
+    "latency_ms_ok_only": {
+      "p50": 74037.84843100584,
+      "p95": 74037.84843100584,
+      "p99": 74037.84843100584,
+      "mean": 74037.84843100584,
+      "min": 74037.84843100584,
+      "max": 74037.84843100584
+    },
+    "error_reason_counts": {},
+    "by_scenario": {
+      "large": {
+        "configured_item_count": 500,
+        "configured_weight": 1.0,
+        "requests_total": 1,
+        "requests_ok": 1,
+        "requests_error": 0,
+        "error_rate": 0.0,
+        "items_ok": 500,
+        "latency_ms": {
+          "p50": 74037.84843100584,
+          "p95": 74037.84843100584,
+          "p99": 74037.84843100584,
+          "mean": 74037.84843100584,
+          "min": 74037.84843100584,
+          "max": 74037.84843100584
+        }
+      }
+    },
+    "first_run_penalty": {
+      "first_window_requests": 1,
+      "steady_window_requests": 1,
+      "first_mean_latency_ms": 74037.84843100584,
+      "steady_mean_latency_ms": 74037.84843100584,
+      "ratio_first_over_steady": 1.0
+    }
+  }
+}
